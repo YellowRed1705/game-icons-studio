@@ -421,6 +421,86 @@ function Invoke-CoverSelection {
 }
 
 # ============================================================
+#  FOLDER ICON CUSTOMIZATION
+# ============================================================
+
+function Set-FolderCustomIcon {
+    <#
+        Sets a custom icon for a folder using desktop.ini.
+        1. Removes ReadOnly, System, Hidden from existing desktop.ini and folder_icon.ico
+        2. Copies IcoPath to FolderPath\folder_icon.ico (Hidden+System)
+        3. Creates/overwrites desktop.ini with Unicode encoding (Hidden+System)
+        4. Sets folder attribute to ReadOnly (required for Windows to read desktop.ini)
+        5. Calls SHChangeNotify to refresh the shell
+    #>
+    param(
+        [Parameter(Mandatory)][string]$FolderPath,
+        [Parameter(Mandatory)][string]$IcoPath
+    )
+
+    if (-not (Test-Path -LiteralPath $FolderPath -PathType Container)) { throw "Folder not found: $FolderPath" }
+    if (-not (Test-Path -LiteralPath $IcoPath -PathType Leaf))         { throw "Icon file not found: $IcoPath" }
+
+    $desktopIniPath = Join-Path $FolderPath 'desktop.ini'
+    $folderIconPath = Join-Path $FolderPath 'folder_icon.ico'
+
+    # Remove attributes from existing files to prevent Access Denied errors.
+    # -Force is required: Get-Item does not see Hidden/System files otherwise.
+    $protectedMask = [System.IO.FileAttributes]::ReadOnly -bor [System.IO.FileAttributes]::System -bor [System.IO.FileAttributes]::Hidden
+    foreach ($existing in @($desktopIniPath, $folderIconPath)) {
+        if (Test-Path -LiteralPath $existing) {
+            try {
+                $item = Get-Item -LiteralPath $existing -Force -ErrorAction Stop
+                $item.Attributes = [System.IO.FileAttributes]::Normal
+            } catch {
+                Write-Log "Could not clear attributes on '$existing': $($_.Exception.Message)" 'WARN' $true
+            }
+        }
+    }
+
+    # Copy icon file to folder
+    Copy-Item -LiteralPath $IcoPath -Destination $folderIconPath -Force -ErrorAction Stop
+    # Set the copied icon as Hidden+System
+    $iconItem = Get-Item -LiteralPath $folderIconPath -Force
+    $iconItem.Attributes = [System.IO.FileAttributes]::Hidden -bor [System.IO.FileAttributes]::System
+
+    # Create/overwrite desktop.ini with Unicode encoding
+    $desktopIniContent = "[.ShellClassInfo]`r`nIconResource=folder_icon.ico,0`r`n"
+    [System.IO.File]::WriteAllText($desktopIniPath, $desktopIniContent, [System.Text.Encoding]::Unicode)
+    # Set desktop.ini as Hidden+System
+    $iniItem = Get-Item -LiteralPath $desktopIniPath -Force
+    $iniItem.Attributes = [System.IO.FileAttributes]::Hidden -bor [System.IO.FileAttributes]::System
+
+    # Set folder attribute to ReadOnly (vital for Windows to read desktop.ini)
+    $folderItem = Get-Item -LiteralPath $FolderPath -Force
+    $folderItem.Attributes = $folderItem.Attributes -bor [System.IO.FileAttributes]::ReadOnly
+
+    # Notify Windows shell of the change
+    try {
+        if (-not ('Win32.Shell' -as [type])) {
+            Add-Type -Namespace Win32 -Name Shell -MemberDefinition '
+                [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+                public static extern void SHChangeNotify(int wEventId, uint uFlags, string dwItem1, IntPtr dwItem2);
+            '
+        }
+        $SHCNE_UPDATEDIR = 0x00001000
+        $SHCNE_UPDATEITEM = 0x00002000
+        $SHCNE_ATTRIBUTES = 0x00000800
+        $SHCNF_PATHW = 0x0005
+        $SHCNF_FLUSHNOWAIT = 0x3000
+        $flags = [uint32]($SHCNF_PATHW -bor $SHCNF_FLUSHNOWAIT)
+        [Win32.Shell]::SHChangeNotify($SHCNE_ATTRIBUTES, $flags, $FolderPath, [IntPtr]::Zero)
+        [Win32.Shell]::SHChangeNotify($SHCNE_UPDATEITEM, $flags, $FolderPath, [IntPtr]::Zero)
+        [Win32.Shell]::SHChangeNotify($SHCNE_UPDATEDIR, $flags, $FolderPath, [IntPtr]::Zero)
+    } catch {
+        # If SHChangeNotify fails, the icon may not refresh immediately but will appear after Explorer restart
+        Write-Log "SHChangeNotify failed: $($_.Exception.Message)" 'WARN' $true
+    }
+
+    Write-Log "Folder icon set: $FolderPath -> $IcoPath" 'OK' $true
+}
+
+# ============================================================
 #  APPLY PIPELINE (download -> build -> backup -> apply -> report)
 # ============================================================
 
@@ -447,7 +527,7 @@ function Invoke-ApplyPipeline {
         $r = $Resolutions[$key]
         if ($r.Failed -or $r.Cached -or $r.Placeholder) { continue }
         if ([string]::IsNullOrWhiteSpace($r.ArtworkUrl) -or [string]::IsNullOrWhiteSpace($r.RawPath)) { continue }
-        if (-not (Test-Path $r.RawPath)) {
+        if (($r.ArtworkUrl -notlike "/cache/*") -and -not (Test-Path $r.RawPath)) {
             $downloadQueue.Add([PSCustomObject]@{ Url = $r.ArtworkUrl; Dest = $r.RawPath })
         }
     }
@@ -598,7 +678,7 @@ function Invoke-ApplyPipeline {
 
     # ---------- PHASE 4/5: Apply ----------
     $swPhase = [System.Diagnostics.Stopwatch]::StartNew()
-    Show-PhaseBanner "PHASE 4/5: APPLY ($(@($Shortcuts).Count) shortcuts)"
+    Show-PhaseBanner "PHASE 4/5: APPLY ($(@($Shortcuts).Count) items)"
 
     $applyDone = 0
     foreach ($s in $Shortcuts) {
@@ -614,7 +694,18 @@ function Invoke-ApplyPipeline {
         }
 
         try {
-            Set-ShortcutIcon -ShortcutPath $s.Path -IcoPath $r.IcoPath
+            $isFolder = $false
+            if ($s.PSObject.Properties.Name -contains 'IsFolder') {
+                $isFolder = [bool]$s.IsFolder
+            } else {
+                $isFolder = Test-Path -Path $s.Path -PathType Container -ErrorAction SilentlyContinue
+            }
+
+            if ($isFolder) {
+                Set-FolderCustomIcon -FolderPath $s.Path -IcoPath $r.IcoPath
+            } else {
+                Set-ShortcutIcon -ShortcutPath $s.Path -IcoPath $r.IcoPath
+            }
 
             $s.Status = 'Updated'
             $s.Detail = if ($r.Placeholder) { '-> placeholder cover' } else { "-> $([System.IO.Path]::GetFileName($r.IcoPath))" }
