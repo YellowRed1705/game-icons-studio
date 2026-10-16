@@ -308,7 +308,34 @@ function Get-WebAppHtml {
   .back-btn:hover { border-color:var(--accent); }
   .input-path { width:min(520px,70vw); background:var(--panel2); color:var(--text);
     border:1px solid var(--line); border-radius:10px; padding:11px 14px; font-size:.9rem; }
+  .ghost.btn-google { border-color:#38bdf8; color:#38bdf8; font-weight:600; }
+  .ghost.btn-google:hover { background:linear-gradient(135deg,#0284c7,#2563eb); color:#fff; box-shadow:0 0 0 1px rgba(56,189,248,.5), 0 8px 22px rgba(56,189,248,.4); }
+  .custom-layout { display:flex; gap:24px; align-items:stretch; justify-content:center; flex-wrap:wrap; width:100%; }
+  .drop-zone {
+    flex:1 1 320px; min-height:220px; border:2px dashed var(--accent); border-radius:16px;
+    background:var(--panel2); display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:10px; padding:20px; cursor:pointer; text-align:center;
+    transition:all .15s ease;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color:var(--good); background:rgba(52,211,153,.08); transform:scale(1.01);
+  }
+  .preview-box {
+    flex:0 0 240px; display:flex; flex-direction:column; align-items:center; gap:10px;
+    background:var(--panel2); border:1px solid var(--line); border-radius:16px; padding:16px;
+  }
+  #customCanvas {
+    width:180px; height:180px; border-radius:24px; border:2px solid var(--accent);
+    background:repeating-conic-gradient(#1a1e27 0% 25%, #141821 0% 50%) 50% / 16px 16px;
+  }
+  .url-row { display:flex; gap:8px; width:100%; max-width:680px; justify-content:center; flex-wrap:wrap; }
   .hidden { display:none !important; }
+  html[dir="rtl"] { direction: rtl; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
+  html[dir="rtl"] .iconbtn, html[dir="rtl"] .theme-btn, html[dir="rtl"] .ghost { margin-left: 0; margin-right: 8px; }
+  html[dir="rtl"] .logo-img { margin-right: 0; margin-left: 10px; }
+  html[dir="rtl"] .brand h1, html[dir="rtl"] .brand p { text-align: right; }
+  html[dir="rtl"] .footer-nav { flex-direction: row-reverse; }
+  html[dir="rtl"] .kbd-hint { direction: ltr; }
 </style>
 </head>
 <body>
@@ -319,6 +346,7 @@ function Get-WebAppHtml {
     <p>From generic icons to a game shelf.</p>
   </div>
   <div class="spacer"></div>
+  <button class="iconbtn" id="langBtn" onclick="toggleLang()" title="Change Language">🌐 عربي</button>
   <button class="iconbtn" id="homeBtn" onclick="goHome()" title="Home">&#8962; Home</button>
   <button class="iconbtn" id="aboutBtn" onclick="showAbout()" title="What is GIS?">&#10067; What is GIS</button>
   <button class="iconbtn" id="summaryBtn" onclick="returnToSummary()" title="Back to your results summary" style="display:none;">&#8617; Summary</button>
@@ -388,6 +416,7 @@ function Get-WebAppHtml {
     <div class="btn-row" id="noartBtns">
       <button class="big-btn btn-good" data-nav onclick="acceptNoArt()">&#10022; Generate a placeholder icon</button>
       <button class="ghost" data-nav onclick="showOtherMatches()">Try a different game</button>
+      <button class="ghost btn-google" data-nav onclick="openGoogleCustom()">&#128269; Google / Custom Cover</button>
     </div>
     <div class="footer-nav">
       <button class="back-btn" onclick="goBack()">&larr; Back</button>
@@ -404,17 +433,27 @@ function Get-WebAppHtml {
     <div class="home-grid">
       <button class="home-btn" data-home="0" onclick="startFullScan()">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18"/><path d="M8 14h2M12 14h4"/></svg>
-        <div class="t">Choose your game shortcuts folder</div>
+        <div class="t">Shortcuts Folder</div>
         <div class="d">Scan every shortcut in your games folder and replace their icons.</div>
       </button>
-      <button class="home-btn" data-home="1" onclick="startChangeIcons()">
+      <button class="home-btn" data-home="1" onclick="startFolderMode('all')">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="M12 11v6"/><path d="M9 14l3 3 3-3"/></svg>
+        <div class="t">All Sub-Folders</div>
+        <div class="d">Set custom icons for all sub-folders in a parent directory.</div>
+      </button>
+      <button class="home-btn" data-home="2" onclick="startFolderMode('single')">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <div class="t">Specific Folder</div>
+        <div class="d">Customize the icon for one specifically chosen folder.</div>
+      </button>
+      <button class="home-btn" data-home="3" onclick="startChangeIcons()">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-        <div class="t">Change specific icons</div>
+        <div class="t">Specific Shortcuts</div>
         <div class="d">Pick just the shortcuts you want to redo and choose new covers.</div>
       </button>
-      <button class="home-btn" data-home="2" onclick="repairIconCache()">
+      <button class="home-btn" data-home="4" onclick="repairIconCache()">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-5.6 5.6a1.5 1.5 0 0 0 2.1 2.1l5.6-5.6a4 4 0 0 0 5.4-5.4l-2.4 2.4-2.1-2.1Z"/></svg>
-        <div class="t">Repair icon cache</div>
+        <div class="t">Repair Icon Cache</div>
         <div class="d">Fix blank or stale icons by refreshing the Windows icon cache.</div>
       </button>
     </div>
@@ -571,8 +610,8 @@ function Get-WebAppHtml {
 
   <!-- FOLDER -->
   <div class="card center-col hidden" id="step-folder">
-    <h2>Choose your games folder</h2>
-    <p class="sub">Select the folder that holds your game shortcuts (.lnk), or paste its path.</p>
+    <h2 id="folderTitle">Choose your games folder</h2>
+    <p class="sub" id="folderSubtitle">Select the folder that holds your game shortcuts (.lnk), or paste its path.</p>
     <button class="big-btn" onclick="browseFolder()">&#128193; Browse for folder...</button>
     <input class="input-path" id="folderInput" placeholder="...or paste a folder path here and press Enter" />
     <div id="folderPath" class="sub"></div>
@@ -613,6 +652,7 @@ function Get-WebAppHtml {
       <button class="big-btn btn-good" data-nav onclick="acceptMatch()">&#10003; Looks good</button>
       <button class="ghost g-warn" data-nav onclick="showArtwork()">Choose a different cover</button>
       <button class="ghost g-bad" data-nav onclick="showOtherMatches()">The game is wrong</button>
+      <button class="ghost btn-google" data-nav onclick="openGoogleCustom()">&#128269; Google / Custom Cover</button>
     </div>
     <div class="btn-row" style="margin-top:-6px;">
       <button class="ghost auto-btn" data-nav onclick="chooseAllAuto()" title="Let the app pick every confident match and only stop for uncertain ones">&#9889; Choose all games &amp; covers automatically</button>
@@ -681,6 +721,46 @@ function Get-WebAppHtml {
       <button class="ghost" data-nav onclick="goHome()">Back to home</button>
     </div>
   </div>
+  <!-- CUSTOM GOOGLE COVER -->
+  <div class="card center-col hidden" id="step-custom">
+    <h2>Google Images / Custom Cover</h2>
+    <p class="sub" id="customShortcutTitle"></p>
+
+    <div class="btn-row">
+      <button class="big-btn btn-go" onclick="reopenGoogleSearch()">&#128269; Open Google Images Search</button>
+    </div>
+
+    <div class="custom-layout">
+      <div class="drop-zone" id="customDropZone" onclick="triggerCustomFile()">
+        <div style="font-size:2.2rem;">&#128229;</div>
+        <div style="font-weight:700;font-size:1.02rem;">Drag &amp; Drop an image here, or press <kbd style="background:var(--panel);padding:2px 7px;border-radius:6px;border:1px solid var(--line);">Ctrl+V</kbd></div>
+        <div class="sub" style="margin:0;max-width:340px;">Right-click any image on Google Images &rarr; <b>Copy image</b> &rarr; press <b>Ctrl+V</b> here, or drag the image directly into this box, or click to browse your PC.</div>
+        <input type="file" id="customFileInput" accept="image/*" style="display:none" onchange="handleCustomFileSelect(event)" />
+      </div>
+
+      <div class="preview-box">
+        <div style="font-size:.82rem;color:var(--muted);font-weight:600;">ICON PREVIEW (1:1)</div>
+        <canvas id="customCanvas" width="512" height="512"></canvas>
+        <div class="view-toggle" style="margin:0;">
+          <button class="ghost vt-btn active" id="fitCrop" onclick="setCustomFitMode('crop')" title="Center crop to square">Crop 1:1</button>
+          <button class="ghost vt-btn" id="fitContain" onclick="setCustomFitMode('contain')" title="Fit whole image with transparent padding">Fit</button>
+          <button class="ghost vt-btn" id="fitStretch" onclick="setCustomFitMode('stretch')" title="Stretch to square">Stretch</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="url-row">
+      <input class="input-path" id="customUrlInput" placeholder="...or paste a direct image URL / Google link here and press Enter" style="flex:1;min-width:260px;" onkeydown="if(event.key==='Enter') loadCustomUrlInput()" />
+      <button class="ghost g-good" onclick="loadCustomUrlInput()">Load URL</button>
+    </div>
+
+    <div id="customStatusMsg" class="sub" style="min-height:1.2em;color:var(--accent2);"></div>
+
+    <div class="btn-row">
+      <button class="big-btn btn-good" id="customApplyBtn" disabled onclick="applyCustomCover()">&#10003; Use this cover</button>
+      <button class="ghost" onclick="goBack()">&larr; Cancel / Back</button>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -695,14 +775,316 @@ PLACEHOLDER_JS
 
 function Get-WebAppJs {
     @'
+var i18n = {
+  ar: {
+    langBtn: "🌐 English",
+    homeSubtitle: "تنزيل الأغلفة. تغيير الأيقونات. تحديث مجلد ألعابك.",
+    btnShortcuts: "مجلد الاختصارات",
+    descShortcuts: "فحص جميع اختصارات الألعاب (.lnk) في المجلد واستبدال أيقوناتها.",
+    btnAllFolders: "جميع المجلدات الفرعية",
+    descAllFolders: "فحص جميع المجلدات الفرعية للألعاب داخل مسار رئيسي وتخصيص أيقوناتها.",
+    btnSingleFolder: "مجلد محدد",
+    descSingleFolder: "اختيار مجلد لعبة واحد محدد لتخصيص أيقونته.",
+    btnSpecific: "اختصارات محددة",
+    descSpecific: "اختيار ملفات اختصارات محددة لتغيير أيقوناتها.",
+    btnRepair: "إصلاح أيقونات النظام",
+    descRepair: "تحديث ذاكرة التخزين المؤقت للأيقونات في الويندوز لحل مشكلة الأيقونات البيضاء.",
+    btnQuick: "↻ إعادة تطبيق سريع",
+    btnHistory: "🕒 السجل",
+    folderTitle: "اختر مجلد الألعاب",
+    folderSub: "اختر المجلد الذي يحتوي على ألعابك، أو الصق المسار هنا.",
+    scanBtn: "فحص المجلد ←",
+    backBtn: "→ رجوع",
+    stepFolder: "المجلد", stepMatch: "المطابقة والأغلفة", stepReview: "المراجعة", stepDone: "اكتمل",
+    confirmTitle: "هل تعجبك هذه الأيقونة؟",
+    confirmAutoTitle: "لست متأكداً من هذه اللعبة - هل تبدو صحيحة؟",
+    shortcutProgress: "العنصر {0} من {1}:  {2}",
+    releasedYear: "إصدار {0}",
+    highestConfidence: "أعلى نسبة تطابق مع أفضل غلاف متاح.",
+    whichGame: 'ما هي اللعبة "{0}"؟',
+    btnLooksGood: "✓ تبدو ممتازة",
+    btnDiffCover: "اختر غلافاً مختلفاً",
+    btnWrongGame: "اللعبة خاطئة",
+    btnAutoAll: "⚡ اختيار جميع الألعاب والأغلفة تلقائياً",
+    btnReturnGrid: "⮩ العودة للشبكة",
+    titleMatches: "اختر اللعبة الصحيحة",
+    titleArtwork: "اختر الغلاف",
+    titleReview: "اختر الأيقونات التي لا تعجبك لتغييرها",
+    subReview: "انقر على أي أيقونة لا تعجبك (سيتم تظليلها)، ثم اضغط على 'تغيير هذه الأيقونات'. إذا كانت جميعها ممتازة، اضغط على إنهاء.",
+    btnChangeSel: "تغيير هذه الأيقونات",
+    btnFinishApply: "إنهاء! (تطبيق التغييرات)",
+    btnStartOver: "البدء من جديد",
+    reportTitle: "تم الانتهاء",
+    reportSub: "هذا ملخص للعملية. يمكنك الإنهاء الآن، أو العودة لشبكة المراجعة لتعديل أي أيقونة.",
+    statUpdated: "تم التحديث", statMatched: "تمت المطابقة", statPlaceholder: "أغلفة افتراضية", statSkipped: "تم التخطي", statFailed: "فشل",
+    runAtGlance: "نظرة سريعة على العملية",
+    miniProcessed: "عناصر تمت معالجتها", miniUpdated: "أيقونات تم تحديثها", miniSuccess: "نسبة النجاح", miniPlaceholders: "أغلفة افتراضية صُنعت",
+    btnFinishOpen: "إنهاء وفتح المجلد ✓",
+    btnReturnReview: "العودة للشبكة (مراجعة وتغيير) ⮹",
+    searchReview: "...ابحث في ألعابك 🔍",
+    googleSearchBtn: "افتح بحث صور جوجل 🔍",
+    dragDropText: "اسحب وأفلت الصورة هنا، أو اضغط Ctrl+V",
+    autoBannerText: "⚡ الوضع التلقائي مفعل. لم أكن متأكداً من هذه اللعبة، يرجى تأكيدها.",
+    urlPlaceholder: "أو الصق رابط صورة مباشر / رابط جوجل هنا واضغط Enter...",
+    btnBackHome: "العودة للرئيسية",
+    ftMainAll: "اختر المجلد الرئيسي لألعابك",
+    fsMainAll: "اختر المجلد الرئيسي الذي يحتوي على مجلدات ألعابك الفرعية، أو الصق مساره.",
+    btnScanAll: "فحص جميع المجلدات الفرعية ←",
+    ftSingle: "اختر مجلد لعبة محدد",
+    fsSingle: "اختر مجلد اللعبة الذي تريد تخصيص أيقونته، أو الصق مساره.",
+    btnScanSingle: "فحص هذا المجلد ←",
+    applyTitle: "جاهز للتطبيق",
+    applyMsg: "سيتم تحديث {0} {1} بالأيقونات التي اخترتها.",
+    applyDups: "تنبيه: بعض العناصر تشير لنفس اللعبة، لذا ستحصل على نفس الأيقونة: {0}.",
+    applySub: "سيتم تعيين الأيقونات الجديدة. ستستمر ألعابك في العمل كما كانت تماماً.",
+    btnYesApply: "نعم، قم بالتطبيق الآن",
+    btnGoBack: "تراجع",
+    memoryTitle: "مرحباً بعودتك!",
+    memoryCountMsg: "لديك {0} {1} محفوظة من قبل.",
+    memorySub: "أتذكر الألعاب والأغلفة التي اخترتها في المرة السابقة. هل تريدني أن أستخدمها مرة أخرى، أم نبدأ من جديد؟",
+    btnUseMemory: "استخدم خياراتي السابقة ✓",
+    btnStartOverMemory: "البدء من جديد كلياً",
+    choiceSingular: "خيار", choicePlural: "خيارات",
+    nounFolder: "مجلد", nounFolders: "مجلدات",
+    nounShortcut: "اختصار", nounShortcuts: "اختصارات",
+    btnHomeNav: "الرئيسية"
+  },
+  en: {
+    langBtn: "🌐 عربي",
+    homeSubtitle: "Download covers. Replace icons. Modernize your Games folder.",
+    btnShortcuts: "Shortcuts Folder",
+    descShortcuts: "Scan all game shortcuts (.lnk) in a folder and replace their icons.",
+    btnAllFolders: "All Sub-Folders",
+    descAllFolders: "Scan all game folders inside a directory and set their folder icons.",
+    btnSingleFolder: "Specific Folder",
+    descSingleFolder: "Pick one specific game folder and customize its folder icon.",
+    btnSpecific: "Specific Shortcuts",
+    descSpecific: "Pick just the shortcuts you want to redo and choose new covers.",
+    btnRepair: "Repair Icon Cache",
+    descRepair: "Fix blank or stale icons by refreshing the Windows icon cache.",
+    btnQuick: "↻ Quick re-apply",
+    btnHistory: "🕒 History",
+    folderTitle: "Choose your games folder",
+    folderSub: "Select the folder that holds your game shortcuts (.lnk), or paste its path.",
+    scanBtn: "Scan this folder →",
+    backBtn: "← Back",
+    stepFolder: "Folder", stepMatch: "Match & Artwork", stepReview: "Review", stepDone: "Done",
+    confirmTitle: "Do you like this icon?",
+    confirmAutoTitle: "Not sure about this one - do you like it?",
+    shortcutProgress: "Item {0} of {1}:  {2}",
+    releasedYear: "Released {0}",
+    highestConfidence: "Highest-confidence match with its best Grid cover.",
+    whichGame: 'Which game is "{0}"?',
+    btnLooksGood: "✓ Looks good",
+    btnDiffCover: "Choose a different cover",
+    btnWrongGame: "The game is wrong",
+    btnAutoAll: "⚡ Choose all games & covers automatically",
+    btnReturnGrid: "⮩ Return to grid",
+    titleMatches: "Pick the correct game",
+    titleArtwork: "Choose a cover",
+    titleReview: "Pick the ones you don't like and change them",
+    subReview: "Click any icons you are not happy with (they dim when selected), then press 'Change these icons'. Happy with all of them? Just press Finish.",
+    btnChangeSel: "Change these icons",
+    btnFinishApply: "FINISH! (Apply all changes)",
+    btnStartOver: "Start over",
+    reportTitle: "All done",
+    reportSub: "Here is a summary of this run. You can finish, or go back to the grid to review and change any icons.",
+    statUpdated: "Updated", statMatched: "Matched", statPlaceholder: "Placeholder", statSkipped: "Skipped", statFailed: "Failed",
+    runAtGlance: "THIS RUN AT A GLANCE",
+    miniProcessed: "Items processed", miniUpdated: "Icons updated", miniSuccess: "Success rate", miniPlaceholders: "Placeholders made",
+    btnFinishOpen: "Finish & open my folder ✓",
+    btnReturnReview: "Return to the grid (review & change) ⮹",
+    searchReview: "...Search your games 🔍",
+    googleSearchBtn: "Open Google Images Search 🔍",
+    dragDropText: "Drag & Drop an image here, or press Ctrl+V",
+    autoBannerText: "⚡ Auto mode is on. I was not sure about this one, so please confirm it.",
+    urlPlaceholder: "or paste a direct image URL / Google link here and press Enter...",
+    btnBackHome: "Back to home",
+    ftMainAll: "Choose your main games directory",
+    fsMainAll: "Select the parent directory that contains all your game sub-folders, or paste its path.",
+    btnScanAll: "Scan all sub-folders →",
+    ftSingle: "Choose a specific game folder",
+    fsSingle: "Select the single game folder whose icon you want to customize, or paste its path.",
+    btnScanSingle: "Scan this folder →",
+    applyTitle: "Ready to apply",
+    applyMsg: "This will update {0} {1} with your chosen icons.",
+    applyDups: "Heads up: some items point to the same game, so they will get the same icon: {0}.",
+    applySub: "This sets the new icons on your items. They keep working exactly as before.",
+    btnYesApply: "Yes, apply now",
+    btnGoBack: "Go back",
+    memoryTitle: "Welcome back!",
+    memoryCountMsg: "You have {0} remembered {1} from before.",
+    memorySub: "I remember the games and covers you picked last time. Want me to use those again, or start fresh?",
+    btnUseMemory: "Use my previous choices ✓",
+    btnStartOverMemory: "Start over from scratch",
+    choiceSingular: "choice", choicePlural: "choices",
+    nounFolder: "folder", nounFolders: "folders",
+    nounShortcut: "shortcut", nounShortcuts: "shortcuts",
+    btnHomeNav: "Home"
+  }
+};
+var currentLang = 'en';
+
+function formatStr(str, args) {
+  return str.replace(/{(\d+)}/g, function(match, number) {
+    return typeof args[number] != 'undefined' ? args[number] : match;
+  });
+}
+
+function itemNoun(plural){
+  var t = i18n[currentLang] || i18n['en'];
+  if (isFolderMode()) return plural ? t.nounFolders : t.nounFolder;
+  return plural ? t.nounShortcuts : t.nounShortcut;
+}
+function itemNounCap(plural){
+  // Capitalization is mostly for English, we can just reuse the noun function and capitalize the first letter.
+  var noun = itemNoun(plural);
+  return noun.charAt(0).toUpperCase() + noun.slice(1);
+}
+
+function toggleLang() {
+  currentLang = currentLang === 'en' ? 'ar' : 'en';
+  try { localStorage.setItem('gis-lang', currentLang); } catch(e){}
+  applyLang();
+}
+
+function applyLang() {
+  document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+  document.documentElement.setAttribute('lang', currentLang);
+
+  var t = i18n[currentLang];
+  var el = function(id) { return document.getElementById(id); };
+
+  if(el('langBtn')) el('langBtn').innerHTML = t.langBtn;
+
+  var homeHeroP = document.querySelector('.home-hero p');
+  if(homeHeroP) homeHeroP.textContent = t.homeSubtitle;
+
+  var homeBtns = document.querySelectorAll('.home-btn');
+  if(homeBtns.length >= 5) {
+    homeBtns[0].querySelector('.t').textContent = t.btnShortcuts;
+    homeBtns[0].querySelector('.d').textContent = t.descShortcuts;
+    homeBtns[1].querySelector('.t').textContent = t.btnAllFolders;
+    homeBtns[1].querySelector('.d').textContent = t.descAllFolders;
+    homeBtns[2].querySelector('.t').textContent = t.btnSingleFolder;
+    homeBtns[2].querySelector('.d').textContent = t.descSingleFolder;
+    homeBtns[3].querySelector('.t').textContent = t.btnSpecific;
+    homeBtns[3].querySelector('.d').textContent = t.descSpecific;
+    homeBtns[4].querySelector('.t').textContent = t.btnRepair;
+    homeBtns[4].querySelector('.d').textContent = t.descRepair;
+  }
+
+  var toolBtns = document.querySelectorAll('.tool-btn');
+  if(toolBtns.length >= 2) {
+    toolBtns[0].textContent = t.btnQuick;
+    toolBtns[1].textContent = t.btnHistory;
+  }
+
+  if (typeof updateFolderScreenLabels === 'function') updateFolderScreenLabels();
+
+  var aBanner = el('autoBanner'); if(aBanner) aBanner.innerHTML = t.autoBannerText;
+  var urlIn = el('customUrlInput'); if(urlIn) urlIn.setAttribute('placeholder', t.urlPlaceholder);
+  var bhBtn = document.querySelector('#step-report button[onclick="goHome()"]');
+  if(bhBtn) bhBtn.textContent = t.btnBackHome;
+
+  var stepSpans = document.querySelectorAll('.step-labels span');
+  if (stepSpans.length >= 4) {
+    stepSpans[0].textContent = t.stepFolder;
+    stepSpans[1].textContent = t.stepMatch;
+    stepSpans[2].textContent = t.stepReview;
+    stepSpans[3].textContent = t.stepDone;
+  }
+
+  if(el('confirmTitle')) el('confirmTitle').textContent = (typeof state !== 'undefined' && state.autoAll) ? t.confirmAutoTitle : t.confirmTitle;
+  var confHint = document.querySelector('#step-confirm .hint');
+  if(confHint) confHint.textContent = t.highestConfidence;
+  var cBtns = document.querySelectorAll('#confirmBtns button');
+  if (cBtns.length >= 4) {
+    cBtns[0].textContent = t.btnLooksGood;
+    cBtns[1].textContent = t.btnDiffCover;
+    cBtns[2].textContent = t.btnWrongGame;
+    cBtns[3].textContent = t.googleSearchBtn;
+  }
+  var autoBtn = document.querySelector('.auto-btn');
+  if(autoBtn) autoBtn.textContent = t.btnAutoAll;
+
+  document.querySelectorAll('.rtg').forEach(function(b) { b.textContent = t.btnReturnGrid; });
+
+  var mH2 = document.querySelector('#step-matches h2'); if(mH2) mH2.textContent = t.titleMatches;
+  var aH2 = document.querySelector('#step-artwork h2'); if(aH2) aH2.textContent = t.titleArtwork;
+  var rH2 = document.querySelector('#step-review h2'); if(rH2) rH2.textContent = t.titleReview;
+  var rSub = document.querySelector('#step-review .sub'); if(rSub) rSub.textContent = t.subReview;
+
+  if(el('reviewSearch')) el('reviewSearch').setAttribute('placeholder', t.searchReview);
+  if(el('finishBtn')) el('finishBtn').textContent = t.btnFinishApply;
+  if(el('changeBtn') && typeof updateChangeBtn === 'function') updateChangeBtn();
+  var startOver = document.querySelector('#reviewBtns .g-bad');
+  if(startOver) startOver.textContent = t.btnStartOver;
+
+  var repH2 = document.querySelector('#step-report h2'); if(repH2) repH2.textContent = t.reportTitle;
+  var repSub = document.querySelector('#step-report .sub'); if(repSub) repSub.textContent = t.reportSub;
+  var repBtns = document.querySelectorAll('#reportBtns button');
+  if (repBtns.length >= 2) {
+    repBtns[0].textContent = t.btnFinishOpen;
+    repBtns[1].textContent = t.btnReturnReview;
+  }
+
+  var gBtn = document.querySelector('#step-custom .btn-go');
+  if(gBtn) gBtn.textContent = t.googleSearchBtn;
+  var dropTxt = document.querySelector('#customDropZone > div:nth-child(2)');
+  if(dropTxt) dropTxt.innerHTML = t.dragDropText.replace('Ctrl+V', '<kbd style="background:var(--panel);padding:2px 7px;border-radius:6px;border:1px solid var(--line);">Ctrl+V</kbd>');
+
+  // Ready to Apply Screen
+  var confirmApplyCard = document.getElementById('step-confirm-apply');
+  if(confirmApplyCard) {
+    var h2 = confirmApplyCard.querySelector('h2');
+    if(h2) h2.textContent = t.applyTitle;
+    var subs = confirmApplyCard.querySelectorAll('.sub');
+    if(subs.length > 1) subs[1].textContent = t.applySub;
+    var applyBtns = confirmApplyCard.querySelectorAll('.btn-row button');
+    if(applyBtns.length >= 2) {
+      applyBtns[0].textContent = t.btnYesApply;
+      applyBtns[1].textContent = t.btnGoBack;
+    }
+  }
+
+  // Welcome Back (Memory) Screen
+  var memoryCard = document.getElementById('step-memory');
+  if(memoryCard) {
+    var mh2 = memoryCard.querySelector('h2');
+    if(mh2) mh2.textContent = t.memoryTitle;
+    var msubs = memoryCard.querySelectorAll('.sub');
+    if(msubs.length > 1) msubs[1].textContent = t.memorySub;
+    var memBtns = memoryCard.querySelectorAll('.btn-row button');
+    if(memBtns.length >= 2) {
+      memBtns[0].textContent = t.btnUseMemory;
+      memBtns[1].textContent = t.btnStartOverMemory;
+    }
+  }
+
+  document.querySelectorAll('.back-btn').forEach(function(b) {
+    if (b.textContent.includes('Back') || b.textContent.includes('رجوع')) {
+      b.textContent = t.backBtn;
+    }
+  });
+
+  // Footer Home Buttons (navigational "Home" buttons with the house icon)
+  document.querySelectorAll('.back-btn').forEach(function(b) {
+    if (b.textContent.includes('Home') || b.textContent.includes('الرئيسية')) {
+      b.innerHTML = '&#8962; ' + t.btnHomeNav;
+    }
+  });
+}
+
 var state = {
   mode:'full', folder:'', items:[], pos:0, picks:{}, history:[],
-  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false
+  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false, targetMode:'shortcuts'
 };
 var coverCache = {};
+var currentPollId = 0;
 
 function $(id){ return document.getElementById(id); }
-var SCREENS = ['step-convert','step-convert-ok','step-memory','step-newgames','step-restore-ok','step-history','step-about','step-health','step-confirm-apply','step-key','step-noart','step-home','step-folder','step-loading','step-confirm','step-artwork','step-matches','step-review','step-report'];
+var SCREENS = ['step-custom','step-convert','step-convert-ok','step-memory','step-newgames','step-restore-ok','step-history','step-about','step-health','step-confirm-apply','step-key','step-noart','step-home','step-folder','step-loading','step-confirm','step-artwork','step-matches','step-review','step-report'];
 function show(id){
   SCREENS.forEach(function(s){ $(s).classList.add('hidden'); });
   $(id).classList.remove('hidden');
@@ -799,7 +1181,7 @@ function shutdownMessage(){
 function quitApp(){ api('/api/quit', {}).finally(shutdownMessage); }
 function finishAndOpen(){
   document.body.style.opacity = '0.6';
-  api('/api/finish', {}).finally(shutdownMessage);
+  api('/api/finish', {}).finally(function(){ location.reload(); });
 }
 
 
@@ -828,7 +1210,7 @@ function preloadAround(pos){
 // ---- API KEY ----
 function checkKey(){
   api('/api/key-status', {}).then(function(res){
-    if (res.hasKey){ goHome(); } else { show('step-key'); setTimeout(function(){ $('keyInput').focus(); }, 100); }
+    if (res.hasKey){ showHome(); } else { show('step-key'); setTimeout(function(){ $('keyInput').focus(); }, 100); }
   });
 }
 function openUrl(u){ try { window.open(u, '_blank'); } catch(e){} }
@@ -853,9 +1235,19 @@ function saveKey(){
 }
 
 // ---- HOME ----
+// Hard refresh: fully clears frontend state (and the backend session
+// via the '/' route) so a half-open dialog can never lock the UI.
 function goHome(){
+  location.reload();
+}
+// In-page home used by the startup path (checkKey) to avoid a reload loop.
+function showHome(){
+  currentPollId++; // Cancel any active dialog polling
   state.autoAll = false;
   setProgress(0);
+  // Reset folder screen text to default
+  state.targetMode = 'shortcuts';
+  updateFolderScreenLabels();
   // If there is still no key, stay on the key screen.
   show('step-home');
   state.homeFocus = 0; focusHome();
@@ -884,6 +1276,7 @@ function quickReapply(){
       // automatically end to end.
       state.folder = res.folder;
       state.mode = 'full';
+      state.targetMode = 'shortcuts';
       state.onlyNew = false;
       state.memoryAsked = true;
       state.useMemory = true;
@@ -899,8 +1292,8 @@ function aboutDone(){
   // If the user has not set an API key yet, send them back to setup;
   // otherwise go to the home screen.
   api('/api/key-status', {}).then(function(res){
-    if (res && res.hasKey){ goHome(); } else { show('step-key'); }
-  }).catch(function(){ goHome(); });
+    if (res && res.hasKey){ showHome(); } else { show('step-key'); }
+  }).catch(function(){ showHome(); });
 }
 
 // ---- History (#15) ----
@@ -952,6 +1345,7 @@ function repairIconCache(){
 // ---- FULL SCAN flow ----
 function startFullScan(){
   state.mode = 'full';
+  state.targetMode = 'shortcuts';
   state.onlyNew = false; state.memoryAsked = false;
   setProgress(0);
   show('step-folder');
@@ -968,8 +1362,41 @@ function startFullScan(){
     }
   });
 }
+function updateFolderScreenLabels(){
+  var ft = document.getElementById('folderTitle'), fs = document.getElementById('folderSubtitle'), sb = document.getElementById('scanBtn');
+  if (!ft || !fs) return;
+  var t = i18n[currentLang];
+  if (state.targetMode === 'folders_all'){
+    ft.textContent = t.ftMainAll;
+    fs.textContent = t.fsMainAll;
+    if (sb) sb.textContent = t.btnScanAll;
+  } else if (state.targetMode === 'folders_single'){
+    ft.textContent = t.ftSingle;
+    fs.textContent = t.fsSingle;
+    if (sb) sb.textContent = t.btnScanSingle;
+  } else {
+    ft.textContent = t.folderTitle;
+    fs.textContent = t.folderSub;
+    if (sb) sb.textContent = t.scanBtn;
+  }
+}
+function startFolderMode(type){
+  state.mode = 'full';
+  state.targetMode = (type === 'all') ? 'folders_all' : 'folders_single';
+  state.onlyNew = false; state.memoryAsked = false;
+  setProgress(0);
+  // Update folder screen text based on mode
+  updateFolderScreenLabels();
+  browseFolder();
+}
+function isFolderMode(){
+  return (state.targetMode === 'folders_all' || state.targetMode === 'folders_single');
+}
 function browseFolder(){
-  setLoading('Opening the folder window...', 'A Windows folder window will appear in front. Pick your games folder and click OK.', null);
+  var detail = 'A Windows folder window will appear in front. Pick your games folder and click OK.';
+  if (state.targetMode === 'folders_all'){ detail = 'A Windows folder window will appear in front. Pick the parent folder that holds your game folders and click OK.'; }
+  if (state.targetMode === 'folders_single'){ detail = 'A Windows folder window will appear in front. Pick the game folder you want to customize and click OK.'; }
+  setLoading('Opening the folder window...', detail, null);
   api('/api/browse-folder', {}).then(function(){
     pollDialog(function(res){
       if (res.ok && res.folder){
@@ -989,9 +1416,11 @@ function folderReady(folder){
   $('folderInput').value = folder;
   $('folderPath').textContent = 'Folder ready. Starting...';
   $('scanBtn').classList.remove('hidden');
+  // Folder modes skip the shortcut-only new-game detection.
+  if (isFolderMode()){ startScan(); return; }
   // If this folder was scanned before and has new games, offer that
   // choice; otherwise go straight into scanning.
-  api('/api/new-games-count', { folder: folder }).then(function(res){
+  api('/api/new-games-count', { folder: folder, targetMode: state.targetMode }).then(function(res){
     if (res && res.ok && res.knownFolder && res.newCount > 0){
       $('newGamesCount').textContent = 'You have ' + res.newCount + ' new game' + (res.newCount===1?'':'s') +
         ' in this folder since your last visit.';
@@ -1006,15 +1435,21 @@ function folderReady(folder){
 // responsive while the Windows window is open, and refocuses the
 // browser when it closes.
 function pollDialog(done){
+  currentPollId++;
+  var myId = currentPollId;
   var tick = function(){
+    if (myId !== currentPollId) return; // Abort if a new poll or navigation occurred
     api('/api/dialog-status', {}).then(function(res){
+      if (myId !== currentPollId) return;
       if (res.status === 'done'){
         try { window.focus(); } catch(e){}
         done(res);
       } else {
         setTimeout(tick, 350);
       }
-    }).catch(function(){ setTimeout(tick, 500); });
+    }).catch(function(){
+      if (myId === currentPollId) setTimeout(tick, 500);
+    });
   };
   setTimeout(tick, 350);
 }
@@ -1033,6 +1468,8 @@ function tryTypedFolder(){
 
 function startScan(){
   setProgress(0);
+  // Folder modes have no .lnk health check or .url conversion step.
+  if (isFolderMode()){ runScan(); return; }
   setLoading('Checking your folder...', 'Taking a quick look...', 0);
   api('/api/folder-health', { folder: state.folder }).then(function(h){
     var row = $('healthRow'); row.innerHTML = '';
@@ -1088,7 +1525,8 @@ function runScan(){
     setLoading('Checking your saved choices...', '', 0);
     api('/api/saved-status', {}).then(function(res){
       if (res && res.ok && res.count > 0){
-        $('memoryCount').textContent = 'You have ' + res.count + ' remembered ' + (res.count===1?'choice':'choices') + ' from before.';
+        var tm = i18n[currentLang];
+        $('memoryCount').textContent = formatStr(tm.memoryCountMsg, [res.count, res.count === 1 ? tm.choiceSingular : tm.choicePlural]);
         show('step-memory');
       } else {
         state.useMemory = false; doScan();
@@ -1106,9 +1544,13 @@ function memoryReset(){
 }
 function doScan(){
   setProgress(0);
-  setLoading('Scanning SteamGridDB for your games...', 'Reading your folder...', 0);
+  var folderMode = isFolderMode();
+  var msg = folderMode ? 'Scanning SteamGridDB for your game folders...' : 'Scanning SteamGridDB for your games...';
+  var detail = folderMode ? 'Reading your folders...' : 'Reading your folder...';
+  setLoading(msg, detail, 0);
   var payload = { folder: state.folder };
   if (state.onlyNew){ payload.onlyNew = true; }
+  if (state.targetMode){ payload.targetMode = state.targetMode; }
   api('/api/scan-begin', payload).then(function(res){
     if (!res.ok){ show('step-folder'); $('folderPath').textContent = res.error || 'Scan failed.'; return; }
     beginScanLoop(res.total);
@@ -1141,6 +1583,7 @@ function scanAllInstead(){
 // ---- CHANGE ICONS flow ----
 function startChangeIcons(){
   state.mode = 'change';
+  state.targetMode = 'shortcuts';
   setProgress(0);
   setLoading('Opening the file window...', 'A Windows window will appear in front. Ctrl+click the shortcuts you want to redo, then click Open.', null);
   api('/api/change-files', {}).then(function(){
@@ -1148,7 +1591,7 @@ function startChangeIcons(){
       if (!res.ok || !res.files || !res.files.length){ goHome(); return; }
       setLoading('Scanning SteamGridDB for your games...', 'Reading the files you picked...', 0);
       api('/api/scan-files-begin', { files: res.files }).then(function(r2){
-        if (!r2.ok){ goHome(); alert(r2.error || 'Could not read those files.'); return; }
+        if (!r2.ok){ alert(r2.error || 'Could not read those files.'); goHome(); return; }
         beginScanLoop(r2.total);
       });
     });
@@ -1159,7 +1602,7 @@ function startChangeIcons(){
 function beginScanLoop(total){
   state.items = []; state.pos = 0; state.picks = {}; state.history = [];
   state.total = total || 0;
-  if (state.total === 0){ goHome(); alert('No matchable games were found.'); return; }
+  if (state.total === 0){ alert('No matchable games were found.'); goHome(); return; }
   var est = estimateSeconds(state.total, 0.6);
   setLoading('Scanning your games...', 'About ' + est + ' for ' + state.total + ' game' + (state.total===1?'':'s') + '.', 0);
   scanStep(0);
@@ -1172,7 +1615,7 @@ function estimateSeconds(count, perItem){
 }
 function scanStep(i){
   api('/api/scan-step', { i: i }).then(function(res){
-    if (!res.ok){ goHome(); alert(res.error || 'Scan failed.'); return; }
+    if (!res.ok){ alert(res.error || 'Scan failed.'); goHome(); return; }
     if (res.item){ state.items.push(res.item); preloadItem(res.item); }
     var pct = res.total ? Math.round(res.current/res.total*100) : 0;
     setLoadProgress('Found ' + res.current + ' of ' + res.total + ':  ' + (res.label||''), pct);
@@ -1267,19 +1710,20 @@ function renderConfirm(){
   var sec = it.sections[pick.game-1] || it.sections[0];
   var cover = sec.covers[pick.cover-1] || sec.covers[0];
   $('autoBanner').classList.toggle('hidden', !state.autoAll);
-  if (state.autoAll){ $('autoBanner').innerHTML = '&#9889; Auto mode is on. I was not sure about this one, so please confirm it.'; }
-  $('confirmTitle').textContent = state.autoAll ? "Not sure about this one - do you like it?" : 'Do you like this icon?';
-  $('confirmShortcut').textContent = 'Shortcut ' + (state.pos+1) + ' of ' + state.items.length + ':  ' + it.name;
+  if (state.autoAll){ $('autoBanner').innerHTML = i18n[currentLang].autoBannerText; }
+  var tc = i18n[currentLang];
+  $('confirmTitle').textContent = state.autoAll ? tc.confirmAutoTitle : tc.confirmTitle;
+  $('confirmShortcut').textContent = formatStr(tc.shortcutProgress, [state.pos+1, state.items.length, it.name]);
   $('confirmCover').src = cover ? cover.thumb : '';
   $('confirmGame').textContent = sec.gameName;
-  $('confirmYear').textContent = sec.year > 0 ? ('Released ' + sec.year) : '';
+  $('confirmYear').textContent = sec.year > 0 ? formatStr(tc.releasedYear, [sec.year]) : '';
   show('step-confirm');
   setNavFocus('confirmBtns', 0);
 }
 
 function renderNoArt(){
   var it = currentItem();
-  $('noartShortcut').textContent = 'Shortcut ' + (state.pos+1) + ' of ' + state.items.length + ':  ' + it.name;
+  $('noartShortcut').textContent = formatStr(i18n[currentLang].shortcutProgress, [state.pos+1, state.items.length, it.name]);
   $('noartPreview').textContent = it.name;
   show('step-noart');
   setNavFocus('noartBtns', 0);
@@ -1325,7 +1769,7 @@ function showArtwork(){
 
 function showOtherMatches(){
   var it = currentItem();
-  $('matchesShortcut').textContent = 'Which game is "' + it.name + '"?';
+  $('matchesShortcut').textContent = formatStr(i18n[currentLang].whichGame, [it.name]);
   var grid = $('matchesGrid'); grid.innerHTML = '';
   var cands = it.candidateGames || [];
   if (!cands.length && it.sections && it.sections.length){
@@ -1426,7 +1870,7 @@ function updateChangeBtn(){
   if (n > 0){
     if (finishBtn){ finishBtn.style.display = 'none'; }
     if (changeBtn){
-      changeBtn.textContent = 'Change these icons (' + n + ')';
+      changeBtn.textContent = i18n[currentLang].btnChangeSel + ' (' + n + ')';
       changeBtn.disabled = false;
       changeBtn.classList.remove('ghost');
       changeBtn.classList.add('big-btn','btn-warn');
@@ -1435,7 +1879,7 @@ function updateChangeBtn(){
   } else {
     if (finishBtn){ finishBtn.style.display = ''; }
     if (changeBtn){
-      changeBtn.textContent = 'Change these icons';
+      changeBtn.textContent = i18n[currentLang].btnChangeSel;
       changeBtn.disabled = true;
       changeBtn.classList.remove('big-btn','btn-warn');
       changeBtn.classList.add('ghost');
@@ -1518,8 +1962,10 @@ function applyAll(){
       if (key){ (byGame[key] = byGame[key] || []).push(sec.gameName || it.name); }
     });
     Object.keys(byGame).forEach(function(k){ if (byGame[k].length > 1){ dups.push(byGame[k][0] + ' (x' + byGame[k].length + ')'); } });
-    var msg = 'This will update ' + total + ' shortcut' + (total===1?'':'s') + ' with your chosen icons.';
-    if (dups.length){ msg += ' Heads up: some shortcuts point to the same game, so they will get the same icon: ' + dups.join(', ') + '.'; }
+    var targetLabel = itemNoun(total !== 1);
+    var ta = i18n[currentLang];
+    var msg = formatStr(ta.applyMsg, [total, targetLabel]);
+    if (dups.length){ msg += ' ' + formatStr(ta.applyDups, [dups.join(', ')]); }
     $('applyConfirmText').textContent = msg;
     show('step-confirm-apply');
     return;
@@ -1576,12 +2022,13 @@ function renderReport(r){
   state.report = r;
   setProgress(3);
   var g = $('reportGrid'); g.innerHTML = '';
+  var tr = i18n[currentLang];
   var stats = [
-    ['Updated', r.updated, 'var(--good)', 'updated'],
-    ['Matched', r.matched, 'var(--accent2)', 'matched'],
-    ['Placeholder', r.placeholder, 'var(--warn)', 'placeholder'],
-    ['Skipped', r.skipped, 'var(--muted)', 'skipped'],
-    ['Failed', r.failed, 'var(--bad)', 'failed']
+    [tr.statUpdated, r.updated, 'var(--good)', 'updated'],
+    [tr.statMatched, r.matched, 'var(--accent2)', 'matched'],
+    [tr.statPlaceholder, r.placeholder, 'var(--warn)', 'placeholder'],
+    [tr.statSkipped, r.skipped, 'var(--muted)', 'skipped'],
+    [tr.statFailed, r.failed, 'var(--bad)', 'failed']
   ];
   stats.forEach(function(s){
     var d = document.createElement('div'); d.className='stat';
@@ -1603,12 +2050,13 @@ function renderStats(r){
   // Most common release decade among matched games (a fun stat).
   var years = {};
   // We do not have per-game years in details, so summarise by category instead.
+  var ts = i18n[currentLang];
   var parts = [];
-  parts.push(statCard('Shortcuts processed', total));
-  parts.push(statCard('Icons updated', done));
-  parts.push(statCard('Success rate', successRate + '%'));
-  parts.push(statCard('Placeholders made', r.placeholder || 0));
-  box.innerHTML = '<div class="stats-title">This run at a glance</div><div class="stats-row">' + parts.join('') + '</div>';
+  parts.push(statCard(ts.miniProcessed, total));
+  parts.push(statCard(ts.miniUpdated, done));
+  parts.push(statCard(ts.miniSuccess, successRate + '%'));
+  parts.push(statCard(ts.miniPlaceholders, r.placeholder || 0));
+  box.innerHTML = '<div class="stats-title">' + ts.runAtGlance + '</div><div class="stats-row">' + parts.join('') + '</div>';
 }
 function statCard(label, val){
   return '<div class="ministat"><div class="ministat-n">' + val + '</div><div class="ministat-l">' + label + '</div></div>';
@@ -1700,7 +2148,8 @@ function isTyping(e){ var el = document.activeElement; return el && (el.tagName 
 
 // ---- back ----
 function goBack(){
-  if (visible('step-artwork') || visible('step-matches')){ renderConfirm(); return; }
+  currentPollId++; // Cancel any active dialog polling
+  if (visible('step-artwork') || visible('step-matches') || visible('step-custom')){ renderConfirm(); return; }
   if (visible('step-confirm')){
     if (state.history.length){ state.pos = state.history.pop(); renderConfirm(); }
     else { goHome(); }
@@ -1710,11 +2159,247 @@ function goBack(){
   if (visible('step-folder')){ goHome(); return; }
 }
 
+
+// ---- GOOGLE IMAGES / CUSTOM COVER ----
+var customImageObj = null;
+var customFitMode = 'crop'; // 'crop' | 'contain' | 'stretch'
+
+function openGoogleCustom(){
+  var it = currentItem();
+  if (!it) return;
+  $('customShortcutTitle').textContent = formatStr(i18n[currentLang].shortcutProgress, [state.pos+1, state.items.length, it.name]);
+  $('customUrlInput').value = '';
+  $('customStatusMsg').textContent = 'Waiting for image (Drop, Ctrl+V, URL, or File)...';
+  $('customApplyBtn').disabled = true;
+  customImageObj = null;
+  clearCustomCanvas();
+  show('step-custom');
+  reopenGoogleSearch();
+}
+
+function reopenGoogleSearch(){
+  var it = currentItem();
+  if (!it) return;
+  var q = encodeURIComponent(it.name + ' game cover icon');
+  openUrl('https://www.google.com/search?tbm=isch&q=' + q);
+}
+
+function clearCustomCanvas(){
+  var c = $('customCanvas');
+  if (!c) return;
+  var ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+}
+
+function setCustomFitMode(mode){
+  customFitMode = mode;
+  ['Crop','Contain','Stretch'].forEach(function(m){
+    var btn = $('fit'+m);
+    if (btn) btn.classList.toggle('active', m.toLowerCase() === mode);
+  });
+  if (customImageObj) renderCustomCanvas();
+}
+
+function renderCustomCanvas(){
+  var c = $('customCanvas');
+  if (!c || !customImageObj) return;
+  var ctx = c.getContext('2d');
+  var W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+  var iw = customImageObj.naturalWidth || customImageObj.width;
+  var ih = customImageObj.naturalHeight || customImageObj.height;
+  if (!iw || !ih) return;
+
+  if (customFitMode === 'stretch'){
+    ctx.drawImage(customImageObj, 0, 0, W, H);
+  } else if (customFitMode === 'contain'){
+    var scale = Math.min(W / iw, H / ih);
+    var dw = Math.round(iw * scale), dh = Math.round(ih * scale);
+    var dx = Math.round((W - dw) / 2), dy = Math.round((H - dh) / 2);
+    ctx.drawImage(customImageObj, 0, 0, iw, ih, dx, dy, dw, dh);
+  } else {
+    // Center crop 1:1
+    var side = Math.min(iw, ih);
+    var sx = Math.round((iw - side) / 2), sy = Math.round((ih - side) / 2);
+    ctx.drawImage(customImageObj, sx, sy, side, side, 0, 0, W, H);
+  }
+  $('customApplyBtn').disabled = false;
+  $('customStatusMsg').textContent = 'Image ready (' + iw + 'x' + ih + '). Click "Use this cover" to apply!';
+}
+
+function loadDataUrlIntoCustomCanvas(dataUrl){
+  var img = new Image();
+  img.onload = function(){
+    customImageObj = img;
+    renderCustomCanvas();
+  };
+  img.onerror = function(){
+    $('customStatusMsg').textContent = 'Could not decode that image. Try copying the image directly (Copy image -> Ctrl+V).';
+  };
+  img.src = dataUrl;
+}
+
+function readBlobIntoCustomCanvas(blob){
+  if (!blob) return;
+  $('customStatusMsg').textContent = 'Reading image...';
+  var reader = new FileReader();
+  reader.onload = function(e){ loadDataUrlIntoCustomCanvas(e.target.result); };
+  reader.onerror = function(){ $('customStatusMsg').textContent = 'Failed to read file.'; };
+  reader.readAsDataURL(blob);
+}
+
+function triggerCustomFile(){
+  var inp = $('customFileInput');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+
+function handleCustomFileSelect(e){
+  var files = e.target.files;
+  if (files && files.length > 0) readBlobIntoCustomCanvas(files[0]);
+}
+
+function extractGoogleImgUrl(rawUrl){
+  if (!rawUrl) return '';
+  rawUrl = rawUrl.trim();
+  try {
+    var u = new URL(rawUrl);
+    if (u.searchParams.has('imgurl')) return u.searchParams.get('imgurl');
+  } catch(e){}
+  return rawUrl;
+}
+
+function loadCustomUrl(rawUrl, fallbackUrl){
+  if (!rawUrl) return;
+  rawUrl = rawUrl.trim();
+  if (rawUrl.indexOf('data:image/') === 0){
+    loadDataUrlIntoCustomCanvas(rawUrl);
+    return;
+  }
+  var cleanUrl = extractGoogleImgUrl(rawUrl);
+  $('customStatusMsg').textContent = 'Downloading image from URL...';
+  api('/api/fetch-remote-image', { url: cleanUrl }).then(function(res){
+    if (res && res.ok && res.dataUrl){
+      loadDataUrlIntoCustomCanvas(res.dataUrl);
+    } else if (fallbackUrl && fallbackUrl !== cleanUrl){
+      loadCustomUrl(fallbackUrl, null);
+    } else {
+      $('customStatusMsg').textContent = (res && res.error) ? res.error : 'Could not fetch URL. Tip: Right-click the image on Google -> "Copy image" -> press Ctrl+V!';
+    }
+  }).catch(function(){
+    $('customStatusMsg').textContent = 'Download error. Tip: Right-click the image on Google -> "Copy image" -> press Ctrl+V!';
+  });
+}
+
+function loadCustomUrlInput(){
+  var v = ($('customUrlInput').value || '').trim();
+  if (v) loadCustomUrl(v, null);
+}
+
+function applyCustomCover(){
+  var it = currentItem();
+  var c = $('customCanvas');
+  if (!it || !c || !customImageObj) return;
+  $('customApplyBtn').disabled = true;
+  $('customStatusMsg').textContent = 'Saving custom cover...';
+  var pngDataUrl = c.toDataURL('image/png');
+  api('/api/custom-cover', { name: it.name, dataUrl: pngDataUrl }).then(function(res){
+    if (res && res.ok && res.url){
+      if (!it.sections) it.sections = [];
+      it.sections.unshift({
+        gameId: 0,
+        gameName: it.name + ' (Custom)',
+        year: 0,
+        covers: [{ url: res.url, thumb: res.url, score: 100 }]
+      });
+      state.picks[it.index] = { game: 1, cover: 1 };
+      acceptMatch();
+    } else {
+      $('customApplyBtn').disabled = false;
+      $('customStatusMsg').textContent = (res && res.error) ? res.error : 'Failed to save custom cover.';
+    }
+  }).catch(function(){
+    $('customApplyBtn').disabled = false;
+    $('customStatusMsg').textContent = 'Error communicating with local server.';
+  });
+}
+
+// Drag & Drop + Ctrl+V Paste listeners for step-custom
+(function initCustomCoverEvents(){
+  window.addEventListener('paste', function(e){
+    if (!visible('step-custom')) return;
+    var items = (e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData) || {}).items || [];
+    for (var i = 0; i < items.length; i++){
+      if (items[i].type && items[i].type.indexOf('image/') === 0){
+        e.preventDefault();
+        readBlobIntoCustomCanvas(items[i].getAsFile());
+        return;
+      }
+    }
+    var txt = (e.clipboardData || window.clipboardData).getData('text');
+    if (txt && (txt.indexOf('http://') === 0 || txt.indexOf('https://') === 0 || txt.indexOf('data:image/') === 0)){
+      if (document.activeElement !== $('customUrlInput')){
+        e.preventDefault();
+        $('customUrlInput').value = txt.trim();
+      }
+      setTimeout(function(){ loadCustomUrl(txt.trim(), null); }, 50);
+    }
+  });
+
+  var dz = $('customDropZone');
+  if (!dz) return;
+  ['dragenter','dragover'].forEach(function(ev){
+    dz.addEventListener(ev, function(e){
+      e.preventDefault(); e.stopPropagation();
+      dz.classList.add('dragover');
+    });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    dz.addEventListener(ev, function(e){
+      e.preventDefault(); e.stopPropagation();
+      dz.classList.remove('dragover');
+    });
+  });
+  dz.addEventListener('drop', function(e){
+    var dt = e.dataTransfer;
+    if (!dt) return;
+    if (dt.files && dt.files.length > 0){
+      readBlobIntoCustomCanvas(dt.files[0]);
+      return;
+    }
+    var html = dt.getData('text/html') || '';
+    var uri = dt.getData('text/uri-list') || dt.getData('text/plain') || '';
+    var imgSrc = '';
+    var linkHref = '';
+    if (html){
+      try {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var aEl = doc.querySelector('a[href*="imgurl="]');
+        if (aEl) linkHref = aEl.getAttribute('href');
+        var imgEl = doc.querySelector('img');
+        if (imgEl && imgEl.src) imgSrc = imgEl.src;
+      } catch(err){}
+    }
+    var primary = linkHref || uri || imgSrc;
+    var fallback = (primary !== imgSrc) ? imgSrc : null;
+    if (primary){
+      $('customUrlInput').value = extractGoogleImgUrl(primary);
+      loadCustomUrl(primary, fallback);
+    } else {
+      $('customStatusMsg').textContent = 'Could not read dropped item. Try right-clicking the image -> Copy image -> Ctrl+V.';
+    }
+  });
+})();
+
 // boot
 try { var z = parseFloat(localStorage.getItem('gis-zoom')); if (z >= 0.7 && z <= 1.7) state.zoom = z; } catch(e){}
 try { state.gallery = (localStorage.getItem('gis-gallery') === '1'); } catch(e){}
 applyZoom();
 loadSavedTheme();
+try {
+  var savedLang = localStorage.getItem('gis-lang');
+  if (savedLang === 'ar' || savedLang === 'en') { currentLang = savedLang; }
+} catch(e){}
+applyLang();
 checkKey();
 '@
 }
