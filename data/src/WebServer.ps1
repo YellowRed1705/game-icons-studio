@@ -181,6 +181,7 @@ function Start-IconWebApp {
         Shortcuts  = @()
         Names      = @()    # unique game names queued for scanning
         Pending    = @()    # resolved sections per game
+        TargetMode = 'shortcuts'   # shortcuts | folders_all | folders_single
         Running    = $true
         Dialog     = $dialog
         CoverCache = @{}    # gameId -> covers, to avoid repeat API calls
@@ -229,6 +230,24 @@ function Invoke-WebRoute {
     $method = $req.HttpMethod.ToUpperInvariant()
 
     if ($path -eq '/' -and $method -eq 'GET') {
+        # Force state reset on page load to prevent state-locking
+        try {
+            if ($Session.Dialog.status -eq 'running' -and $null -ne $Session.Dialog.ps) {
+                $Session.Dialog.ps.Stop()
+                $Session.Dialog.ps.Runspace.Close()
+                $Session.Dialog.ps.Dispose()
+                $Session.Dialog.ps = $null
+            }
+        } catch { }
+
+        $Session.Dialog.status = 'idle'
+        $Session.Dialog.folder = ''
+        $Session.Dialog.files  = @()
+        $Session.TargetMode    = 'shortcuts'
+        $Session.Shortcuts     = @()
+        $Session.Names         = @()
+        $Session.Pending       = @()
+
         Send-HttpResponse -Context $Context -Body (Get-WebAppHtml) -ContentType 'text/html; charset=utf-8'
         return
     }
@@ -260,11 +279,11 @@ function Invoke-WebRoute {
 
     if ($path -eq '/api/finish' -and $method -eq 'POST') {
         # Open the processed folder in Explorer (Large Icons view) so the
-        # user sees the new shelf immediately, then shut the app down.
+        # user sees the new shelf immediately. The app stays running;
+        # the browser returns to Home.
         $folder = [string]$Session.Ctx.Folder
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true })
         try { Open-FolderLargeIcons -Folder $folder } catch { }
-        $Session.Running = $false
         return
     }
 
@@ -454,35 +473,39 @@ function Invoke-WebRoute {
         }
 
         $onlyNew  = if ($body -and $body.onlyNew)  { [bool]$body.onlyNew }    else { $false }
+        $targetMode = if ($body -and $body.targetMode) { [string]$body.targetMode } else { 'shortcuts' }
 
-        $result = Start-WebScan -Session $Session -OnlyNew $onlyNew
+        $result = Start-WebScan -Session $Session -OnlyNew $onlyNew -TargetMode $targetMode
 
         # Remember the full set of games in this folder for new-game
         # detection next time. On a full scan we can reuse the list the
         # scan already built; only re-read when the scan was filtered.
+        # Skip this for folder modes since new-game detection is specific to shortcuts.
         try {
-            if (-not $onlyNew -and @($Session.Shortcuts).Count -gt 0) {
-                $allNames = @($Session.Shortcuts | Where-Object { $_.Status -ne 'Failed' } | ForEach-Object { [string]$_.NormalizedName } | Sort-Object -Unique)
-            } else {
-                $allShort = @(Get-Shortcuts -Folder $folder)
-                foreach ($s in $allShort) { if ($s.Status -ne 'Failed') { $s.NormalizedName = Get-NormalizedGameName -Name $s.Name } }
-                $allNames = @($allShort | Where-Object { $_.Status -ne 'Failed' } | ForEach-Object { [string]$_.NormalizedName } | Sort-Object -Unique)
-            }
-            $known = Get-KnownGames -Root $Session.Root
-            $key = ([string]$folder).ToLowerInvariant()
-            # Only rewrite the file if this folder's game list actually
-            # changed (avoids a disk write on every repeat scan).
-            $prevList = @()
-            if ($known.ContainsKey($key)) { $prevList = @($known[$key]) }
-            $changed = ($prevList.Count -ne $allNames.Count)
-            if (-not $changed) {
-                for ($ix = 0; $ix -lt $allNames.Count; $ix++) {
-                    if ([string]$prevList[$ix] -ne [string]$allNames[$ix]) { $changed = $true; break }
+            if ($targetMode -eq 'shortcuts') {
+                if (-not $onlyNew -and @($Session.Shortcuts).Count -gt 0) {
+                    $allNames = @($Session.Shortcuts | Where-Object { $_.Status -ne 'Failed' } | ForEach-Object { [string]$_.NormalizedName } | Sort-Object -Unique)
+                } else {
+                    $allShort = @(Get-Shortcuts -Folder $folder)
+                    foreach ($s in $allShort) { if ($s.Status -ne 'Failed') { $s.NormalizedName = Get-NormalizedGameName -Name $s.Name } }
+                    $allNames = @($allShort | Where-Object { $_.Status -ne 'Failed' } | ForEach-Object { [string]$_.NormalizedName } | Sort-Object -Unique)
                 }
-            }
-            if ($changed) {
-                $known[$key] = $allNames
-                Save-KnownGames -Root $Session.Root -Map $known
+                $known = Get-KnownGames -Root $Session.Root
+                $key = ([string]$folder).ToLowerInvariant()
+                # Only rewrite the file if this folder's game list actually
+                # changed (avoids a disk write on every repeat scan).
+                $prevList = @()
+                if ($known.ContainsKey($key)) { $prevList = @($known[$key]) }
+                $changed = ($prevList.Count -ne $allNames.Count)
+                if (-not $changed) {
+                    for ($ix = 0; $ix -lt $allNames.Count; $ix++) {
+                        if ([string]$prevList[$ix] -ne [string]$allNames[$ix]) { $changed = $true; break }
+                    }
+                }
+                if ($changed) {
+                    $known[$key] = $allNames
+                    Save-KnownGames -Root $Session.Root -Map $known
+                }
             }
         } catch { }
 
@@ -495,8 +518,10 @@ function Invoke-WebRoute {
         $body = $null
         try { $body = $bodyText | ConvertFrom-Json } catch { }
         $folder = if ($body -and $body.folder) { [string]$body.folder } else { $Session.Ctx.Folder }
+        $targetMode = if ($body -and $body.targetMode) { [string]$body.targetMode } else { 'shortcuts' }
         $newCount = 0; $isKnownFolder = $false
-        if (-not [string]::IsNullOrWhiteSpace($folder) -and (Test-Path $folder)) {
+        # Only check for new games in shortcuts mode
+        if ($targetMode -eq 'shortcuts' -and -not [string]::IsNullOrWhiteSpace($folder) -and (Test-Path $folder)) {
             try {
                 $short = @(Get-Shortcuts -Folder $folder)
                 foreach ($s in $short) { if ($s.Status -ne 'Failed') { $s.NormalizedName = Get-NormalizedGameName -Name $s.Name } }
@@ -574,6 +599,81 @@ function Invoke-WebRoute {
         return
     }
 
+    if ($path -like '/cache/*' -and $method -eq 'GET') {
+        $rawName = [uri]::UnescapeDataString(($req.Url.AbsolutePath -replace '^/cache/', ''))
+        $name = [System.IO.Path]::GetFileName($rawName)
+        $cachePath = Join-Path $Session.Ctx.CacheDir $name
+        if ((Test-Path -LiteralPath $cachePath) -and ($name -match '\.(png|ico|jpg|jpeg)$')) {
+            $ct = if ($name -match '\.png$') { 'image/png' } elseif ($name -match '\.ico$') { 'image/x-icon' } else { 'image/jpeg' }
+            Send-HttpFile -Context $Context -FilePath $cachePath -ContentType $ct
+        } else {
+            Send-HttpResponse -Context $Context -Body '' -StatusCode 404
+        }
+        return
+    }
+
+    if ($path -eq '/api/fetch-remote-image' -and $method -eq 'POST') {
+        $bodyText = Read-RequestBody -Context $Context
+        $body = $null
+        try { $body = $bodyText | ConvertFrom-Json } catch { }
+        $targetUrl = if ($body -and $body.url) { ([string]$body.url).Trim() } else { '' }
+        if ([string]::IsNullOrWhiteSpace($targetUrl) -or -not ($targetUrl -match '^https?://')) {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'Invalid URL.' })
+            return
+        }
+        $client = $null
+        try {
+            try { Add-Type -AssemblyName System.Net.Http -ErrorAction SilentlyContinue } catch { }
+            $client = [System.Net.Http.HttpClient]::new()
+            $client.Timeout = [TimeSpan]::FromSeconds(25)
+            $null = $client.DefaultRequestHeaders.UserAgent.TryParseAdd('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36')
+            $resp = $client.GetAsync($targetUrl).GetAwaiter().GetResult()
+            if (-not $resp.IsSuccessStatusCode) { throw "HTTP $([int]$resp.StatusCode)" }
+            $bytes = $resp.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult()
+            if ($null -eq $bytes -or $bytes.Length -lt 64) { throw 'Empty image response.' }
+            $mime = 'image/png'
+            try {
+                if ($resp.Content.Headers.ContentType -and $resp.Content.Headers.ContentType.MediaType) {
+                    $mime = [string]$resp.Content.Headers.ContentType.MediaType
+                }
+            } catch { }
+            $b64 = [Convert]::ToBase64String($bytes)
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; dataUrl = "data:$mime;base64,$b64" })
+        } catch {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = "Could not download image: $($_.Exception.Message)" })
+        } finally {
+            if ($client) { $client.Dispose() }
+        }
+        return
+    }
+
+    if ($path -eq '/api/custom-cover' -and $method -eq 'POST') {
+        $bodyText = Read-RequestBody -Context $Context
+        $body = $null
+        try { $body = $bodyText | ConvertFrom-Json } catch { }
+        $gameName = if ($body -and $body.name) { ([string]$body.name).Trim() } else { '' }
+        $dataUrl  = if ($body -and $body.dataUrl) { ([string]$body.dataUrl).Trim() } else { '' }
+        if ([string]::IsNullOrWhiteSpace($gameName) -or -not ($dataUrl -match '^data:image/[^;]+;base64,(.+)$')) {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'Invalid image data.' })
+            return
+        }
+        try {
+            $b64Data = $Matches[1]
+            $bytes = [Convert]::FromBase64String($b64Data)
+            $safe = Get-SafeFileName -Name $gameName
+            $destPath = Join-Path $Session.Ctx.CacheDir "$safe.png"
+            [System.IO.File]::WriteAllBytes($destPath, $bytes)
+            $ts = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+            $encSafe = [uri]::EscapeDataString("$safe.png")
+            $localUrl = "/cache/$encSafe`?t=$ts"
+            Write-Log "Custom cover saved for '$gameName' -> $destPath" 'OK'
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; url = $localUrl })
+        } catch {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = $_.Exception.Message })
+        }
+        return
+    }
+
     # Unknown route
     Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'Not found' }) -StatusCode 404
 }
@@ -588,18 +688,61 @@ function Start-WebScan {
         Optional filter:
           -OnlyNew   : keep only games not seen in this folder before
                        (new-game detection).
+          -TargetMode: 'shortcuts' (default), 'folders_all', or 'folders_single'
     #>
     param(
         [Parameter(Mandatory)]$Session,
-        [bool]$OnlyNew = $false
+        [bool]$OnlyNew = $false,
+        [string]$TargetMode = 'shortcuts'
     )
 
     $ctx = $Session.Ctx
-    Write-Log "Web scan: $($ctx.Folder) (OnlyNew=$OnlyNew)" 'INFO'
+    Write-Log "Web scan: $($ctx.Folder) (OnlyNew=$OnlyNew, TargetMode=$TargetMode)" 'INFO'
 
-    $shortcuts = @(Get-Shortcuts -Folder $ctx.Folder)
+    $shortcuts = @()
+
+    if ($TargetMode -eq 'folders_all') {
+        # Scan all visible, non-system sub-folders
+        $dirs = @(Get-ChildItem -Path $ctx.Folder -Directory -ErrorAction SilentlyContinue |
+            Where-Object { -not $_.Attributes.HasFlag([System.IO.FileAttributes]::System) })
+        foreach ($d in $dirs) {
+            $shortcuts += [PSCustomObject]@{
+                Path = $d.FullName
+                Name = $d.Name
+                Target = ''
+                Arguments = ''
+                WorkingDirectory = ''
+                IconLocation = ''
+                NormalizedName = $null
+                Status = 'Pending'
+                Detail = ''
+                IsFolder = $true
+            }
+        }
+    } elseif ($TargetMode -eq 'folders_single') {
+        # Treat the selected folder itself as the single item to process
+        $folderItem = Get-Item -Path $ctx.Folder -ErrorAction SilentlyContinue
+        if ($folderItem -and $folderItem.PSIsContainer) {
+            $shortcuts += [PSCustomObject]@{
+                Path = $folderItem.FullName
+                Name = $folderItem.Name
+                Target = ''
+                Arguments = ''
+                WorkingDirectory = ''
+                IconLocation = ''
+                NormalizedName = $null
+                Status = 'Pending'
+                Detail = ''
+                IsFolder = $true
+            }
+        }
+    } else {
+        # Default: scan shortcuts
+        $shortcuts = @(Get-Shortcuts -Folder $ctx.Folder)
+    }
+
     if ($shortcuts.Count -eq 0) {
-        return @{ ok = $false; error = 'No .lnk shortcuts found in that folder.' }
+        return @{ ok = $false; error = 'No shortcuts OR folders found in that directory.' }
     }
     foreach ($s in $shortcuts) {
         if ($s.Status -ne 'Failed') { $s.NormalizedName = Get-NormalizedGameName -Name $s.Name }
@@ -808,7 +951,7 @@ function Step-WebApply {
 
         $pick = $pickMap[$key]
         $resolutions[$nm] = New-ArtworkResolution -Ctx $ctx -Name $nm -Safe ([string]$entry.Safe) -IcoPath ([string]$entry.IcoPath) `
-            -Url ([string]$pick.Url) -Kind ([string]$ctx.Category) -GameName ([string]$pick.GameName) -Score 1.0 -DeleteRaw $true
+            -Url ([string]$pick.Url) -Kind ([string]$ctx.Category) -GameName ([string]$pick.GameName) -Score 1.0 -DeleteRaw ([string]$pick.Url -notlike '/cache/*')
 
         if ($pick.GameId -gt 0) { $ctx.Overrides[$nm] = [int]$pick.GameId }
         $ctx.SavedChoices[$nm] = [PSCustomObject]@{
@@ -953,7 +1096,18 @@ function Start-AsyncDialog {
         [string]$InitialFolder = ''
     )
 
-    if ($Dialog.status -eq 'running') { return }
+    if ($Dialog.status -eq 'running') {
+        Write-Log 'Previous dialog thread was stuck. Forcing cleanup...' 'WARN'
+        try {
+            if ($null -ne $Dialog.ps) {
+                $Dialog.ps.Stop()
+                $Dialog.ps.Runspace.Close()
+                $Dialog.ps.Dispose()
+                $Dialog.ps = $null
+            }
+        } catch { }
+        $Dialog.status = 'idle'
+    }
 
     $Dialog.status = 'running'
     $Dialog.kind   = $Kind
