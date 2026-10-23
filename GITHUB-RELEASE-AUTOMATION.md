@@ -1,6 +1,6 @@
-# One-click GitHub Release workflow
+# Automatic and one-click GitHub Release workflow
 
-This workflow is intentionally manual: it does not publish anything merely because code is pushed. The maintainer chooses when the release is ready.
+The release workflow supports automatic publishing and manual publishing. A commit to `main` that adds a new `CHANGELOG-vX.Y.md` starts the release build automatically. Ordinary code edits do not publish a release unless a new version changelog is added. Issue replies are never posted by the automatic path; those remain opt-in.
 
 ## One-time setup
 
@@ -10,11 +10,11 @@ This workflow is intentionally manual: it does not publish anything merely becau
 
 ## For each future release
 
-1. Develop and test the code, increment all app version labels, and add `CHANGELOG-vX.Y.md` to the same commit on `main`.
-2. Open Actions → Publish Game Icons Studio Release → Run workflow.
-3. Enter the numeric version exactly as in `README.md`, the launcher, app version metadata, and `CHANGELOG-vX.Y.md` (example: `6.35`, without `v`).
-4. Leave `reply_to_issues` off for ordinary releases. Turn it on only when the two prepared issue replies should be posted. The workflow uses hidden markers to avoid posting the same version's reply twice.
-5. Run the workflow. It validates the version and confirms the tag is unused, builds clean full and overlay-upgrade archives, publishes the GitHub Release, attaches both ZIPs and SHA256 checksums, and optionally comments on issues #1 and #2.
+1. Update the app version labels in the launcher, main banner, web UI, restore-point metadata, and image-search user agent.
+2. Add `CHANGELOG-vX.Y.md` and `UPGRADE-INSTRUCTIONS-vX.Y.txt`; update `README.md` to show that version and summarize the change.
+3. Commit the release changes to `main`. Adding a new `CHANGELOG-vX.Y.md` automatically triggers validation, clean ZIP builds, SHA-256 generation, and GitHub Release publication.
+4. To publish manually instead, open Actions → Publish Game Icons Studio Release → Run workflow and enter the numeric version without `v`.
+5. Issue replies remain disabled for automatic releases. Enable `reply_to_issues` only on a manual run when replies should be posted; hidden markers prevent duplicates.
 
 ## Packaging safety
 
