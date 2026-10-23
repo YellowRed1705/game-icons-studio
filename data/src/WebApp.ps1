@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.36) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.37) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio v6.36</title>
+<title>Game Icons Studio v6.37</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {
@@ -284,7 +284,11 @@ function Get-WebAppHtml {
     border:1px solid var(--line); overflow:hidden; }
   .bigbar-fill { height:100%; width:0%; border-radius:99px;
     background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .3s ease; }
-  .phase-text { min-height:1.4em; font-size:1.02rem; color:var(--text); }
+  .phase-text { min-height:1.4em; font-size:1.02rem; color:var(--text); font-weight:650; }
+  .progress-stats { width:min(620px,76vw); display:flex; align-items:center; justify-content:space-between; gap:16px; margin-top:-5px; }
+  .progress-percent { font-size:1rem; min-width:68px; font-weight:800; color:var(--accent2); font-variant-numeric:tabular-nums; }
+  .progress-counter { min-width:0; text-align:right; font-size:.84rem; color:var(--text); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+  .progress-detail { width:min(720px,82vw); min-height:1.4em; text-align:center; font-size:.92rem; }
   .typed-caret::after { content:'|'; margin-left:1px; opacity:.7; animation:blink 1s step-end infinite; }
   @keyframes blink { 50% { opacity:0; } }
 
@@ -722,8 +726,12 @@ function Get-WebAppHtml {
     <div class="loading">
       <div class="spinner"></div>
       <div id="loadingMsg" class="phase-text">Working...</div>
-      <div class="bigbar"><div class="bigbar-fill" id="loadFill"></div></div>
-      <div id="loadDetail" class="sub"></div>
+      <div class="bigbar" role="progressbar" aria-label="Operation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="loadBar"><div class="bigbar-fill" id="loadFill"></div></div>
+      <div class="progress-stats">
+        <span id="loadPercent" class="progress-percent">0%</span>
+        <span id="loadCounter" class="progress-counter">Waiting for live progress…</span>
+      </div>
+      <div id="loadDetail" class="sub progress-detail"></div>
       <div class="feed" id="autoFeed"></div>
     </div>
     <div class="footer-nav" id="loadNav" style="margin-top:8px;">
@@ -1390,16 +1398,27 @@ function setProgress(stage){
 }
 
 function setLoading(msg, detail, pct){
+  var value = pct == null ? 0 : Math.max(0,Math.min(100,Math.round(Number(pct)||0)));
   $('loadingMsg').textContent = msg || 'Working...';
   $('loadingMsg').classList.remove('typed-caret');
   $('loadDetail').textContent = detail || '';
-  $('loadFill').style.width = (pct==null?0:pct) + '%';
+  $('loadFill').style.width = value + '%';
+  $('loadPercent').textContent = value + '%';
+  $('loadBar').setAttribute('aria-valuenow', String(value));
+  $('loadCounter').textContent = '';
   $('autoFeed').innerHTML = '';
   show('step-loading');
 }
 function setLoadProgress(detail, pct){
   $('loadDetail').textContent = detail || '';
-  if (pct != null) $('loadFill').style.width = pct + '%';
+  if (pct != null){
+    var value = Math.max(0,Math.min(100,Math.round(Number(pct)||0)));
+    $('loadFill').style.width = value + '%';
+    $('loadPercent').textContent = value + '%';
+    $('loadBar').setAttribute('aria-valuenow', String(value));
+  }
+  var match = String(detail||'').match(/Found\s+(\d+)\s+of\s+(\d+)/i);
+  if (match) $('loadCounter').textContent = match[1] + ' / ' + match[2] + ' scanned';
 }
 
 // ---- theme / zoom / fullscreen ----
@@ -2478,6 +2497,90 @@ function fadeSwap(el, text){
   setTimeout(function(){ el.textContent = text; el.style.opacity = '1'; }, 450);
 }
 
+function applyPhaseTitle(phase){
+  var names = {
+    download:'Downloading your cover art…',
+    build:'Building crisp, multi-size icons…',
+    backup:'Creating a safety restore point…',
+    apply:'Applying icons to your shortcuts…',
+    refresh:'Refreshing Windows Explorer…',
+    complete:'Done! Your game shelf is ready.'
+  };
+  return names[phase] || 'Working…';
+}
+
+function updateApplyProgress(eventData){
+  var phase = String(eventData.phase||'');
+  var pct = Math.max(0,Math.min(100,Math.round(Number(eventData.percent)||0)));
+  if (phase !== state._applyProgressPhase){
+    state._applyProgressPhase = phase;
+    fadeSwap($('loadingMsg'), applyPhaseTitle(phase));
+  }
+  $('loadFill').style.width = pct + '%';
+  $('loadPercent').textContent = pct + '%';
+  $('loadBar').setAttribute('aria-valuenow', String(pct));
+  var total = Number(eventData.total)||0;
+  var current = Number(eventData.current)||0;
+  var counter = total > 0 ? (current + ' / ' + total + ' · ' + pct + '%') : (eventData.status === 'complete' ? 'Complete' : 'In progress');
+  if (eventData.item) counter += ' · ' + eventData.item;
+  $('loadCounter').textContent = counter;
+  var detail = String(eventData.label||'');
+  if (eventData.status === 'failed') detail += ' — no shortcut changes were applied after the safety check failed.';
+  else if (eventData.status === 'complete' && eventData.item) detail += ' · ' + eventData.item;
+  $('loadDetail').textContent = detail;
+}
+
+function applyStepWithProgress(payload){
+  return fetch('/api/apply-step', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload||{})
+  }).then(function(response){
+    if (!response.ok) throw new Error('Apply request failed (HTTP ' + response.status + ').');
+    if (!response.body || !response.body.getReader){
+      return response.text().then(function(text){
+        var finalEvent = null;
+        text.split(/\r?\n/).forEach(function(line){
+          if (!line.trim()) return;
+          var eventData = JSON.parse(line);
+          if (eventData.type === 'progress') updateApplyProgress(eventData);
+          else if (eventData.type === 'complete') finalEvent = eventData;
+        });
+        if (!finalEvent) throw new Error('The server did not return a final progress result.');
+        return finalEvent;
+      });
+    }
+    var reader = response.body.getReader();
+    var decoder = new TextDecoder();
+    var buffered = '';
+    var finalEvent = null;
+    return new Promise(function(resolve,reject){
+      function parseLine(line){
+        if (!line || !line.trim()) return;
+        var eventData = JSON.parse(line);
+        if (eventData.type === 'progress') updateApplyProgress(eventData);
+        else if (eventData.type === 'complete') finalEvent = eventData;
+      }
+      function readNext(){
+        reader.read().then(function(result){
+          buffered += decoder.decode(result.value, {stream:!result.done});
+          var lines = buffered.split(/\r?\n/);
+          buffered = lines.pop() || '';
+          lines.forEach(parseLine);
+          if (result.done){
+            parseLine(buffered);
+            if (finalEvent) resolve(finalEvent);
+            else reject(new Error('The progress stream ended before the operation returned a result.'));
+            return;
+          }
+          readNext();
+        }).catch(reject);
+      }
+      readNext();
+    });
+  });
+}
+
 function applyAll(){
   // Final confirmation gate (with duplicate detection), unless this is
   // a quick re-apply coming back from the report detail edits.
@@ -2502,9 +2605,9 @@ function applyAll(){
   }
   state._applyConfirmed = false;
   setProgress(2);
-  show('step-loading');
-  $('loadFill').style.width = '6%';
-  $('loadDetail').textContent = '';
+  state._applyProgressPhase = '';
+  setLoading('Preparing your icon update…', 'Starting the apply pipeline…', 0);
+  $('loadDetail').textContent = 'Waiting for live progress from the actual download, build, backup, and apply steps.';
   $('autoFeed').innerHTML = '';
   var picks = state.items.map(function(it){
     var pick = state.picks[it.index] || { game:1, cover:1 };
@@ -2518,33 +2621,29 @@ function applyAll(){
     };
   });
   api('/api/apply-begin', { picks: picks }).then(function(res){
-    if (!res.ok){ goReview(); alert(res.error || 'Apply failed.'); return; }
-    var phases = [
-      'Downloading your cover art...',
-      'Building crisp, multi-size icons...',
-      'Safely backing up your current icons...',
-      'Placing the new icons on your shortcuts...',
-      'Refreshing Windows so they show up...'
-    ];
-    var pi = 0, pct = 12, finished = false;
-    var applyCount = (res && res.total) ? res.total : state.items.length;
-    $('loadDetail').textContent = 'This usually takes ' + estimateSeconds(applyCount, 1.0) + '.';
-    var cycle = function(){
-      if (finished) return;
-      fadeSwap($('loadingMsg'), phases[pi]);
-      pi = (pi+1) % phases.length;
-      pct = Math.min(92, pct+5);
-      $('loadFill').style.width = pct + '%';
-    };
-    cycle();
-    var timer = setInterval(cycle, 1400);   // livelier pace while work runs
-    api('/api/apply-step', { i:0 }).then(function(r2){
-      finished = true; clearInterval(timer);
-      if (!r2.ok){ goReview(); alert(r2.error || 'Apply failed.'); return; }
-      $('loadFill').style.width = '100%';
-      fadeSwap($('loadingMsg'), 'Done! Your game shelf is ready.');
-      setTimeout(function(){ renderReport(r2.report); }, 500);
-    });
+    if (!res.ok){ goReview(); alert(res.error || 'Apply failed.'); return null; }
+    $('loadDetail').textContent = 'Live progress is based on completed operations, not a timer.';
+    return applyStepWithProgress({ i:0 });
+  }).then(function(result){
+    if (!result) return;
+    if (!result.ok){
+      $('loadingMsg').textContent = 'The update could not be completed.';
+      $('loadDetail').textContent = result.error || 'Check the application log and try again.';
+      $('loadCounter').textContent = 'Stopped';
+      return;
+    }
+    $('loadFill').style.width = '100%';
+    $('loadPercent').textContent = '100%';
+    $('loadBar').setAttribute('aria-valuenow', '100');
+    $('loadCounter').textContent = 'Complete';
+    $('loadingMsg').textContent = 'Done! Your game shelf is ready.';
+    $('loadDetail').textContent = 'All reported operations have finished.';
+    setTimeout(function(){ renderReport(result.report); }, 500);
+  }).catch(function(error){
+    $('loadingMsg').textContent = 'Progress stream interrupted';
+    $('loadDetail').textContent = (error && error.message) ? error.message : 'The server did not return progress data. Check the application log.';
+    $('loadCounter').textContent = 'Check status';
+    alert('The browser lost the live progress connection. Please check the CMD log before retrying, to avoid repeating an operation that may have completed.');
   });
 }
 
