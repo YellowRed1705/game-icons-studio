@@ -1,0 +1,18 @@
+Game Icons Studio v6.36 — Upgrade Instructions
+
+This is the overlay-upgrade package for an existing installation.
+
+1. Close Game Icons Studio completely. Use Quit in the app and allow its console window to exit.
+2. Extract the contents of Game-Icons-Studio-v6.36-Upgrade.zip directly into your existing Game Icons Studio program folder.
+3. Approve overwrite/replace prompts for application files.
+4. Launch Game Icons Studio.bat again.
+
+The upgrade archive contains the complete runtime file set at the archive root. It intentionally does not include personal settings, API keys, caches, downloaded artwork, generated icons, logs, history, or restore-point backups, so those existing runtime data files are not overwritten.
+
+What's improved in v6.36:
+- The cover picker prioritizes the selected artwork and nearby visible previews.
+- Off-screen previews are deferred until needed.
+- The interface schedules at most four cover-image downloads at a time.
+- Leaving the cover picker cancels queued preview work, reducing competition with the next screen.
+
+If a cover still loads slowly, confirm that SteamGridDB's image CDN is reachable and use the built-in Google/Yandex search or local-image selection as alternatives.
