@@ -1342,15 +1342,16 @@ function queueCoverImage(img, url, priority){
 function observeCoverImages(grid){
   var imgs = grid.querySelectorAll('img[data-cover-src]');
   if (typeof window.IntersectionObserver === 'function'){
-    coverGridObserver = new IntersectionObserver(function(entries){
+    var observer = new IntersectionObserver(function(entries){
       entries.forEach(function(entry){
         if (!entry.isIntersecting) return;
-        if (coverGridObserver) coverGridObserver.unobserve(entry.target);
+        observer.unobserve(entry.target);
         queueCoverImage(entry.target, entry.target.dataset.coverSrc, entry.target.dataset.coverPriority);
       });
       pumpCoverImageQueue();
     }, { root: grid, rootMargin: '120px 0px', threshold: 0.01 });
-    imgs.forEach(function(img){ coverGridObserver.observe(img); });
+    coverGridObserver = observer;
+    imgs.forEach(function(img){ observer.observe(img); });
   } else {
     imgs.forEach(function(img){
       queueCoverImage(img, img.dataset.coverSrc, img.dataset.coverPriority);
