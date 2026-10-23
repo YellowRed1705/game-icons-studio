@@ -1,0 +1,19 @@
+Game Icons Studio v6.37 — Upgrade Instructions
+
+This is the overlay-upgrade package for an existing installation.
+
+1. Close Game Icons Studio completely. Use Quit in the app and allow the console window to exit.
+2. Extract the contents of Game-Icons-Studio-v6.37-Upgrade.zip directly into your existing Game Icons Studio program folder.
+3. Approve overwrite/replace prompts for application files.
+4. Launch Game Icons Studio.bat again.
+
+The upgrade ZIP contains the complete runtime file set at the archive root. It intentionally excludes personal settings, API keys, caches, downloaded artwork, generated icons, logs, history, and restore-point backups, so it will not overwrite those runtime user-data files.
+
+What's improved in v6.37:
+- The browser's apply screen now receives live progress events from the real PowerShell icon pipeline instead of advancing by a timer.
+- During download, the UI shows the actual completed/total cover count and calculated phase percentage, such as 57 / 59 · 96%, plus the latest item name when available.
+- Real counts and percentages are shown for download, icon-build, shortcut-apply, and other reportable pipeline phases.
+- Progress updates stream to the browser while the operation is running.
+- If creating the safety restore point fails, the UI reports that the update stopped before changing shortcuts.
+
+The displayed percentage reflects the currently active phase, not a guessed overall timer. Image downloads count as completed after each whole image finishes or fails; it is not a byte-by-byte transfer meter.
