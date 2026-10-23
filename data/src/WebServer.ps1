@@ -621,7 +621,11 @@ function Invoke-WebRoute {
         $response.KeepAlive = $true
         $progressCallback = {
             param($eventData)
-            Write-HttpProgressEvent -Context $Context -Data $eventData
+            $eventLine = ($eventData | ConvertTo-Json -Depth 10 -Compress) + "`n"
+            $eventBytes = [System.Text.Encoding]::UTF8.GetBytes($eventLine)
+            $eventStream = $Context.Response.OutputStream
+            $eventStream.Write($eventBytes, 0, $eventBytes.Length)
+            $eventStream.Flush()
         }.GetNewClosure()
 
         try {
