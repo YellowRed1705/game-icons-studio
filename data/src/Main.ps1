@@ -1,5 +1,5 @@
 # ============================================================
-#  Main.ps1 - Game Icons Studio (v6.36)
+#  Main.ps1 - Game Icons Studio (v6.37)
 #  Menu: Full Auto | Smart Auto | Manual | Selected Files Only
 #        Revision | Manual Search | Rebuild | Cache
 # ============================================================
@@ -37,7 +37,7 @@ if ([string]::IsNullOrWhiteSpace($Root)) { $Root = $ScriptDir }
 function Show-Banner {
     Write-Host ''
     Write-Host '  ============================================================' -ForegroundColor DarkCyan
-    Write-Host '   GAME ICONS STUDIO  v6.36' -ForegroundColor Cyan
+    Write-Host '   GAME ICONS STUDIO  v6.37' -ForegroundColor Cyan
     Write-Host '   Game and app icons, with safe restore history.' -ForegroundColor Gray
     Write-Host '   Find game covers and app icons. Modernize your shortcuts.' -ForegroundColor DarkGray
     Write-Host '  ============================================================' -ForegroundColor DarkCyan
@@ -515,13 +515,37 @@ function Set-FolderCustomIcon {
 #  APPLY PIPELINE (download -> build -> backup -> apply -> report)
 # ============================================================
 
+function Send-ApplyProgress {
+    param(
+        [scriptblock]$Callback,
+        [Parameter(Mandatory)][string]$Phase,
+        [int]$Current = 0,
+        [int]$Total = 0,
+        [Parameter(Mandatory)][string]$Label,
+        [string]$Item = '',
+        [string]$Status = 'running'
+    )
+    if (-not $Callback) { return }
+    $percent = if ($Total -gt 0) {
+        [Math]::Min(100, [Math]::Max(0, [int][Math]::Round(($Current * 100.0) / $Total)))
+    } elseif ($Status -eq 'complete') { 100 } else { 0 }
+    $payload = @{
+        type = 'progress'; phase = $Phase; current = $Current; total = $Total
+        percent = $percent; label = $Label; item = $Item; status = $Status
+    }
+    try { $null = & $Callback $payload } catch {
+        # UI disconnects must never cancel or break an icon operation.
+    }
+}
+
 function Invoke-ApplyPipeline {
     param(
         [Parameter(Mandatory)]$Ctx,
         [Parameter(Mandatory)]$Shortcuts,
         [Parameter(Mandatory)]$Resolutions,
         [bool]$Force = $false,
-        [TimeSpan]$ResolveDuration = [TimeSpan]::Zero
+        [TimeSpan]$ResolveDuration = [TimeSpan]::Zero,
+        [scriptblock]$ProgressCallback = $null
     )
 
     $swTotal = [System.Diagnostics.Stopwatch]::StartNew()
@@ -551,6 +575,7 @@ function Invoke-ApplyPipeline {
         $throttle = [Math]::Max(1, [int]$Ctx.Settings.ParallelDownloads)
         $dlDone = 0
         $dlTotal = $downloadQueue.Count
+        Send-ApplyProgress -Callback $ProgressCallback -Phase 'download' -Current 0 -Total $dlTotal -Label 'Downloading cover art' -Status 'running'
 
         if ($PSVersionTable.PSVersion.Major -ge 7) {
             $downloadResults = @($downloadQueue | ForEach-Object -ThrottleLimit $throttle -Parallel {
@@ -581,7 +606,9 @@ function Invoke-ApplyPipeline {
                 [PSCustomObject]@{ Dest = $item.Dest; Ok = $ok; Error = $err }
             } | ForEach-Object {
                 $dlDone++
-                Show-InlineProgress -Current $dlDone -Total $dlTotal -Label 'Downloading' -Item ([System.IO.Path]::GetFileNameWithoutExtension($_.Dest))
+                $downloadName = [System.IO.Path]::GetFileNameWithoutExtension($_.Dest)
+                Show-InlineProgress -Current $dlDone -Total $dlTotal -Label 'Downloading' -Item $downloadName
+                Send-ApplyProgress -Callback $ProgressCallback -Phase 'download' -Current $dlDone -Total $dlTotal -Label 'Downloading cover art' -Item $downloadName -Status $(if ($_.Ok) { 'ok' } else { 'failed' })
                 $_
             })
         } else {
@@ -608,7 +635,9 @@ function Invoke-ApplyPipeline {
                     }
                 }
                 $dlDone++
-                Show-InlineProgress -Current $dlDone -Total $dlTotal -Label 'Downloading' -Item ([System.IO.Path]::GetFileNameWithoutExtension($item.Dest))
+                $downloadName = [System.IO.Path]::GetFileNameWithoutExtension($item.Dest)
+                Show-InlineProgress -Current $dlDone -Total $dlTotal -Label 'Downloading' -Item $downloadName
+                Send-ApplyProgress -Callback $ProgressCallback -Phase 'download' -Current $dlDone -Total $dlTotal -Label 'Downloading cover art' -Item $downloadName -Status $(if ($ok) { 'ok' } else { 'failed' })
                 [PSCustomObject]@{ Dest = $item.Dest; Ok = $ok; Error = $err }
             })
         }
@@ -636,6 +665,9 @@ function Invoke-ApplyPipeline {
             }
         }
         Write-Log "Downloads complete. OK: $(@($downloadResults).Count - $failedDownloads.Count), Failed: $($failedDownloads.Count)" 'INFO'
+        Send-ApplyProgress -Callback $ProgressCallback -Phase 'download' -Current $dlTotal -Total $dlTotal -Label 'Cover downloads complete' -Item "$(@($downloadResults).Count - $failedDownloads.Count) successful, $($failedDownloads.Count) failed" -Status 'complete'
+    } else {
+        Send-ApplyProgress -Callback $ProgressCallback -Phase 'download' -Current 0 -Total 0 -Label 'Selected cover art is already cached' -Status 'complete'
     }
     $phaseTimes.Add([PSCustomObject]@{ Name = 'Download'; Span = $swPhase.Elapsed })
 
@@ -647,11 +679,14 @@ function Invoke-ApplyPipeline {
 
     # ---------- SAFETY BACKUP (before managed ICO files can be overwritten) ----------
     $backupTransaction = $null
+    Send-ApplyProgress -Callback $ProgressCallback -Phase 'backup' -Current 0 -Total 1 -Label 'Creating a restore point' -Status 'running'
     try {
         $retentionLimit = 50
         if ($Ctx.Settings.PSObject.Properties.Name -contains 'BackupRetentionLimit') { $retentionLimit = [int]$Ctx.Settings.BackupRetentionLimit }
         $backupTransaction = New-IconBackupTransaction -Root $Ctx.Root -Shortcuts $Shortcuts -Resolutions $Resolutions -RetentionLimit $retentionLimit
+        Send-ApplyProgress -Callback $ProgressCallback -Phase 'backup' -Current 1 -Total 1 -Label 'Restore point created' -Status 'complete'
     } catch {
+        Send-ApplyProgress -Callback $ProgressCallback -Phase 'backup' -Current 0 -Total 1 -Label 'Restore point creation failed — no icons changed' -Status 'failed'
         Write-Log "SAFETY STOP: $($_.Exception.Message)" 'ERROR' $true
         Write-Log 'The ICO build/apply phase was cancelled because a complete restore point could not be created.' 'ERROR' $true
         foreach ($item in @($Shortcuts)) {
@@ -670,10 +705,12 @@ function Invoke-ApplyPipeline {
     Write-Log "Building .ico files (16-256 px, rounded: $($style.CornerRadiusPercent)%, border: $($style.BorderWidthPercent)%, shadow: $($style.ShadowEnabled))" 'INFO' $true
 
     $buildDone = 0
+    Send-ApplyProgress -Callback $ProgressCallback -Phase 'build' -Current 0 -Total $buildKeys.Count -Label 'Building Windows icons' -Status 'running'
     foreach ($name in $buildKeys) {
         $r = $Resolutions[$name]
         $buildDone++
         Show-InlineProgress -Current $buildDone -Total $buildKeys.Count -Label 'Building' -Item $name
+        Send-ApplyProgress -Callback $ProgressCallback -Phase 'build' -Current $buildDone -Total $buildKeys.Count -Label 'Building Windows icons' -Item $name -Status 'running'
 
         try {
             $contain = ($r.Kind -eq 'logo')
@@ -703,6 +740,7 @@ function Invoke-ApplyPipeline {
         }
     }
     Complete-InlineProgress
+    Send-ApplyProgress -Callback $ProgressCallback -Phase 'build' -Current $buildKeys.Count -Total $buildKeys.Count -Label 'Icon building complete' -Status 'complete'
     $phaseTimes.Add([PSCustomObject]@{ Name = 'Build icons'; Span = $swPhase.Elapsed })
 
     # ---------- PHASE 4/5: Apply ----------
@@ -710,9 +748,12 @@ function Invoke-ApplyPipeline {
     Show-PhaseBanner "PHASE 4/5: APPLY ($(@($Shortcuts).Count) items)"
 
     $applyDone = 0
+    $applyTotal = @($Shortcuts).Count
+    Send-ApplyProgress -Callback $ProgressCallback -Phase 'apply' -Current 0 -Total $applyTotal -Label 'Applying icons to shortcuts' -Status 'running'
     foreach ($s in $Shortcuts) {
         $applyDone++
-        Show-InlineProgress -Current $applyDone -Total @($Shortcuts).Count -Label 'Applying' -Item $s.Name
+        Show-InlineProgress -Current $applyDone -Total $applyTotal -Label 'Applying' -Item $s.Name
+        Send-ApplyProgress -Callback $ProgressCallback -Phase 'apply' -Current $applyDone -Total $applyTotal -Label 'Applying icons to shortcuts' -Item $s.Name -Status 'running'
         if ($s.Status -eq 'Failed') { continue }
 
         $r = $Resolutions[[string]$s.NormalizedName]
@@ -748,11 +789,15 @@ function Invoke-ApplyPipeline {
         }
     }
     Complete-InlineProgress
+    Send-ApplyProgress -Callback $ProgressCallback -Phase 'apply' -Current $applyTotal -Total $applyTotal -Label 'Shortcut updates complete' -Status 'complete'
     $phaseTimes.Add([PSCustomObject]@{ Name = 'Apply'; Span = $swPhase.Elapsed })
 
     # ---------- PHASE 5/5: Refresh + report ----------
     Show-PhaseBanner 'PHASE 5/5: REFRESH + REPORT'
+    Send-ApplyProgress -Callback $ProgressCallback -Phase 'refresh' -Current 0 -Total 1 -Label 'Refreshing Windows Explorer' -Status 'running'
     Update-ExplorerIcons
+    Send-ApplyProgress -Callback $ProgressCallback -Phase 'refresh' -Current 1 -Total 1 -Label 'Windows Explorer refresh complete' -Status 'complete'
+    Send-ApplyProgress -Callback $ProgressCallback -Phase 'complete' -Current 1 -Total 1 -Label 'All operations complete' -Status 'complete'
 
     $total       = @($Shortcuts).Count
     $updated     = @($Shortcuts | Where-Object { $_.Status -eq 'Updated' }).Count
