@@ -1,5 +1,5 @@
 # ============================================================
-#  Main.ps1 - Game Icons Studio (v6.35)
+#  Main.ps1 - Game Icons Studio (v6.36)
 #  Menu: Full Auto | Smart Auto | Manual | Selected Files Only
 #        Revision | Manual Search | Rebuild | Cache
 # ============================================================
@@ -37,7 +37,7 @@ if ([string]::IsNullOrWhiteSpace($Root)) { $Root = $ScriptDir }
 function Show-Banner {
     Write-Host ''
     Write-Host '  ============================================================' -ForegroundColor DarkCyan
-    Write-Host '   GAME ICONS STUDIO  v6.35' -ForegroundColor Cyan
+    Write-Host '   GAME ICONS STUDIO  v6.36' -ForegroundColor Cyan
     Write-Host '   Game and app icons, with safe restore history.' -ForegroundColor Gray
     Write-Host '   Find game covers and app icons. Modernize your shortcuts.' -ForegroundColor DarkGray
     Write-Host '  ============================================================' -ForegroundColor DarkCyan
