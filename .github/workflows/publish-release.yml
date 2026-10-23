@@ -1,0 +1,105 @@
+name: Publish Game Icons Studio Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version without the v prefix; must match the checked-in README and CHANGELOG (for example 6.35)'
+        required: true
+        type: string
+      reply_to_issues:
+        description: 'Post the prepared replies to issues #1 and #2 (enable only when those features are ready to announce)'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  build-and-publish:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate version and ensure tag is unused
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:SOURCE_BRANCH -ne 'main') { throw 'Run the release workflow from the main branch.' }
+          $version = $env:RELEASE_VERSION.Trim()
+          if ($version -notmatch '^\d+\.\d+$') { throw "Version must be numeric like 6.35 without a leading v; got '$version'." }
+          $tag = "v$version"
+          $remote = git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}"
+          if ($LASTEXITCODE -notin @(0, 2)) { throw 'Could not check remote tags.' }
+          if (-not [string]::IsNullOrWhiteSpace(($remote | Out-String))) { throw "Tag $tag already exists; choose a new version." }
+          "Validated release tag $tag"
+
+      - name: Build clean release archives
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          .\scripts\Build-Release.ps1 -Version $env:RELEASE_VERSION -RepositoryRoot $env:GITHUB_WORKSPACE -OutputDirectory (Join-Path $env:GITHUB_WORKSPACE 'release-output')
+
+      - name: Publish GitHub Release and upload ZIPs
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Game Icons Studio v${{ inputs.version }}
+          body_path: release-output/ReleaseNotes.md
+          files: |
+            release-output/Game-Icons-Studio-v${{ inputs.version }}.zip
+            release-output/Game-Icons-Studio-v${{ inputs.version }}-Upgrade.zip
+            release-output/SHA256SUMS.json
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reply to the two prepared feature requests (optional, idempotent)
+        if: ${{ inputs.reply_to_issues }}
+        uses: actions/github-script@v7
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        with:
+          script: |
+            const version = process.env.RELEASE_VERSION.startsWith('v')
+              ? process.env.RELEASE_VERSION.slice(1)
+              : process.env.RELEASE_VERSION;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const messages = [
+              {
+                issue_number: 1,
+                marker: `<!-- gis-release-${version}-issue-1 -->`,
+                body: `Thanks for the suggestion, and sorry for the long wait! Restore points are available with configurable retention. The app snapshots relevant shortcut and folder icon state before applying changes and provides a restore flow. Please try v${version} and let us know if you encounter any restoration issues.\n\n<!-- gis-release-${version}-issue-1 -->`
+              },
+              {
+                issue_number: 2,
+                marker: `<!-- gis-release-${version}-issue-2 -->`,
+                body: `Thanks for the suggestion, and apologies for the delay! Local image selection is supported, including drag-and-drop, clipboard paste, and image URL input. Selected images are processed through the app's ICO conversion pipeline, so you can use your own square artwork when catalogue results are not suitable. Please try v${version} and let us know how it works for you.\n\n<!-- gis-release-${version}-issue-2 -->`
+              }
+            ];
+            for (const item of messages) {
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner, repo, issue_number: item.issue_number, per_page: 100
+              });
+              if (comments.some(c => (c.body || '').includes(item.marker))) {
+                core.info(`Issue #${item.issue_number}: reply for v${version} already exists; skipping.`);
+                continue;
+              }
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: item.issue_number, body: item.body
+              });
+              core.info(`Posted prepared reply to issue #${item.issue_number}.`);
+            }

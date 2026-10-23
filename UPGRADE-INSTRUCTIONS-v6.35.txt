@@ -1,0 +1,10 @@
+Game Icons Studio v6.35 — Upgrade instructions
+
+1. Close Game Icons Studio.
+2. Extract this ZIP directly into the existing program folder, where "Game Icons Studio.bat" is located.
+3. Allow Windows to merge folders and overwrite included files.
+4. Start the existing "Game Icons Studio.bat".
+
+This is a complete runtime overlay: it includes the launcher, all PowerShell runtime modules, and required default assets. It intentionally excludes settings.json, API keys, cache, generated icons, logs, history, restore-point backups, and downloaded artwork so those remain unchanged.
+
+No GitHub Release has been published by preparing this package.

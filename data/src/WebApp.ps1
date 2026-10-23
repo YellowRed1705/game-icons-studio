@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.2) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.35) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio</title>
+<title>Game Icons Studio v6.35</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {
@@ -308,8 +308,64 @@ function Get-WebAppHtml {
   .back-btn:hover { border-color:var(--accent); }
   .input-path { width:min(520px,70vw); background:var(--panel2); color:var(--text);
     border:1px solid var(--line); border-radius:10px; padding:11px 14px; font-size:.9rem; }
+
+  /* Keep restore-point dropdown readable in native Chromium/Windows menus.
+     Native option popups do not reliably inherit translucent glass colors. */
+  #backupRetention {
+    color:#eef3ff !important;
+    background-color:#172033 !important;
+    border-color:var(--line);
+    color-scheme:dark;
+  }
+  #backupRetention option,
+  #backupRetention optgroup {
+    color:#eef3ff !important;
+    background-color:#172033 !important;
+  }
+  #backupRetention option:checked {
+    color:#ffffff !important;
+    background-color:#2563eb !important;
+  }
+  [data-theme="light"] #backupRetention,
+  [data-theme="modern-light"] #backupRetention,
+  [data-theme="minimal"] #backupRetention {
+    color:#1a2230 !important;
+    background-color:#ffffff !important;
+    color-scheme:light;
+  }
+  [data-theme="light"] #backupRetention option,
+  [data-theme="light"] #backupRetention optgroup,
+  [data-theme="modern-light"] #backupRetention option,
+  [data-theme="modern-light"] #backupRetention optgroup,
+  [data-theme="minimal"] #backupRetention option,
+  [data-theme="minimal"] #backupRetention optgroup {
+    color:#1a2230 !important;
+    background-color:#ffffff !important;
+  }
+  [data-theme="light"] #backupRetention option:checked,
+  [data-theme="modern-light"] #backupRetention option:checked,
+  [data-theme="minimal"] #backupRetention option:checked {
+    color:#ffffff !important;
+    background-color:#2563eb !important;
+  }
   .ghost.btn-google { border-color:#38bdf8; color:#38bdf8; font-weight:600; }
   .ghost.btn-google:hover { background:linear-gradient(135deg,#0284c7,#2563eb); color:#fff; box-shadow:0 0 0 1px rgba(56,189,248,.5), 0 8px 22px rgba(56,189,248,.4); }
+  .btn-yandex { border:1px solid #ffcc00 !important; color:var(--text); background:linear-gradient(135deg,rgba(255,204,0,.12),rgba(255,204,0,.04)); }
+  .btn-yandex:hover { background:#ffcc00; color:#171717; box-shadow:0 8px 22px rgba(255,204,0,.22); }
+  .online-search-panel { width:100%; margin:16px 0; padding:14px; border:1px solid var(--line); border-radius:16px; background:var(--panel); text-align:left; }
+  .online-search-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:9px; }
+  .online-search-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:10px; margin-top:10px; max-height:390px; overflow:auto; }
+  .online-candidate { min-width:0; border:1px solid var(--line); border-radius:12px; padding:7px; background:var(--panel2); cursor:pointer; color:var(--text); text-align:center; }
+  .online-candidate:hover,.online-candidate:focus { border-color:var(--accent); transform:translateY(-1px); }
+  .online-candidate img { width:100%; aspect-ratio:1; object-fit:contain; border-radius:8px; background:rgba(127,127,127,.08); display:block; }
+  .online-candidate-title { font-size:.74rem; line-height:1.3; margin-top:6px; overflow-wrap:anywhere; color:var(--text); }
+  .online-candidate-meta { color:var(--muted); font-size:.68rem; margin-top:4px; }
+  .online-candidate-use { margin-top:7px; width:100%; border:1px solid var(--accent); border-radius:8px; padding:5px 6px; background:transparent; color:var(--text); cursor:pointer; font-size:.72rem; }
+  .online-candidate-use:hover { background:var(--accent); color:white; }
+  .search-kind-row { gap:8px; margin:4px 0 2px; }
+  .search-kind-btn { min-width:150px; }
+  .search-kind-btn.active { border-color:var(--accent2); background:var(--accent); color:#fff; }
+  .search-tip { max-width:760px; line-height:1.55; }
   .custom-layout { display:flex; gap:24px; align-items:stretch; justify-content:center; flex-wrap:wrap; width:100%; }
   .drop-zone {
     flex:1 1 320px; min-height:220px; border:2px dashed var(--accent); border-radius:16px;
@@ -343,7 +399,7 @@ function Get-WebAppHtml {
   <img class="logo-img" src="/assets/brand.png" alt="Game Icons Studio">
   <div class="brand">
     <h1>Game Icons Studio</h1>
-    <p>From generic icons to a game shelf.</p>
+    <p>Game and app icons, with safe restore history.</p>
   </div>
   <div class="spacer"></div>
   <button class="iconbtn" id="langBtn" onclick="toggleLang()" title="Change Language">🌐 عربي</button>
@@ -375,7 +431,7 @@ function Get-WebAppHtml {
     <img class="key-logo" src="/assets/brand.png" alt="Game Icons Studio">
     <button class="big-btn btn-go" style="margin-bottom:6px;" onclick="showAbout()">&#10067; What is GIS? &mdash; new here? Start with a quick tour</button>
     <h2>Let's get you set up</h2>
-    <p class="sub" style="max-width:620px;">Game Icons Studio finds your game covers through <b>SteamGridDB</b>, a free community artwork library. You just need a free API key &mdash; it takes a minute, once.</p>
+    <p class="sub" style="max-width:620px;">Game Icons Studio finds game covers through <b>SteamGridDB</b>. A free API key is needed for automatic game matching, but not for the Program &amp; App Icons workflow.</p>
 
     <div class="key-cols">
       <div class="key-col">
@@ -405,6 +461,9 @@ function Get-WebAppHtml {
       <button class="ghost" onclick="saveKey()">Continue</button>
     </div>
     <div id="keyMsg" class="sub"></div>
+    <div class="btn-row" style="margin-top:8px;">
+      <button class="ghost" onclick="continueWithoutKey()">Continue with Program &amp; App Icons (no API key)</button>
+    </div>
   </div>
 
   <!-- NO ARTWORK -->
@@ -456,10 +515,21 @@ function Get-WebAppHtml {
         <div class="t">Repair Icon Cache</div>
         <div class="d">Fix blank or stale icons by refreshing the Windows icon cache.</div>
       </button>
+      <button class="home-btn" data-home="5" onclick="startFullScan(true)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 8h8v8H8z"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
+        <div class="t">Program &amp; App Icons</div>
+        <div class="d">Search Google or Yandex Images for app icons and apply them to shortcuts.</div>
+      </button>
+      <button class="home-btn" data-home="6" onclick="startChangeIcons(true)">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><path d="M4 4h16v16H4z"/><path d="M8 8h3v3H8zM13 8h3M13 11h3M8 14h8M8 17h5"/></svg>
+        <div class="t">Any Files &amp; Scripts</div>
+        <div class="d">Choose .exe, .bat, .cmd, .ps1 and other files. Custom icon shortcuts are created beside regular files.</div>
+      </button>
     </div>
     <div class="home-tools">
       <button class="ghost tool-btn" onclick="quickReapply()" title="Re-apply your last saved choices">&#8635; Quick re-apply</button>
       <button class="ghost tool-btn" onclick="openHistory()" title="See what you changed and when">&#128340; History</button>
+      <button class="ghost tool-btn" id="backupHomeBtn" onclick="openBackups()" title="Restore previous icon states">&#8617; Undo / Restore</button>
     </div>
     <div class="kbd-hint"><b>&larr; &rarr;</b> move &nbsp; <b>Enter</b> select &nbsp; <b>F</b> fullscreen</div>
   </div>
@@ -475,6 +545,28 @@ function Get-WebAppHtml {
     </div>
   </div>
 
+  <!-- BACKUP / RESTORE HISTORY -->
+  <div class="card center-col hidden" id="step-backups">
+    <h2 id="backupTitle">Undo &amp; Restore</h2>
+    <p class="sub" id="backupSubtitle" style="max-width:720px;">Restore previous shortcut and folder icon states from saved restore points. Restore points are created automatically before applying changes.</p>
+    <div class="url-row" style="max-width:720px;align-items:center;">
+      <label for="backupRetention" id="backupRetentionLabel">Keep restore points:</label>
+      <select class="input-path" id="backupRetention" style="max-width:280px;" onchange="saveBackupRetention()">
+        <option value="10">Last 10 versions</option>
+        <option value="25">Last 25 versions</option>
+        <option value="50">Last 50 versions</option>
+        <option value="100">Last 100 versions</option>
+        <option value="0">Unlimited (uses more disk space)</option>
+      </select>
+      <button class="ghost" onclick="openBackups()" id="backupRefreshBtn">Refresh</button>
+    </div>
+    <p class="sub" id="backupSettingStatus" style="min-height:1.2em;"></p>
+    <div class="history-list" id="backupList" style="width:min(900px,100%);"></div>
+    <div class="btn-row">
+      <button class="big-btn btn-good" onclick="goHome()">&#8962; Back to home</button>
+    </div>
+  </div>
+
   <!-- WHAT IS GIS -->
   <div class="card hidden" id="step-about">
     <h2 style="text-align:center;">What is GIS? <span style="color:var(--muted);font-size:1rem;">(Game Icons Studio)</span></h2>
@@ -483,12 +575,12 @@ function Get-WebAppHtml {
     <div class="about-wrap">
       <div class="about-card">
         <div class="about-h">&#127918; What it is</div>
-        <p>Game Icons Studio turns the plain, generic icons of your game shortcuts into proper game cover art, so your Games folder looks like a real shelf. It finds the right artwork automatically, builds clean Windows icons, and applies them for you.</p>
+        <p>Game Icons Studio turns generic icons on game and program shortcuts into polished icons. Game covers can be matched through SteamGridDB; app icons can be found through Google Images or Yandex Images, then previewed and applied locally.</p>
       </div>
 
       <div class="about-card">
         <div class="about-h">&#128268; Where the art comes from</div>
-        <p>Covers are pulled from <b>SteamGridDB</b> (steamgriddb.com), a free community library of game artwork. You sign up once and paste a free <b>API key</b>; the app uses it to search and download covers. Your key stays on your PC.</p>
+        <p>Game covers are matched through <b>SteamGridDB</b> (steamgriddb.com). For regular applications, use <b>Program &amp; App Icons</b> to search Google Images or Yandex Images. Drag the image into the app or copy/paste it; the app processes it locally. The SteamGridDB API key is only needed for game matching.</p>
       </div>
 
       <div class="about-card">
@@ -500,7 +592,8 @@ function Get-WebAppHtml {
 
       <div class="about-card">
         <div class="about-h">&#129513; What each button does</div>
-        <p><b>Choose your game shortcuts folder</b> &mdash; full scan of a whole folder.<br>
+        <p><b>Shortcuts Folder</b> &mdash; match game covers for shortcuts in a folder.<br>
+        <b>Program &amp; App Icons</b> &mdash; search for application icons without SteamGridDB matching.<br>
         <b>Change specific icons</b> &mdash; pick just a few shortcuts to redo.<br>
         <b>Repair icon cache</b> &mdash; fix blank or stale icons by refreshing the Windows icon cache.<br>
         <b>Quick re-apply</b> &mdash; re-apply your last saved choices in one click (handy if icons go blank).<br>
@@ -721,26 +814,46 @@ function Get-WebAppHtml {
       <button class="ghost" data-nav onclick="goHome()">Back to home</button>
     </div>
   </div>
-  <!-- CUSTOM GOOGLE COVER -->
+  <!-- CUSTOM ICON STUDIO: works for both games and regular application shortcuts -->
   <div class="card center-col hidden" id="step-custom">
-    <h2>Google Images / Custom Cover</h2>
+    <h2 id="customTitle">Custom Icon Studio</h2>
     <p class="sub" id="customShortcutTitle"></p>
 
-    <div class="btn-row">
-      <button class="big-btn btn-go" onclick="reopenGoogleSearch()">&#128269; Open Google Images Search</button>
+    <div class="btn-row search-kind-row" id="customSearchKindButtons">
+      <button class="ghost vt-btn search-kind-btn" id="customKindGame" onclick="setCustomSearchKind('game')">Game cover</button>
+      <button class="ghost vt-btn search-kind-btn active" id="customKindProgram" onclick="setCustomSearchKind('program')">Program / App icon</button>
     </div>
+
+    <div class="btn-row" id="customImageSearchButtons">
+      <button class="big-btn btn-go" id="googleImagesBtn" onclick="openGoogleSearch()">&#128269; Google Images</button>
+      <button class="big-btn btn-yandex" id="yandexImagesBtn" onclick="openYandexSearch()">&#128269; Yandex Images</button>
+      <button class="ghost" id="chooseLocalImageBtn" onclick="triggerCustomFile()">&#128193; Choose Local Image</button>
+    </div>
+    <div class="online-search-panel" id="onlineSearchPanel">
+      <div class="online-search-head">
+        <div><b>Smart online icon candidates</b><div class="sub" style="margin:3px 0 0;">Google + Yandex results ranked for square shape, resolution and likely icon relevance.</div></div>
+        <div class="btn-row" style="margin:0;">
+          <button class="ghost" onclick="searchOnlineImageCandidates('both')">Find more from both</button>
+          <button class="ghost" onclick="searchOnlineImageCandidates('google')">Google only</button>
+          <button class="ghost" onclick="searchOnlineImageCandidates('yandex')">Yandex only</button>
+        </div>
+      </div>
+      <div class="sub" id="onlineSearchStatus" aria-live="polite">Showing candidates discovered during the automatic scan.</div>
+      <div class="online-search-grid" id="onlineImageResultsGrid"></div>
+    </div>
+    <p class="sub search-tip" id="customSearchHint">Search for a high-resolution result, then drag the image directly onto the drop area or icon preview. You can also right-click an image, choose Copy image, and press Ctrl+V.</p>
 
     <div class="custom-layout">
       <div class="drop-zone" id="customDropZone" onclick="triggerCustomFile()">
         <div style="font-size:2.2rem;">&#128229;</div>
         <div style="font-weight:700;font-size:1.02rem;">Drag &amp; Drop an image here, or press <kbd style="background:var(--panel);padding:2px 7px;border-radius:6px;border:1px solid var(--line);">Ctrl+V</kbd></div>
-        <div class="sub" style="margin:0;max-width:340px;">Right-click any image on Google Images &rarr; <b>Copy image</b> &rarr; press <b>Ctrl+V</b> here, or drag the image directly into this box, or click to browse your PC.</div>
+        <div class="sub" style="margin:0;max-width:340px;">Drag an image from Google Images or Yandex Images directly here, right-click it and choose <b>Copy image</b> then press <b>Ctrl+V</b>, or click to browse your PC.</div>
         <input type="file" id="customFileInput" accept="image/*" style="display:none" onchange="handleCustomFileSelect(event)" />
       </div>
 
-      <div class="preview-box">
+      <div class="preview-box" id="customPreviewDropZone" title="You can also drop an image directly onto this preview">
         <div style="font-size:.82rem;color:var(--muted);font-weight:600;">ICON PREVIEW (1:1)</div>
-        <canvas id="customCanvas" width="512" height="512"></canvas>
+        <canvas id="customCanvas" width="512" height="512" title="Drop an image here to preview it"></canvas>
         <div class="view-toggle" style="margin:0;">
           <button class="ghost vt-btn active" id="fitCrop" onclick="setCustomFitMode('crop')" title="Center crop to square">Crop 1:1</button>
           <button class="ghost vt-btn" id="fitContain" onclick="setCustomFitMode('contain')" title="Fit whole image with transparent padding">Fit</button>
@@ -750,15 +863,15 @@ function Get-WebAppHtml {
     </div>
 
     <div class="url-row">
-      <input class="input-path" id="customUrlInput" placeholder="...or paste a direct image URL / Google link here and press Enter" style="flex:1;min-width:260px;" onkeydown="if(event.key==='Enter') loadCustomUrlInput()" />
+      <input class="input-path" id="customUrlInput" placeholder="Paste a direct image URL and press Enter..." style="flex:1;min-width:260px;" onkeydown="if(event.key==='Enter') loadCustomUrlInput()" />
       <button class="ghost g-good" onclick="loadCustomUrlInput()">Load URL</button>
     </div>
 
     <div id="customStatusMsg" class="sub" style="min-height:1.2em;color:var(--accent2);"></div>
 
     <div class="btn-row">
-      <button class="big-btn btn-good" id="customApplyBtn" disabled onclick="applyCustomCover()">&#10003; Use this cover</button>
-      <button class="ghost" onclick="goBack()">&larr; Cancel / Back</button>
+      <button class="big-btn btn-good" id="customApplyBtn" disabled onclick="applyCustomCover()">&#10003; Apply this icon</button>
+      <button class="ghost" id="customSkipBtn" onclick="cancelCustomIcon()">&larr; Cancel / Skip</button>
     </div>
   </div>
 </main>
@@ -778,7 +891,7 @@ function Get-WebAppJs {
 var i18n = {
   ar: {
     langBtn: "🌐 English",
-    homeSubtitle: "تنزيل الأغلفة. تغيير الأيقونات. تحديث مجلد ألعابك.",
+    homeSubtitle: "اعثر على أغلفة الألعاب وأيقونات التطبيقات وطوّر اختصاراتك.",
     btnShortcuts: "مجلد الاختصارات",
     descShortcuts: "فحص جميع اختصارات الألعاب (.lnk) في المجلد واستبدال أيقوناتها.",
     btnAllFolders: "جميع المجلدات الفرعية",
@@ -789,8 +902,33 @@ var i18n = {
     descSpecific: "اختيار ملفات اختصارات محددة لتغيير أيقوناتها.",
     btnRepair: "إصلاح أيقونات النظام",
     descRepair: "تحديث ذاكرة التخزين المؤقت للأيقونات في الويندوز لحل مشكلة الأيقونات البيضاء.",
+    btnProgramIcons: "أيقونات البرامج والتطبيقات",
+    descProgramIcons: "ابحث عن أيقونات التطبيقات في صور جوجل أو ياندكس وطبّقها على الاختصارات.",
+    btnAnyFiles: "أي ملفات وسكربتات",
+    descAnyFiles: "اختر ملفات EXE وBAT وCMD وPS1 وغيرها. يتم إنشاء اختصار منفصل للأيقونات المخصصة.",
+    programFolderTitle: "اختر مجلد اختصارات البرامج",
+    programFolderSub: "اختر المجلد الذي يحتوي على اختصارات التطبيقات والبرامج، أو الصق مساره.",
+    programScanBtn: "فحص الاختصارات واختيار الأيقونات ←",
+    yandexSearchBtn: "افتح صور ياندكس 🔍",
+    customTitle: "استوديو الأيقونات المخصصة",
+    kindGame: "غلاف لعبة",
+    kindProgram: "أيقونة برنامج / تطبيق",
+    customSearchHint: "ابحث عن صورة عالية الدقة، ثم اسحبها مباشرة إلى منطقة الإسقاط أو معاينة الأيقونة. يمكنك أيضاً نسخ الصورة ولصقها باستخدام Ctrl+V.",
+    customApplyBtn: "تطبيق هذه الأيقونة",
+    customSkipBtn: "تخطي هذا التطبيق",
+    chooseLocalImage: "اختر صورة من الجهاز",
     btnQuick: "↻ إعادة تطبيق سريع",
     btnHistory: "🕒 السجل",
+    btnUndo: "↶ تراجع / استعادة",
+    backupTitle: "التراجع واستعادة الأيقونات",
+    backupSubtitle: "استعد حالة الأيقونات السابقة من نقاط الاستعادة المحفوظة. يتم إنشاء نقطة قبل تطبيق التغييرات.",
+    backupRetentionLabel: "الاحتفاظ بنقاط الاستعادة:",
+    backupEmpty: "لا توجد نقاط استعادة بعد. طبّق الأيقونات مرة واحدة لإنشاء أول نسخة احتياطية.",
+    backupRestore: "استعادة هذه النسخة",
+    backupRestoreConfirm: "ستتم استعادة {0} عنصرًا إلى حالته السابقة. قد يؤدي ذلك إلى استبدال تغييرات أحدث على هذه العناصر. هل تريد المتابعة؟",
+    backupRestoreDone: "اكتملت الاستعادة.",
+    backupRestoreError: "تعذرت استعادة نقطة الاستعادة.",
+    backupSaved: "تم حفظ إعداد سجل الاستعادة.",
     folderTitle: "اختر مجلد الألعاب",
     folderSub: "اختر المجلد الذي يحتوي على ألعابك، أو الصق المسار هنا.",
     scanBtn: "فحص المجلد ←",
@@ -851,7 +989,7 @@ var i18n = {
   },
   en: {
     langBtn: "🌐 عربي",
-    homeSubtitle: "Download covers. Replace icons. Modernize your Games folder.",
+    homeSubtitle: "Find game covers and app icons. Modernize your shortcuts.",
     btnShortcuts: "Shortcuts Folder",
     descShortcuts: "Scan all game shortcuts (.lnk) in a folder and replace their icons.",
     btnAllFolders: "All Sub-Folders",
@@ -862,8 +1000,33 @@ var i18n = {
     descSpecific: "Pick just the shortcuts you want to redo and choose new covers.",
     btnRepair: "Repair Icon Cache",
     descRepair: "Fix blank or stale icons by refreshing the Windows icon cache.",
+    btnProgramIcons: "Program & App Icons",
+    descProgramIcons: "Search Google or Yandex Images for app icons and apply them to shortcuts.",
+    btnAnyFiles: "Any Files & Scripts",
+    descAnyFiles: "Choose .exe, .bat, .cmd, .ps1 and other files. Custom icon shortcuts are created beside regular files.",
+    programFolderTitle: "Choose your program shortcuts folder",
+    programFolderSub: "Select the folder that contains your program and app shortcuts, or paste its path.",
+    programScanBtn: "Scan shortcuts & choose icons →",
+    yandexSearchBtn: "Open Yandex Images Search 🔍",
+    customTitle: "Custom Icon Studio",
+    kindGame: "Game cover",
+    kindProgram: "Program / App icon",
+    customSearchHint: "Search for a high-resolution result, then drag it directly onto the drop area or icon preview. You can also right-click an image, choose Copy image, and press Ctrl+V.",
+    customApplyBtn: "Apply this icon",
+    customSkipBtn: "Skip this app",
+    chooseLocalImage: "Choose Local Image",
     btnQuick: "↻ Quick re-apply",
     btnHistory: "🕒 History",
+    btnUndo: "↶ Undo / Restore",
+    backupTitle: "Undo & Restore Icons",
+    backupSubtitle: "Restore previous icon states from saved restore points. A restore point is created automatically before changes are applied.",
+    backupRetentionLabel: "Keep restore points:",
+    backupEmpty: "No restore points yet. Apply icons once to create your first backup version.",
+    backupRestore: "Restore this version",
+    backupRestoreConfirm: "This will restore {0} item(s) to their previous state. It may overwrite newer changes to these items. Continue?",
+    backupRestoreDone: "Restore completed.",
+    backupRestoreError: "The restore point could not be restored.",
+    backupSaved: "Restore history setting saved.",
     folderTitle: "Choose your games folder",
     folderSub: "Select the folder that holds your game shortcuts (.lnk), or paste its path.",
     scanBtn: "Scan this folder →",
@@ -972,13 +1135,27 @@ function applyLang() {
     homeBtns[3].querySelector('.d').textContent = t.descSpecific;
     homeBtns[4].querySelector('.t').textContent = t.btnRepair;
     homeBtns[4].querySelector('.d').textContent = t.descRepair;
+    if (homeBtns.length >= 6) {
+      homeBtns[5].querySelector('.t').textContent = t.btnProgramIcons;
+      homeBtns[5].querySelector('.d').textContent = t.descProgramIcons;
+    }
+    if (homeBtns.length >= 7) {
+      homeBtns[6].querySelector('.t').textContent = t.btnAnyFiles || i18n.en.btnAnyFiles;
+      homeBtns[6].querySelector('.d').textContent = t.descAnyFiles || i18n.en.descAnyFiles;
+    }
   }
 
   var toolBtns = document.querySelectorAll('.tool-btn');
   if(toolBtns.length >= 2) {
     toolBtns[0].textContent = t.btnQuick;
     toolBtns[1].textContent = t.btnHistory;
+    if (toolBtns.length >= 3) toolBtns[2].textContent = t.btnUndo;
   }
+  if (el('chooseLocalImageBtn')) el('chooseLocalImageBtn').textContent = '📁 ' + t.chooseLocalImage;
+  if (el('backupTitle')) el('backupTitle').textContent = t.backupTitle;
+  if (el('backupSubtitle')) el('backupSubtitle').textContent = t.backupSubtitle;
+  if (el('backupRetentionLabel')) el('backupRetentionLabel').textContent = t.backupRetentionLabel;
+  if (el('backupRefreshBtn')) el('backupRefreshBtn').textContent = (currentLang === 'ar' ? 'تحديث' : 'Refresh');
 
   if (typeof updateFolderScreenLabels === 'function') updateFolderScreenLabels();
 
@@ -1002,7 +1179,7 @@ function applyLang() {
   if (cBtns.length >= 4) {
     cBtns[0].textContent = t.btnLooksGood;
     cBtns[1].textContent = t.btnDiffCover;
-    cBtns[2].textContent = t.btnWrongGame;
+    cBtns[2].textContent = (typeof state !== 'undefined' && state.iconSearchOnly) ? (currentLang === 'ar' ? 'عرض نتائج أيقونات بديلة' : 'Choose a different match') : t.btnWrongGame;
     cBtns[3].textContent = t.googleSearchBtn;
   }
   var autoBtn = document.querySelector('.auto-btn');
@@ -1029,8 +1206,17 @@ function applyLang() {
     repBtns[1].textContent = t.btnReturnReview;
   }
 
-  var gBtn = document.querySelector('#step-custom .btn-go');
+  var gBtn = el('googleImagesBtn');
   if(gBtn) gBtn.textContent = t.googleSearchBtn;
+  var yBtn = el('yandexImagesBtn');
+  if(yBtn) yBtn.textContent = t.yandexSearchBtn;
+  if(el('customTitle')) el('customTitle').textContent = t.customTitle;
+  if(el('customKindGame')) el('customKindGame').textContent = t.kindGame;
+  if(el('customKindProgram')) el('customKindProgram').textContent = t.kindProgram;
+  if(el('customSearchHint')) el('customSearchHint').textContent = t.customSearchHint;
+  if(el('customApplyBtn')) el('customApplyBtn').textContent = '✓ ' + t.customApplyBtn;
+  if(el('customSkipBtn')) el('customSkipBtn').textContent = '← ' + t.customSkipBtn;
+  if (typeof updateCustomSearchKindUi === 'function') updateCustomSearchKindUi();
   var dropTxt = document.querySelector('#customDropZone > div:nth-child(2)');
   if(dropTxt) dropTxt.innerHTML = t.dragDropText.replace('Ctrl+V', '<kbd style="background:var(--panel);padding:2px 7px;border-radius:6px;border:1px solid var(--line);">Ctrl+V</kbd>');
 
@@ -1078,13 +1264,13 @@ function applyLang() {
 
 var state = {
   mode:'full', folder:'', items:[], pos:0, picks:{}, history:[],
-  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false, targetMode:'shortcuts'
+  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false, targetMode:'shortcuts', iconSearchOnly:false
 };
 var coverCache = {};
 var currentPollId = 0;
 
 function $(id){ return document.getElementById(id); }
-var SCREENS = ['step-custom','step-convert','step-convert-ok','step-memory','step-newgames','step-restore-ok','step-history','step-about','step-health','step-confirm-apply','step-key','step-noart','step-home','step-folder','step-loading','step-confirm','step-artwork','step-matches','step-review','step-report'];
+var SCREENS = ['step-custom','step-convert','step-convert-ok','step-memory','step-newgames','step-restore-ok','step-backups','step-history','step-about','step-health','step-confirm-apply','step-key','step-noart','step-home','step-folder','step-loading','step-confirm','step-artwork','step-matches','step-review','step-report'];
 function show(id){
   SCREENS.forEach(function(s){ $(s).classList.add('hidden'); });
   $(id).classList.remove('hidden');
@@ -1126,7 +1312,7 @@ function setLoadProgress(detail, pct){
 
 // ---- theme / zoom / fullscreen ----
 var THEMES = [
-  { id:'glass',         name:'Glass',         icon:'\u25C8' },
+  { id:'glass',         name:'Aurora Glass', icon:'\u25C8' },
   { id:'dark',          name:'Dark',          icon:'\u263E' },
   { id:'light',         name:'Light',         icon:'\u2600' },
   { id:'modern-dark',   name:'Modern Dark',   icon:'\u25D2' },
@@ -1224,6 +1410,11 @@ function pasteKey(){
     $('keyMsg').textContent = 'Paste with Ctrl+V into the box, then press Continue.';
   }
 }
+function continueWithoutKey(){
+  // SteamGridDB is optional for the dedicated Google/Yandex app-icon workflow.
+  state.iconSearchOnly = false;
+  showHome();
+}
 function saveKey(){
   var key = $('keyInput').value.trim();
   if (!key){ $('keyMsg').textContent = 'Please paste your API key first.'; return; }
@@ -1244,6 +1435,7 @@ function goHome(){
 function showHome(){
   currentPollId++; // Cancel any active dialog polling
   state.autoAll = false;
+  state.iconSearchOnly = false;
   setProgress(0);
   // Reset folder screen text to default
   state.targetMode = 'shortcuts';
@@ -1276,6 +1468,7 @@ function quickReapply(){
       // automatically end to end.
       state.folder = res.folder;
       state.mode = 'full';
+      state.iconSearchOnly = false;
       state.targetMode = 'shortcuts';
       state.onlyNew = false;
       state.memoryAsked = true;
@@ -1332,6 +1525,77 @@ function filterHistory(){
 }
 
 
+function openBackups(){
+  $('backupList').innerHTML = '';
+  $('backupSettingStatus').textContent = '';
+  setLoading('Loading restore points...', 'Reading saved icon versions.', 15);
+  Promise.all([
+    api('/api/backup-list', {}),
+    api('/api/backup-settings', {})
+  ]).then(function(results){
+    var listRes = results[0] || {};
+    var settingRes = results[1] || {};
+    if (settingRes.ok && $('backupRetention')) $('backupRetention').value = String(settingRes.retention);
+    renderBackupList(Array.isArray(listRes.backups) ? listRes.backups : []);
+    show('step-backups');
+  }).catch(function(){
+    $('backupList').textContent = 'Could not read restore points. Check the local app log.';
+    show('step-backups');
+  });
+}
+function renderBackupList(list){
+  var wrap = $('backupList');
+  wrap.innerHTML = '';
+  var t = i18n[currentLang] || i18n.en;
+  if (!list.length){
+    var empty = document.createElement('div');
+    empty.className = 'sub';
+    empty.style.cssText = 'text-align:center;padding:24px;';
+    empty.textContent = t.backupEmpty;
+    wrap.appendChild(empty);
+    return;
+  }
+  list.forEach(function(item){
+    var row = document.createElement('div');
+    row.className = 'history-row';
+    row.style.cssText = 'gap:16px;padding:16px;align-items:center;';
+    var info = document.createElement('div');
+    info.className = 'hist-info';
+    var name = document.createElement('div');
+    name.className = 'hist-name';
+    name.textContent = (item.itemCount || 0) + ' item(s) · ' + (item.createdAt || item.id || 'Unknown date');
+    var sub = document.createElement('div');
+    sub.className = 'hist-sub';
+    sub.textContent = item.restoredAt ? ('Previously restored: ' + item.restoredAt + ' · Can restore again') : 'Original shortcut/folder icon state saved';
+    info.appendChild(name); info.appendChild(sub);
+    var btn = document.createElement('button');
+    btn.className = 'ghost g-good';
+    btn.textContent = t.backupRestore;
+    btn.addEventListener('click', function(){ restoreBackup(item.id, item.itemCount || 0); });
+    row.appendChild(info); row.appendChild(btn); wrap.appendChild(row);
+  });
+}
+function saveBackupRetention(){
+  var value = parseInt($('backupRetention').value, 10);
+  if (!Number.isFinite(value) || value < 0) value = 50;
+  api('/api/backup-settings', { retention: value }).then(function(res){
+    $('backupSettingStatus').textContent = (res && res.ok) ? (i18n[currentLang].backupSaved) : ((res && res.error) || 'Could not save setting.');
+  }).catch(function(){ $('backupSettingStatus').textContent = 'Could not save setting.'; });
+}
+function restoreBackup(id, count){
+  var t = i18n[currentLang] || i18n.en;
+  if (!window.confirm(formatStr(t.backupRestoreConfirm, [count, id]))) return;
+  setLoading('Restoring previous icons...', 'Restoring saved shortcut and folder state.', 55);
+  api('/api/backup-restore', { id: id }).then(function(res){
+    var failures = (res && res.failures && res.failures.length) ? '\n\n' + res.failures.slice(0,8).join('\n') : '';
+    $('restoreResultMsg').textContent = (res && res.message) ? res.message + failures : (res && res.error) || t.backupRestoreError;
+    show('step-restore-ok');
+  }).catch(function(){
+    $('restoreResultMsg').textContent = t.backupRestoreError;
+    show('step-restore-ok');
+  });
+}
+
 function repairIconCache(){
   setLoading('Repairing the Windows icon cache...', 'This refreshes how icons are shown.', 50);
   api('/api/repair-cache', {}).then(function(res){
@@ -1343,10 +1607,16 @@ function repairIconCache(){
 }
 
 // ---- FULL SCAN flow ----
-function startFullScan(){
+function startFullScan(iconSearchOnly){
   state.mode = 'full';
   state.targetMode = 'shortcuts';
+  state.iconSearchOnly = !!iconSearchOnly;
+  // Program/App mode is batch-first: auto-match every available icon and
+  // reveal the complete preview grid instead of asking for each item in turn.
+  state.autoAll = !!iconSearchOnly;
+  state.useMemory = false;
   state.onlyNew = false; state.memoryAsked = false;
+  updateFolderScreenLabels();
   setProgress(0);
   show('step-folder');
   $('folderPath').textContent = '';
@@ -1358,7 +1628,7 @@ function startFullScan(){
       $('folderInput').value = res.folder;
       $('folderPath').textContent = 'Last used folder ready. Press Scan, or browse/paste another.';
       $('scanBtn').classList.remove('hidden');
-      maybeOfferNewGames();
+      if (!state.iconSearchOnly) maybeOfferNewGames();
     }
   });
 }
@@ -1366,7 +1636,11 @@ function updateFolderScreenLabels(){
   var ft = document.getElementById('folderTitle'), fs = document.getElementById('folderSubtitle'), sb = document.getElementById('scanBtn');
   if (!ft || !fs) return;
   var t = i18n[currentLang];
-  if (state.targetMode === 'folders_all'){
+  if (state.iconSearchOnly) {
+    ft.textContent = t.programFolderTitle;
+    fs.textContent = t.programFolderSub;
+    if (sb) sb.textContent = t.programScanBtn;
+  } else if (state.targetMode === 'folders_all'){
     ft.textContent = t.ftMainAll;
     fs.textContent = t.fsMainAll;
     if (sb) sb.textContent = t.btnScanAll;
@@ -1382,6 +1656,7 @@ function updateFolderScreenLabels(){
 }
 function startFolderMode(type){
   state.mode = 'full';
+  state.iconSearchOnly = false;
   state.targetMode = (type === 'all') ? 'folders_all' : 'folders_single';
   state.onlyNew = false; state.memoryAsked = false;
   setProgress(0);
@@ -1418,6 +1693,7 @@ function folderReady(folder){
   $('scanBtn').classList.remove('hidden');
   // Folder modes skip the shortcut-only new-game detection.
   if (isFolderMode()){ startScan(); return; }
+  if (state.iconSearchOnly){ startScan(); return; }
   // If this folder was scanned before and has new games, offer that
   // choice; otherwise go straight into scanning.
   api('/api/new-games-count', { folder: folder, targetMode: state.targetMode }).then(function(res){
@@ -1520,7 +1796,7 @@ function showConvertSuccess(n){
 function skipConvert(){ runScan(); }
 function runScan(){
   // Offer to reuse remembered choices (only for full-folder mode, once).
-  if (state.mode === 'full' && !state.memoryAsked){
+  if (state.mode === 'full' && !state.memoryAsked && !state.iconSearchOnly){
     state.memoryAsked = true;
     setLoading('Checking your saved choices...', '', 0);
     api('/api/saved-status', {}).then(function(res){
@@ -1545,10 +1821,11 @@ function memoryReset(){
 function doScan(){
   setProgress(0);
   var folderMode = isFolderMode();
-  var msg = folderMode ? 'Scanning SteamGridDB for your game folders...' : 'Scanning SteamGridDB for your games...';
-  var detail = folderMode ? 'Reading your folders...' : 'Reading your folder...';
+  var msg = state.iconSearchOnly ? 'Preparing your program shortcuts...' : (folderMode ? 'Scanning SteamGridDB for your game folders...' : 'Scanning SteamGridDB for your games...');
+  var detail = state.iconSearchOnly ? 'Reading application shortcuts...' : (folderMode ? 'Reading your folders...' : 'Reading your folder...');
   setLoading(msg, detail, 0);
   var payload = { folder: state.folder };
+  if (state.iconSearchOnly) payload.iconSearchOnly = true;
   if (state.onlyNew){ payload.onlyNew = true; }
   if (state.targetMode){ payload.targetMode = state.targetMode; }
   api('/api/scan-begin', payload).then(function(res){
@@ -1581,16 +1858,17 @@ function scanAllInstead(){
 }
 
 // ---- CHANGE ICONS flow ----
-function startChangeIcons(){
+function startChangeIcons(anyFiles){
   state.mode = 'change';
+  state.iconSearchOnly = !!anyFiles;
   state.targetMode = 'shortcuts';
   setProgress(0);
   setLoading('Opening the file window...', 'A Windows window will appear in front. Ctrl+click the shortcuts you want to redo, then click Open.', null);
   api('/api/change-files', {}).then(function(){
     pollDialog(function(res){
       if (!res.ok || !res.files || !res.files.length){ goHome(); return; }
-      setLoading('Scanning SteamGridDB for your games...', 'Reading the files you picked...', 0);
-      api('/api/scan-files-begin', { files: res.files }).then(function(r2){
+      setLoading(state.iconSearchOnly ? 'Finding program and file icons...' : 'Scanning SteamGridDB for your games...', 'Reading the files you picked...', 0);
+      api('/api/scan-files-begin', { files: res.files, iconSearchOnly: state.iconSearchOnly }).then(function(r2){
         if (!r2.ok){ alert(r2.error || 'Could not read those files.'); goHome(); return; }
         beginScanLoop(r2.total);
       });
@@ -1600,11 +1878,15 @@ function startChangeIcons(){
 
 // ---- shared scan loop ----
 function beginScanLoop(total){
-  state.items = []; state.pos = 0; state.picks = {}; state.history = [];
+  state.items = []; state.pos = 0; state.picks = {}; state.history = []; state.reviewSelected = {};
   state.total = total || 0;
-  if (state.total === 0){ alert('No matchable games were found.'); goHome(); return; }
-  var est = estimateSeconds(state.total, 0.6);
-  setLoading('Scanning your games...', 'About ' + est + ' for ' + state.total + ' game' + (state.total===1?'':'s') + '.', 0);
+  if (state.total === 0){ alert(state.iconSearchOnly ? 'No supported files or program shortcuts were found.' : 'No matchable games were found.'); goHome(); return; }
+  // Program mode queries external image engines per item, so show a realistic estimate.
+  var est = estimateSeconds(state.total, state.iconSearchOnly ? 13 : 0.6);
+  var noun = state.iconSearchOnly ? 'program/file icon' : 'game';
+  var detail = 'About ' + est + ' for ' + state.total + ' ' + noun + (state.total===1?'':'s') + '.';
+  if (state.iconSearchOnly) detail += ' Checking Google Images, Yandex Images and a structured brand-icon catalog; semantic relevance is prioritized over dimensions.';
+  setLoading(state.iconSearchOnly ? 'Finding the best program icons...' : 'Scanning your games...', detail, 0);
   scanStep(0);
 }
 function estimateSeconds(count, perItem){
@@ -1613,15 +1895,115 @@ function estimateSeconds(count, perItem){
   var m = Math.round(secs/60);
   return 'about ' + m + ' minute' + (m===1?'':'s');
 }
+function rasterizeImageDataUrlToPng(dataUrl, size){
+  size = size || 256;
+  return new Promise(function(resolve){
+    var img = new Image();
+    img.onload = function(){
+      try {
+        var canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
+        var ctx = canvas.getContext('2d'); ctx.clearRect(0,0,size,size);
+        var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+        if (!iw || !ih) { resolve(''); return; }
+        var scale = Math.min(size/iw, size/ih), dw = Math.round(iw*scale), dh = Math.round(ih*scale);
+        ctx.drawImage(img, Math.round((size-dw)/2), Math.round((size-dh)/2), dw, dh);
+        resolve(canvas.toDataURL('image/png'));
+      } catch(e) { resolve(''); }
+    };
+    img.onerror = function(){ resolve(''); };
+    img.src = dataUrl;
+  });
+}
+function prepareIconifyCandidatesInBrowser(it){
+  if (!state.iconSearchOnly || !it || !it.sections || !it.sections.length) return Promise.resolve();
+  var covers = it.sections[0].covers || [];
+  var vectors = covers.filter(function(c){ return c && /^Iconify\s*\//i.test(String(c.source||'')) && /\.svg(?:[?#]|$)/i.test(String(c.url||'')); }).slice(0,8);
+  if (!vectors.length) return Promise.resolve();
+  var tasks = vectors.map(function(candidate,index){
+    return api('/api/fetch-remote-image',{url:candidate.url}).then(function(res){
+      if (!res || !res.ok || !/^data:image\/svg\+xml/i.test(String(res.dataUrl||''))) return null;
+      return rasterizeImageDataUrlToPng(res.dataUrl,256).then(function(png){
+        if (!png) return null;
+        var cacheName = String(it.name||'app') + '-iconify-' + String(index+1);
+        return api('/api/custom-cover',{name:it.name,cacheName:cacheName,dataUrl:png}).then(function(saved){
+          if (saved && saved.ok && saved.url){
+            candidate.url = saved.url; candidate.thumb = saved.url;
+            candidate.source = String(candidate.source||'Iconify') + ' (PNG preview)';
+            candidate.width = 256; candidate.height = 256;
+            return candidate;
+          }
+          return null;
+        });
+      });
+    }).catch(function(){ return null; });
+  });
+  return Promise.all(tasks).then(function(){
+    // The normal ICO pipeline cannot consume an un-rasterized SVG URL. Keep only
+    // converted Iconify items in the batch review grid; manual search still lists all sources.
+    it.sections.forEach(function(section){
+      if (section && section.covers) section.covers = section.covers.filter(function(c){
+        return !(/^Iconify\s*\//i.test(String(c.source||'')) && /\.svg(?:[?#]|$)/i.test(String(c.url||'')));
+      });
+    });
+    preloadItem(it);
+  });
+}
+
+function rankProgramCandidatesInBrowser(it){
+  return new Promise(function(resolve){
+    if (!state.iconSearchOnly || !it || !it.sections || !it.sections.length || !it.sections[0].covers || it.sections[0].covers.length < 2) { resolve(); return; }
+    var section = it.sections[0], covers = section.covers;
+    var sample = covers.slice(0, Math.min(5, covers.length));
+    var remaining = sample.length, finished = false;
+    var timer = setTimeout(finish, 1800);
+    function finish(){
+      if (finished) return; finished = true; clearTimeout(timer);
+      covers.sort(function(a,b){ return (+b.clientScore || +b.score || 0) - (+a.clientScore || +a.score || 0); });
+      state.picks[it.index] = { game:1, cover:1 };
+      resolve();
+    }
+    function completeOne(){ remaining--; if (remaining <= 0) finish(); }
+    sample.forEach(function(candidate){
+      if (!candidate || !candidate.url || /^\/cache\//i.test(candidate.url)) { completeOne(); return; }
+      var probe = new Image();
+      probe.referrerPolicy = 'no-referrer';
+      probe.onload = function(){
+        var w = probe.naturalWidth || 0, h = probe.naturalHeight || 0;
+        if (w > 0 && h > 0){
+          candidate.actualWidth = w; candidate.actualHeight = h;
+          var ratio = Math.min(w,h) / Math.max(w,h), minSide = Math.min(w,h);
+          var score = (+candidate.score || 45);
+          score += ratio >= .94 ? 5 : (ratio >= .82 ? 2 : (ratio >= .65 ? 0 : -10));
+          score += minSide >= 1024 ? 5 : (minSide >= 512 ? 4 : (minSide >= 256 ? 2 : -12));
+          candidate.clientScore = Math.max(1,Math.min(100,Math.round(score)));
+        }
+        completeOne();
+      };
+      probe.onerror = completeOne;
+      probe.src = candidate.thumb || candidate.url;
+    });
+  });
+}
 function scanStep(i){
   api('/api/scan-step', { i: i }).then(function(res){
     if (!res.ok){ alert(res.error || 'Scan failed.'); goHome(); return; }
-    if (res.item){ state.items.push(res.item); preloadItem(res.item); }
-    var pct = res.total ? Math.round(res.current/res.total*100) : 0;
-    setLoadProgress('Found ' + res.current + ' of ' + res.total + ':  ' + (res.label||''), pct);
-    if (res.done || res.current >= res.total){ preloadAround(0); enterItem(0); }
-    else { setTimeout(function(){ scanStep(i+1); }, 0); }
+    if (res.item){
+      state.items.push(res.item); preloadItem(res.item);
+      if (state.iconSearchOnly){
+        prepareIconifyCandidatesInBrowser(res.item).then(function(){
+          rankProgramCandidatesInBrowser(res.item).then(function(){ continueScanStep(res); });
+        });
+        return;
+      }
+    }
+    continueScanStep(res);
   });
+}
+function continueScanStep(res){
+  var pct = res.total ? Math.round(res.current/res.total*100) : 0;
+  setLoadProgress('Found ' + res.current + ' of ' + res.total + ':  ' + (res.label||''), pct);
+  if (res.done || res.current >= res.total){ preloadAround(0); enterItem(0); }
+  else { setTimeout(function(){ scanStep(res.current); }, 0); }
 }
 
 function currentItem(){ return state.items[state.pos]; }
@@ -1656,6 +2038,30 @@ function enterItem(pos){
   var it = currentItem();
   if (!it){ goReview(); return; }
   if (!state.picks[it.index]) state.picks[it.index] = { game:1, cover:1 };
+  if (state.iconSearchOnly) {
+    // Batch auto-match: first pass chooses the best-ranked software icon and
+    // proceeds to the full review grid. Only explicitly selected items open
+    // this item editor; it shows SGDB icon alternatives or manual image search.
+    if (state.editReturnToReview) {
+      // Program edits always open the combined live image-result studio.
+      // The old path only showed SteamGridDB covers when it found a weak match.
+      openGoogleCustom(false);
+      return;
+    }
+    if (it.remembered && it.savedUrl) applyRememberedCover(it);
+    if (it.sections && it.sections.length && it.sections[0].covers && it.sections[0].covers.length) {
+      if (!state.picks[it.index]) state.picks[it.index] = { game:1, cover:1 };
+      else { state.picks[it.index].game = 1; state.picks[it.index].cover = 1; }
+      updateAutoBanner(it.sections[0].gameName || it.name);
+    } else {
+      it.noAutoIcon = true;
+      delete state.picks[it.index];
+      updateAutoBanner(it.name + ' (no automatic match; left unchanged)');
+    }
+    if (state.pos + 1 >= state.items.length) { goReview(); }
+    else { setTimeout(function(){ enterItem(state.pos+1); }, 40); }
+    return;
+  }
 
   // Skip already-done: if the user chose to reuse memory and this game
   // has a remembered cover, apply it and move on without asking.
@@ -1712,10 +2118,26 @@ function renderConfirm(){
   $('autoBanner').classList.toggle('hidden', !state.autoAll);
   if (state.autoAll){ $('autoBanner').innerHTML = i18n[currentLang].autoBannerText; }
   var tc = i18n[currentLang];
-  $('confirmTitle').textContent = state.autoAll ? tc.confirmAutoTitle : tc.confirmTitle;
+  $('confirmTitle').textContent = state.iconSearchOnly
+    ? (currentLang === 'ar' ? 'راجع أيقونة البرنامج / الملف' : 'Review this program / file icon')
+    : (state.autoAll ? tc.confirmAutoTitle : tc.confirmTitle);
   $('confirmShortcut').textContent = formatStr(tc.shortcutProgress, [state.pos+1, state.items.length, it.name]);
   $('confirmCover').src = cover ? cover.thumb : '';
   $('confirmGame').textContent = sec.gameName;
+  var confirmHint = document.querySelector('#step-confirm .hint');
+  if (confirmHint && state.iconSearchOnly) confirmHint.textContent = currentLang === 'ar'
+    ? 'تحقق من المعاينة. يمكنك اختيار صورة أخرى من Google أو Yandex أو من جهازك.'
+    : 'Review the preview. You can choose a different image from Google, Yandex, or your PC.';
+  var wrongGameButton = document.querySelector('#step-confirm button.g-bad');
+  if (wrongGameButton) {
+    var hasAlternatives = !!(it.candidateGames && it.candidateGames.length > 0);
+    wrongGameButton.style.display = (state.iconSearchOnly && !hasAlternatives) ? 'none' : '';
+    wrongGameButton.textContent = state.iconSearchOnly
+      ? (currentLang === 'ar' ? 'عرض نتائج أيقونات بديلة' : 'Choose a different match')
+      : tc.btnWrongGame;
+  }
+  var autoChooseButton = document.querySelector('#step-confirm .auto-btn');
+  if (autoChooseButton) autoChooseButton.style.display = state.iconSearchOnly ? 'none' : '';
   $('confirmYear').textContent = sec.year > 0 ? formatStr(tc.releasedYear, [sec.year]) : '';
   show('step-confirm');
   setNavFocus('confirmBtns', 0);
@@ -1752,6 +2174,10 @@ function showArtwork(){
   var it = currentItem();
   var pick = state.picks[it.index];
   var sec = it.sections[pick.game-1] || it.sections[0];
+  var artworkTitle = document.querySelector('#step-artwork h2');
+  if (artworkTitle) artworkTitle.textContent = state.iconSearchOnly
+    ? (currentLang === 'ar' ? 'اختر أيقونة البرنامج' : 'Choose a program icon')
+    : i18n[currentLang].titleArtwork;
   $('artworkGame').textContent = sec.gameName + (sec.year>0?(' ('+sec.year+')'):'');
   var grid = $('artworkGrid'); grid.innerHTML = '';
   sec.covers.forEach(function(c,i){
@@ -1769,7 +2195,13 @@ function showArtwork(){
 
 function showOtherMatches(){
   var it = currentItem();
-  $('matchesShortcut').textContent = formatStr(i18n[currentLang].whichGame, [it.name]);
+  $('matchesShortcut').textContent = state.iconSearchOnly
+    ? ((currentLang === 'ar' ? 'نتائج الأيقونات البديلة لـ ' : 'Alternative icon results for ') + it.name)
+    : formatStr(i18n[currentLang].whichGame, [it.name]);
+  var matchTitle = document.querySelector('#step-matches h2');
+  if (matchTitle) matchTitle.textContent = state.iconSearchOnly
+    ? (currentLang === 'ar' ? 'اختر نتيجة أيقونة بديلة' : 'Choose an alternative icon result')
+    : i18n[currentLang].titleMatches;
   var grid = $('matchesGrid'); grid.innerHTML = '';
   var cands = it.candidateGames || [];
   if (!cands.length && it.sections && it.sections.length){
@@ -1838,9 +2270,10 @@ function goReview(){
     var img = cover
       ? '<img src="'+cover.thumb+'" loading="lazy">'
       : '<div style="width:100%;aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,#2b3550,#141821);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;text-align:center;padding:8px;word-break:break-word;">'+it.name+'</div>';
+    var previewLabel = sec ? sec.gameName : (state.iconSearchOnly ? 'No automatic icon match — will be skipped' : 'placeholder');
     el.innerHTML = img +
       '<div style="font-size:.78rem;margin-top:6px;text-align:center;">'+it.name+
-      '<div style="color:var(--muted)">'+(sec?sec.gameName:'placeholder')+'</div></div>';
+      '<div style="color:var(--muted)">'+previewLabel+'</div></div>';
     // Click anywhere on the tile to toggle selection for changing.
     el.onclick = function(){ toggleReviewSelect(i, el); };
     el.onkeydown = function(e){ if (e.key==='Enter'){ toggleReviewSelect(i, el); } };
@@ -2099,8 +2532,11 @@ document.addEventListener('keydown', function(e){
   if (!isTyping(e) && (e.key === '-' || e.key === '_')){ e.preventDefault(); zoomOut(); return; }
 
   if (visible('step-home')){
-    if (e.key === 'ArrowRight'){ state.homeFocus = Math.min(2, state.homeFocus+1); focusHome(); e.preventDefault(); }
-    else if (e.key === 'ArrowLeft'){ state.homeFocus = Math.max(0, state.homeFocus-1); focusHome(); e.preventDefault(); }
+    var homeCount = document.querySelectorAll('.home-btn').length;
+    if (e.key === 'ArrowRight'){ if (state.homeFocus + 1 < homeCount && state.homeFocus % 3 < 2) state.homeFocus++; focusHome(); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft'){ if (state.homeFocus > 0 && state.homeFocus % 3 > 0) state.homeFocus--; focusHome(); e.preventDefault(); }
+    else if (e.key === 'ArrowDown'){ state.homeFocus = Math.min(homeCount-1, state.homeFocus+3); focusHome(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp'){ state.homeFocus = Math.max(0, state.homeFocus-3); focusHome(); e.preventDefault(); }
     else if (e.key === 'Enter'){ document.querySelectorAll('.home-btn')[state.homeFocus].click(); }
     return;
   }
@@ -2149,7 +2585,12 @@ function isTyping(e){ var el = document.activeElement; return el && (el.tagName 
 // ---- back ----
 function goBack(){
   currentPollId++; // Cancel any active dialog polling
-  if (visible('step-artwork') || visible('step-matches') || visible('step-custom')){ renderConfirm(); return; }
+  if (visible('step-custom')){
+    if (state.iconSearchOnly) { cancelCustomIcon(); }
+    else { renderConfirm(); }
+    return;
+  }
+  if (visible('step-artwork') || visible('step-matches')){ renderConfirm(); return; }
   if (visible('step-confirm')){
     if (state.history.length){ state.pos = state.history.pop(); renderConfirm(); }
     else { goHome(); }
@@ -2160,28 +2601,175 @@ function goBack(){
 }
 
 
-// ---- GOOGLE IMAGES / CUSTOM COVER ----
+// ---- GOOGLE / YANDEX IMAGES / CUSTOM ICON STUDIO ----
 var customImageObj = null;
 var customFitMode = 'crop'; // 'crop' | 'contain' | 'stretch'
+var customSearchKind = 'game'; // 'game' | 'program'
 
-function openGoogleCustom(){
+function openGoogleCustom(autoOpenSearch){
   var it = currentItem();
   if (!it) return;
+  customSearchKind = state.iconSearchOnly ? 'program' : 'game';
   $('customShortcutTitle').textContent = formatStr(i18n[currentLang].shortcutProgress, [state.pos+1, state.items.length, it.name]);
   $('customUrlInput').value = '';
-  $('customStatusMsg').textContent = 'Waiting for image (Drop, Ctrl+V, URL, or File)...';
+  $('customStatusMsg').textContent = state.iconSearchOnly
+    ? 'Choose Google or Yandex Images, then drag the app icon here.'
+    : 'Waiting for an image (drag & drop, Ctrl+V, URL, or local file)...';
   $('customApplyBtn').disabled = true;
   customImageObj = null;
   clearCustomCanvas();
   show('step-custom');
-  reopenGoogleSearch();
+  updateCustomSearchKindUi();
+  if (customSearchKind === 'program') {
+    var existing = [];
+    if (it.sections && it.sections.length) {
+      it.sections.forEach(function(sec){ (sec.covers || []).forEach(function(c){ existing.push(c); }); });
+    }
+    _onlineCandidateCache = existing.slice();
+    _onlineCandidateCache = existing.slice();
+    renderOnlineImageCandidates(existing);
+    if (!existing.length) {
+      $('onlineSearchStatus').textContent = 'No automatic candidates yet. Searching Google Images and Yandex Images...';
+    }
+    // Search is user-triggered by entering the editor, never during the scan's
+    // step loop, so the batch scan stays responsive and can keep the embedded icon fallback.
+    searchOnlineImageCandidates('both', true);
+  } else {
+    $('onlineSearchPanel').style.display = 'none';
+  }
+  // In app-icon-only mode, do not open tabs automatically: browser popup blockers may reject new tabs.
+  if (autoOpenSearch !== false) {
+    if (customSearchKind === 'program') openYandexSearch();
+    else openGoogleSearch();
+  }
 }
 
-function reopenGoogleSearch(){
+function setCustomSearchKind(kind){
+  customSearchKind = (kind === 'program') ? 'program' : 'game';
+  updateCustomSearchKindUi();
+  if ($('onlineSearchPanel')) $('onlineSearchPanel').style.display = (customSearchKind === 'program') ? '' : 'none';
+  if (customSearchKind === 'program') searchOnlineImageCandidates('both', true);
+}
+
+function updateCustomSearchKindUi(){
+  var gameBtn = $('customKindGame'), programBtn = $('customKindProgram');
+  if (gameBtn) gameBtn.classList.toggle('active', customSearchKind === 'game');
+  if (programBtn) programBtn.classList.toggle('active', customSearchKind === 'program');
+}
+
+function getCustomSearchQuery(){
+  var it = currentItem();
+  if (!it) return '';
+  var name = String(it.name || '').trim();
+  return customSearchKind === 'program'
+    ? name + ' icon png high resolution'
+    : name + ' game cover icon high resolution square';
+}
+
+function openGoogleSearch(){
+  var q = encodeURIComponent(getCustomSearchQuery());
+  if (q) openUrl('https://www.google.com/search?tbm=isch&q=' + q);
+}
+function openYandexSearch(){
+  var q = encodeURIComponent(getCustomSearchQuery());
+  if (q) openUrl('https://yandex.com/images/search?text=' + q);
+}
+// Backwards-compatible name used by existing buttons in other screens.
+function reopenGoogleSearch(){ openGoogleSearch(); }
+
+var _onlineCandidateCache = [];
+function renderOnlineImageCandidates(candidates){
+  var grid = $('onlineImageResultsGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  var list = (candidates || []).slice();
+  // Newest/best-ranked candidates first. Scores already include provider,
+  // dimensions, aspect ratio hints and image-type hints from the server.
+  list.sort(function(a,b){ return (+b.score||0) - (+a.score||0); });
+  if (!list.length){
+    grid.innerHTML = '<div class="sub" style="grid-column:1/-1;padding:12px;">No embedded online candidates yet. Use Find more from both, open a search tab, or drag/copy an image into the preview.</div>';
+    return;
+  }
+  list.forEach(function(candidate,index){
+    var tile = document.createElement('div');
+    tile.className = 'online-candidate';
+    var img = document.createElement('img');
+    img.loading = index < 8 ? 'eager' : 'lazy';
+    img.referrerPolicy = 'no-referrer';
+    img.alt = candidate.title || ((candidate.source || 'Image') + ' candidate');
+    img.onerror = function(){ this.style.opacity = '.2'; this.title = 'Preview unavailable from this host; try another result.'; };
+    img.onload = function(){
+      var iw = this.naturalWidth || 0, ih = this.naturalHeight || 0;
+      if (!iw || !ih) return;
+      candidate.actualWidth = iw; candidate.actualHeight = ih;
+      var rank = (+candidate.score || 45), ratio = Math.min(iw,ih) / Math.max(iw,ih), minSide = Math.min(iw,ih);
+      rank += ratio >= .94 ? 5 : (ratio >= .82 ? 2 : (ratio >= .65 ? 0 : -10));
+      rank += minSide >= 1024 ? 5 : (minSide >= 512 ? 4 : (minSide >= 256 ? 2 : -12));
+      candidate.clientScore = Math.max(1, Math.min(100, Math.round(rank)));
+      tile.dataset.rank = String(candidate.clientScore);
+      var qualityLabel = tile.querySelector('.online-candidate-quality');
+      if (qualityLabel) qualityLabel.textContent = 'quality ' + candidate.clientScore + '/100';
+      var realMeta = tile.querySelector('.online-candidate-meta');
+      if (realMeta) realMeta.textContent = (candidate.source || 'Online') + ' · ' + iw + ' × ' + ih + ' · ' + (iw/ih >= .88 && iw/ih <= 1.14 ? 'near-square' : 'not square');
+      var parent = tile.parentNode;
+      if (parent) Array.prototype.slice.call(parent.children).sort(function(a,b){ return (+b.dataset.rank||+b.dataset.baseRank||0) - (+a.dataset.rank||+a.dataset.baseRank||0); }).forEach(function(node){ parent.appendChild(node); });
+    };
+    img.src = candidate.thumb || candidate.url || '';
+    var title = document.createElement('div');
+    title.className = 'online-candidate-title';
+    title.textContent = candidate.title || ('Candidate ' + (index+1));
+    var meta = document.createElement('div');
+    meta.className = 'online-candidate-meta';
+    var dimensions = (+candidate.width > 0 && +candidate.height > 0) ? (candidate.width + ' × ' + candidate.height) : 'size unknown';
+    meta.textContent = (candidate.source || 'Online') + ' · ' + dimensions;
+    var quality = document.createElement('div');
+    quality.className = 'online-candidate-meta online-candidate-quality';
+    quality.textContent = 'quality ' + (candidate.score || '?') + '/100';
+    tile.dataset.baseRank = String(+candidate.score || 0);
+    var use = document.createElement('button');
+    use.className = 'online-candidate-use';
+    use.type = 'button';
+    use.textContent = 'Use this image';
+    use.onclick = function(e){
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (!candidate.url) return;
+      $('onlineSearchStatus').textContent = 'Loading selected image into the 1:1 preview...';
+      loadCustomUrl(candidate.url, candidate.thumb && candidate.thumb !== candidate.url ? candidate.thumb : null);
+    };
+    tile.appendChild(img); tile.appendChild(title); tile.appendChild(meta); tile.appendChild(quality); tile.appendChild(use);
+    tile.onclick = function(e){ if (e.target !== use) use.click(); };
+    grid.appendChild(tile);
+  });
+}
+function searchOnlineImageCandidates(provider, silent){
+  if (customSearchKind !== 'program' && !state.iconSearchOnly) return;
   var it = currentItem();
   if (!it) return;
-  var q = encodeURIComponent(it.name + ' game cover icon');
-  openUrl('https://www.google.com/search?tbm=isch&q=' + q);
+  provider = provider || 'both';
+  var status = $('onlineSearchStatus');
+  if (status) status.textContent = 'Searching ' + (provider === 'both' ? 'Google Images, Yandex Images and brand-icon catalog' : (provider === 'google' ? 'Google Images and brand icons' : 'Yandex Images and brand icons')) + ' for square, high-resolution app icons...';
+  api('/api/search-images', { name: it.name, provider: provider }).then(function(res){
+    if (!res || !res.ok) {
+      if (status) status.textContent = (res && res.error) || 'Search could not retrieve online results. Use the search tabs or drag/drop a result.';
+      return;
+    }
+    var incoming = res.candidates || [];
+    var kept = _onlineCandidateCache.filter(function(c){
+      var src = String(c.source || '').toLowerCase();
+      if (provider === 'both') return src.indexOf('google images') < 0 && src.indexOf('yandex images') < 0;
+      if (provider === 'google') return src.indexOf('google images') < 0;
+      if (provider === 'yandex') return src.indexOf('yandex images') < 0;
+      return true;
+    });
+    var merged = kept.concat(incoming), seenUrls = {};
+    _onlineCandidateCache = merged.filter(function(c){ var u=String(c.url||''); if(!u || seenUrls[u]) return false; seenUrls[u]=true; return true; });
+    if (status) status.textContent = incoming.length
+      ? ('Found ' + incoming.length + ' candidate(s). Brand-relevant results are ranked first; resolution and square shape are tie-breakers. Choose one to preview it, then Apply this icon.')
+      : 'No direct result images could be extracted. Google/Yandex tabs and drag-and-drop remain available; the provider may block automated previews.';
+    renderOnlineImageCandidates(_onlineCandidateCache);
+  }).catch(function(){
+    if (status) status.textContent = 'Online result retrieval failed. Open Google/Yandex in a tab or drag/drop an image into the preview.';
+  });
 }
 
 function clearCustomCanvas(){
@@ -2218,13 +2806,14 @@ function renderCustomCanvas(){
     var dx = Math.round((W - dw) / 2), dy = Math.round((H - dh) / 2);
     ctx.drawImage(customImageObj, 0, 0, iw, ih, dx, dy, dw, dh);
   } else {
-    // Center crop 1:1
     var side = Math.min(iw, ih);
     var sx = Math.round((iw - side) / 2), sy = Math.round((ih - side) / 2);
     ctx.drawImage(customImageObj, sx, sy, side, side, 0, 0, W, H);
   }
   $('customApplyBtn').disabled = false;
-  $('customStatusMsg').textContent = 'Image ready (' + iw + 'x' + ih + '). Click "Use this cover" to apply!';
+  var qualityHint = (iw < 256 || ih < 256) ? ' Low resolution may look soft at larger icon sizes.' : ' High enough for crisp Windows icons.';
+  $('customStatusMsg').textContent = 'Image ready (' + iw + ' × ' + ih + ').' + qualityHint + ' Preview the crop, then apply.';
+  if ($('onlineSearchStatus') && customSearchKind === 'program') $('onlineSearchStatus').textContent = 'Image loaded (' + iw + ' × ' + ih + '). Click Apply this icon to use it.';
 }
 
 function loadDataUrlIntoCustomCanvas(dataUrl){
@@ -2234,13 +2823,17 @@ function loadDataUrlIntoCustomCanvas(dataUrl){
     renderCustomCanvas();
   };
   img.onerror = function(){
-    $('customStatusMsg').textContent = 'Could not decode that image. Try copying the image directly (Copy image -> Ctrl+V).';
+    $('customStatusMsg').textContent = 'Could not decode that image. Try another image or save it locally first.';
   };
   img.src = dataUrl;
 }
 
 function readBlobIntoCustomCanvas(blob){
   if (!blob) return;
+  if (blob.type && blob.type.indexOf('image/') !== 0){
+    $('customStatusMsg').textContent = 'That item is not an image. Drop the image itself, or copy the image and press Ctrl+V.';
+    return;
+  }
   $('customStatusMsg').textContent = 'Reading image...';
   var reader = new FileReader();
   reader.onload = function(e){ loadDataUrlIntoCustomCanvas(e.target.result); };
@@ -2252,7 +2845,6 @@ function triggerCustomFile(){
   var inp = $('customFileInput');
   if (inp) { inp.value = ''; inp.click(); }
 }
-
 function handleCustomFileSelect(e){
   var files = e.target.files;
   if (files && files.length > 0) readBlobIntoCustomCanvas(files[0]);
@@ -2260,36 +2852,55 @@ function handleCustomFileSelect(e){
 
 function extractGoogleImgUrl(rawUrl){
   if (!rawUrl) return '';
-  rawUrl = rawUrl.trim();
+  rawUrl = String(rawUrl).trim();
+  if (rawUrl.indexOf('//') === 0) rawUrl = 'https:' + rawUrl;
   try {
     var u = new URL(rawUrl);
-    if (u.searchParams.has('imgurl')) return u.searchParams.get('imgurl');
+    // Google and Yandex image-result links can carry the original image URL
+    // in different query parameters. Prefer that original over the results page.
+    var keys = ['imgurl','img_url','image_url','mediaurl','url'];
+    for (var i=0; i<keys.length; i++){
+      var v = u.searchParams.get(keys[i]);
+      if (v && /^https?:\/\//i.test(v) && v !== rawUrl) return v;
+    }
   } catch(e){}
   return rawUrl;
 }
 
-function loadCustomUrl(rawUrl, fallbackUrl){
-  if (!rawUrl) return;
-  rawUrl = rawUrl.trim();
-  if (rawUrl.indexOf('data:image/') === 0){
-    loadDataUrlIntoCustomCanvas(rawUrl);
+function loadCustomCandidates(candidates, index){
+  candidates = candidates || [];
+  index = index || 0;
+  while (index < candidates.length){
+    var candidate = String(candidates[index] || '').trim();
+    index++;
+    if (!candidate) continue;
+    if (candidate.indexOf('data:image/') === 0){ loadDataUrlIntoCustomCanvas(candidate); return; }
+    candidate = extractGoogleImgUrl(candidate);
+    if (!/^https?:\/\//i.test(candidate)) continue;
+    $('customUrlInput').value = candidate;
+    $('customStatusMsg').textContent = 'Trying image source ' + index + ' of ' + candidates.length + '...';
+    (function(url, nextIndex){
+      api('/api/fetch-remote-image', { url: url }).then(function(res){
+        if (res && res.ok && res.dataUrl && res.dataUrl.indexOf('data:image/') === 0){
+          loadDataUrlIntoCustomCanvas(res.dataUrl);
+        } else {
+          if (nextIndex < candidates.length) loadCustomCandidates(candidates, nextIndex);
+          else $('customStatusMsg').textContent = (res && res.error) ? res.error : 'That link did not return an image. Try dragging the image itself or using Copy image → Ctrl+V.';
+        }
+      }).catch(function(){
+        if (nextIndex < candidates.length) loadCustomCandidates(candidates, nextIndex);
+        else $('customStatusMsg').textContent = 'Could not fetch this image. Try dragging the image itself or using Copy image → Ctrl+V.';
+      });
+    })(candidate, index);
     return;
   }
-  var cleanUrl = extractGoogleImgUrl(rawUrl);
-  $('customStatusMsg').textContent = 'Downloading image from URL...';
-  api('/api/fetch-remote-image', { url: cleanUrl }).then(function(res){
-    if (res && res.ok && res.dataUrl){
-      loadDataUrlIntoCustomCanvas(res.dataUrl);
-    } else if (fallbackUrl && fallbackUrl !== cleanUrl){
-      loadCustomUrl(fallbackUrl, null);
-    } else {
-      $('customStatusMsg').textContent = (res && res.error) ? res.error : 'Could not fetch URL. Tip: Right-click the image on Google -> "Copy image" -> press Ctrl+V!';
-    }
-  }).catch(function(){
-    $('customStatusMsg').textContent = 'Download error. Tip: Right-click the image on Google -> "Copy image" -> press Ctrl+V!';
-  });
+  $('customStatusMsg').textContent = 'No usable image URL found. Try copying the image itself or save the image and choose it from your PC.';
 }
 
+function loadCustomUrl(rawUrl, fallbackUrl){
+  var candidates = [rawUrl, fallbackUrl].filter(function(v){ return !!v; });
+  loadCustomCandidates(candidates, 0);
+}
 function loadCustomUrlInput(){
   var v = ($('customUrlInput').value || '').trim();
   if (v) loadCustomUrl(v, null);
@@ -2300,14 +2911,14 @@ function applyCustomCover(){
   var c = $('customCanvas');
   if (!it || !c || !customImageObj) return;
   $('customApplyBtn').disabled = true;
-  $('customStatusMsg').textContent = 'Saving custom cover...';
+  $('customStatusMsg').textContent = 'Saving custom icon...';
   var pngDataUrl = c.toDataURL('image/png');
   api('/api/custom-cover', { name: it.name, dataUrl: pngDataUrl }).then(function(res){
     if (res && res.ok && res.url){
       if (!it.sections) it.sections = [];
       it.sections.unshift({
         gameId: 0,
-        gameName: it.name + ' (Custom)',
+        gameName: it.name + (customSearchKind === 'program' ? ' (Custom App Icon)' : ' (Custom Icon)'),
         year: 0,
         covers: [{ url: res.url, thumb: res.url, score: 100 }]
       });
@@ -2315,7 +2926,7 @@ function applyCustomCover(){
       acceptMatch();
     } else {
       $('customApplyBtn').disabled = false;
-      $('customStatusMsg').textContent = (res && res.error) ? res.error : 'Failed to save custom cover.';
+      $('customStatusMsg').textContent = (res && res.error) ? res.error : 'Failed to save custom icon.';
     }
   }).catch(function(){
     $('customApplyBtn').disabled = false;
@@ -2323,11 +2934,23 @@ function applyCustomCover(){
   });
 }
 
-// Drag & Drop + Ctrl+V Paste listeners for step-custom
+function cancelCustomIcon(){
+  if (state.iconSearchOnly){
+    // Skipped app shortcuts keep the app's normal placeholder behaviour.
+    acceptMatch();
+  } else {
+    goBack();
+  }
+}
+
+// Drag & Drop + Ctrl+V listeners. Images can be dropped onto the large drop zone
+// OR directly on the square icon preview. Try alternate URLs from Yandex/Google
+// when a provider supplies a thumbnail URL before its original image URL.
 (function initCustomCoverEvents(){
   window.addEventListener('paste', function(e){
     if (!visible('step-custom')) return;
-    var items = (e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData) || {}).items || [];
+    var clip = e.clipboardData || (e.originalEvent && e.originalEvent.clipboardData) || window.clipboardData;
+    var items = clip && clip.items ? clip.items : [];
     for (var i = 0; i < items.length; i++){
       if (items[i].type && items[i].type.indexOf('image/') === 0){
         e.preventDefault();
@@ -2335,58 +2958,83 @@ function applyCustomCover(){
         return;
       }
     }
-    var txt = (e.clipboardData || window.clipboardData).getData('text');
-    if (txt && (txt.indexOf('http://') === 0 || txt.indexOf('https://') === 0 || txt.indexOf('data:image/') === 0)){
-      if (document.activeElement !== $('customUrlInput')){
-        e.preventDefault();
-        $('customUrlInput').value = txt.trim();
-      }
-      setTimeout(function(){ loadCustomUrl(txt.trim(), null); }, 50);
+    var txt = clip && clip.getData ? clip.getData('text') : '';
+    if (txt && (/^https?:\/\//i.test(txt.trim()) || txt.trim().indexOf('data:image/') === 0)){
+      e.preventDefault();
+      $('customUrlInput').value = txt.trim();
+      loadCustomUrl(txt.trim(), null);
     }
   });
 
-  var dz = $('customDropZone');
-  if (!dz) return;
-  ['dragenter','dragover'].forEach(function(ev){
-    dz.addEventListener(ev, function(e){
-      e.preventDefault(); e.stopPropagation();
-      dz.classList.add('dragover');
-    });
-  });
-  ['dragleave','drop'].forEach(function(ev){
-    dz.addEventListener(ev, function(e){
-      e.preventDefault(); e.stopPropagation();
-      dz.classList.remove('dragover');
-    });
-  });
-  dz.addEventListener('drop', function(e){
+  function handleDrop(e){
+    e.preventDefault(); e.stopPropagation();
+    if (e.currentTarget && e.currentTarget.classList) e.currentTarget.classList.remove('dragover');
     var dt = e.dataTransfer;
     if (!dt) return;
-    if (dt.files && dt.files.length > 0){
-      readBlobIntoCustomCanvas(dt.files[0]);
-      return;
+    if (dt.files && dt.files.length > 0){ readBlobIntoCustomCanvas(dt.files[0]); return; }
+
+    var candidates = [];
+    function addCandidate(v){
+      if (!v) return;
+      v = String(v).trim();
+      if (!v || v.indexOf('javascript:') === 0 || v.indexOf('blob:') === 0) return;
+      if (v.indexOf('//') === 0) v = 'https:' + v;
+      if (v.indexOf('data:image/') === 0 || /^https?:\/\//i.test(v)) {
+        v = extractGoogleImgUrl(v);
+        if (candidates.indexOf(v) < 0) candidates.push(v);
+      }
     }
+
     var html = dt.getData('text/html') || '';
-    var uri = dt.getData('text/uri-list') || dt.getData('text/plain') || '';
-    var imgSrc = '';
-    var linkHref = '';
+    var uriText = dt.getData('text/uri-list') || '';
+    var plainText = dt.getData('text/plain') || '';
     if (html){
       try {
         var doc = new DOMParser().parseFromString(html, 'text/html');
-        var aEl = doc.querySelector('a[href*="imgurl="]');
-        if (aEl) linkHref = aEl.getAttribute('href');
-        var imgEl = doc.querySelector('img');
-        if (imgEl && imgEl.src) imgSrc = imgEl.src;
+        var linkEls = doc.querySelectorAll('a[href]');
+        linkEls.forEach(function(a){ addCandidate(a.getAttribute('href')); });
+        var imgEls = doc.querySelectorAll('img');
+        imgEls.forEach(function(img){
+          addCandidate(img.getAttribute('data-original'));
+          addCandidate(img.getAttribute('data-src'));
+          addCandidate(img.getAttribute('src'));
+          var srcset = img.getAttribute('srcset') || '';
+          if (srcset) addCandidate(srcset.split(',').pop().trim().split(/\s+/)[0]);
+        });
       } catch(err){}
     }
-    var primary = linkHref || uri || imgSrc;
-    var fallback = (primary !== imgSrc) ? imgSrc : null;
-    if (primary){
-      $('customUrlInput').value = extractGoogleImgUrl(primary);
-      loadCustomUrl(primary, fallback);
+    uriText.split(/\r?\n/).forEach(function(line){ if (line && line.charAt(0) !== '#') addCandidate(line); });
+    plainText.split(/\r?\n/).forEach(function(line){ addCandidate(line); });
+    if (candidates.length){
+      $('customStatusMsg').textContent = 'Reading the dropped image...';
+      loadCustomCandidates(candidates, 0);
     } else {
-      $('customStatusMsg').textContent = 'Could not read dropped item. Try right-clicking the image -> Copy image -> Ctrl+V.';
+      $('customStatusMsg').textContent = 'Could not read that drop. Drag the image itself, use Copy image → Ctrl+V, or save it and browse for the file.';
     }
+  }
+
+  var dz = $('customDropZone');
+  var canvas = $('customCanvas');
+  var preview = $('customPreviewDropZone');
+  var zones = [dz, canvas, preview].filter(Boolean);
+  zones.forEach(function(zone){
+    ['dragenter','dragover'].forEach(function(ev){
+      zone.addEventListener(ev, function(e){
+        e.preventDefault(); e.stopPropagation();
+        if (zone.classList) zone.classList.add('dragover');
+        if (dz) dz.classList.add('dragover');
+      });
+    });
+    ['dragleave','drop'].forEach(function(ev){
+      zone.addEventListener(ev, function(e){
+        if (ev === 'drop') handleDrop(e);
+        else {
+          e.preventDefault(); e.stopPropagation();
+          if (zone.classList) zone.classList.remove('dragover');
+          if (dz) dz.classList.remove('dragover');
+        }
+      });
+    });
   });
 })();
 

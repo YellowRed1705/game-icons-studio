@@ -16,6 +16,7 @@ function Get-DefaultSettings {
         PlaceholderCovers    = $true      # auto-generate covers when no artwork exists
         InteractiveSelection = $false     # choose covers in the browser (top N per game)
         InteractiveTopN      = 10
+        BackupRetentionLimit  = 50         # 0 = keep every restore point; otherwise keep the newest N
     }
 }
 

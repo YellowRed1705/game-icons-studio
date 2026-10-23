@@ -182,6 +182,7 @@ function Start-IconWebApp {
         Names      = @()    # unique game names queued for scanning
         Pending    = @()    # resolved sections per game
         TargetMode = 'shortcuts'   # shortcuts | folders_all | folders_single
+        IconSearchOnly = $false    # bypass SteamGridDB and collect app icons manually
         Running    = $true
         Dialog     = $dialog
         CoverCache = @{}    # gameId -> covers, to avoid repeat API calls
@@ -244,6 +245,7 @@ function Invoke-WebRoute {
         $Session.Dialog.folder = ''
         $Session.Dialog.files  = @()
         $Session.TargetMode    = 'shortcuts'
+        $Session.IconSearchOnly = $false
         $Session.Shortcuts     = @()
         $Session.Names         = @()
         $Session.Pending       = @()
@@ -375,7 +377,8 @@ function Invoke-WebRoute {
         try { $body = $bodyText | ConvertFrom-Json } catch { }
         $files = @()
         if ($body -and $body.files) { $files = @($body.files | ForEach-Object { [string]$_ }) }
-        $result = Start-WebScanFiles -Session $Session -Files $files
+        $iconSearchOnly = [bool]($body -and $body.iconSearchOnly)
+        $result = Start-WebScanFiles -Session $Session -Files $files -IconSearchOnly $iconSearchOnly
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe $result)
         return
     }
@@ -474,6 +477,7 @@ function Invoke-WebRoute {
 
         $onlyNew  = if ($body -and $body.onlyNew)  { [bool]$body.onlyNew }    else { $false }
         $targetMode = if ($body -and $body.targetMode) { [string]$body.targetMode } else { 'shortcuts' }
+        $Session.IconSearchOnly = [bool]($body -and $body.iconSearchOnly)
 
         $result = Start-WebScan -Session $Session -OnlyNew $onlyNew -TargetMode $targetMode
 
@@ -482,7 +486,7 @@ function Invoke-WebRoute {
         # scan already built; only re-read when the scan was filtered.
         # Skip this for folder modes since new-game detection is specific to shortcuts.
         try {
-            if ($targetMode -eq 'shortcuts') {
+            if ($targetMode -eq 'shortcuts' -and -not $Session.IconSearchOnly) {
                 if (-not $onlyNew -and @($Session.Shortcuts).Count -gt 0) {
                     $allNames = @($Session.Shortcuts | Where-Object { $_.Status -ne 'Failed' } | ForEach-Object { [string]$_.NormalizedName } | Sort-Object -Unique)
                 } else {
@@ -551,7 +555,8 @@ function Invoke-WebRoute {
                 $covers = $Session.CoverCache[$gameId]
             } else {
                 try {
-                    foreach ($c in @(Get-GameCovers -ApiKey $Session.Ctx.ApiKey -GameId $gameId -Category $Session.Ctx.Category -CoversPerGame $Session.Ctx.TopN)) {
+                    $coverCategory = if ($Session.IconSearchOnly) { 'icon' } else { [string]$Session.Ctx.Category }
+                    foreach ($c in @(Get-GameCovers -ApiKey $Session.Ctx.ApiKey -GameId $gameId -Category $coverCategory -CoversPerGame $Session.Ctx.TopN)) {
                         $covers += @{ url = [string]$c.Url; thumb = [string]$c.Thumb; score = [int]$c.Score }
                     }
                     $Session.CoverCache[$gameId] = $covers
@@ -599,6 +604,42 @@ function Invoke-WebRoute {
         return
     }
 
+    if ($path -eq '/api/backup-list' -and $method -eq 'POST') {
+        $backups = @(Get-IconBackupTransactions -Root $Session.Root -Limit 100)
+        Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; backups = $backups })
+        return
+    }
+
+    if ($path -eq '/api/backup-settings' -and $method -eq 'POST') {
+        $bodyText = Read-RequestBody -Context $Context
+        $body = $null
+        try { $body = $bodyText | ConvertFrom-Json } catch { }
+        if ($body -and $null -ne $body.retention) {
+            $retention = [int]$body.retention
+            if ($retention -notin @(0,10,25,50,100)) {
+                Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'Retention must be 0, 10, 25, 50 or 100.' })
+                return
+            }
+            $Session.Ctx.Settings.BackupRetentionLimit = $retention
+            Save-Settings -Root $Session.Root -Settings $Session.Ctx.Settings
+            Prune-IconBackupTransactions -Root $Session.Root -RetentionLimit $retention
+        }
+        $current = 50
+        if ($Session.Ctx.Settings.PSObject.Properties.Name -contains 'BackupRetentionLimit') { $current = [int]$Session.Ctx.Settings.BackupRetentionLimit }
+        Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; retention = $current })
+        return
+    }
+
+    if ($path -eq '/api/backup-restore' -and $method -eq 'POST') {
+        $bodyText = Read-RequestBody -Context $Context
+        $body = $null
+        try { $body = $bodyText | ConvertFrom-Json } catch { }
+        $id = if ($body -and $body.id) { [string]$body.id } else { '' }
+        $result = Restore-IconBackupTransaction -Root $Session.Root -Id $id
+        Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe $result)
+        return
+    }
+
     if ($path -like '/cache/*' -and $method -eq 'GET') {
         $rawName = [uri]::UnescapeDataString(($req.Url.AbsolutePath -replace '^/cache/', ''))
         $name = [System.IO.Path]::GetFileName($rawName)
@@ -608,6 +649,27 @@ function Invoke-WebRoute {
             Send-HttpFile -Context $Context -FilePath $cachePath -ContentType $ct
         } else {
             Send-HttpResponse -Context $Context -Body '' -StatusCode 404
+        }
+        return
+    }
+
+    if ($path -eq '/api/search-images' -and $method -eq 'POST') {
+        $bodyText = Read-RequestBody -Context $Context
+        $body = $null
+        try { $body = $bodyText | ConvertFrom-Json } catch { }
+        $query = if ($body -and $body.name) { ([string]$body.name).Trim() } else { '' }
+        $provider = if ($body -and $body.provider) { ([string]$body.provider).ToLowerInvariant() } else { 'both' }
+        if ($provider -notin @('both','google','yandex')) { $provider = 'both' }
+        if ([string]::IsNullOrWhiteSpace($query) -or $query.Length -gt 160) {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'Enter a program name up to 160 characters.'; candidates = @() })
+            return
+        }
+        try {
+            $candidates = @(Get-OnlineProgramIconCandidates -Query $query -Provider $provider -MaxResults 24 -Session $Session)
+            $items = @($candidates | ForEach-Object { @{ url=[string]$_.Url; thumb=[string]$_.Thumb; source=[string]$_.Source; title=[string]$_.Title; width=[int]$_.Width; height=[int]$_.Height; score=[int]$_.Score; searchPage=[string]$_.SearchPage } })
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; count = $items.Count; candidates = $items; provider = $provider })
+        } catch {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'Image search could not retrieve candidates. Open Google/Yandex in a tab or drag an image into the preview.'; candidates = @() })
         }
         return
     }
@@ -661,10 +723,12 @@ function Invoke-WebRoute {
             $b64Data = $Matches[1]
             $bytes = [Convert]::FromBase64String($b64Data)
             $safe = Get-SafeFileName -Name $gameName
-            $destPath = Join-Path $Session.Ctx.CacheDir "$safe.png"
+            $cacheName = if ($body -and $body.cacheName) { Get-SafeFileName -Name ([string]$body.cacheName) } else { $safe }
+            if ([string]::IsNullOrWhiteSpace($cacheName)) { $cacheName = $safe }
+            $destPath = Join-Path $Session.Ctx.CacheDir "$cacheName.png"
             [System.IO.File]::WriteAllBytes($destPath, $bytes)
             $ts = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-            $encSafe = [uri]::EscapeDataString("$safe.png")
+            $encSafe = [uri]::EscapeDataString("$cacheName.png")
             $localUrl = "/cache/$encSafe`?t=$ts"
             Write-Log "Custom cover saved for '$gameName' -> $destPath" 'OK'
             Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; url = $localUrl })
@@ -697,7 +761,8 @@ function Start-WebScan {
     )
 
     $ctx = $Session.Ctx
-    Write-Log "Web scan: $($ctx.Folder) (OnlyNew=$OnlyNew, TargetMode=$TargetMode)" 'INFO'
+    $Session.CoverCache = @{}
+    Write-Log "Web scan: $($ctx.Folder) (OnlyNew=$OnlyNew, TargetMode=$TargetMode, IconSearchOnly=$($Session.IconSearchOnly))" 'INFO'
 
     $shortcuts = @()
 
@@ -745,7 +810,12 @@ function Start-WebScan {
         return @{ ok = $false; error = 'No shortcuts OR folders found in that directory.' }
     }
     foreach ($s in $shortcuts) {
-        if ($s.Status -ne 'Failed') { $s.NormalizedName = Get-NormalizedGameName -Name $s.Name }
+        if ($s.Status -ne 'Failed') {
+            # Program icon mode preserves the actual shortcut filename as the search term;
+            # game mode keeps its title-normalization behavior.
+            if ($Session.IconSearchOnly) { $s.NormalizedName = ([string]$s.Name).Trim() }
+            else { $s.NormalizedName = Get-NormalizedGameName -Name $s.Name }
+        }
     }
 
     if ($OnlyNew) {
@@ -777,6 +847,92 @@ function Start-WebScan {
     }
 }
 
+function Get-EmbeddedProgramIconSource {
+    <#
+        Fallback for applications not represented in SteamGridDB (or when no API
+        key is configured). Extracts the shortcut's embedded EXE/ICO image into
+        the local cache so the usual review/apply pipeline can use it.
+    #>
+    param(
+        [Parameter(Mandatory)]$Session,
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$Safe
+    )
+
+    $matches = @($Session.Shortcuts | Where-Object {
+        [string]$_.NormalizedName -ieq $Name -and $_.Status -ne 'Failed'
+    })
+    foreach ($item in $matches) {
+        $sources = New-Object System.Collections.Generic.List[string]
+        foreach ($candidate in @([string]$item.Target, [string]$item.IconLocation)) {
+            if ([string]::IsNullOrWhiteSpace($candidate)) { continue }
+            $source = ($candidate -split ',')[0].Trim().Trim('"')
+            if ((Test-Path -LiteralPath $source -PathType Leaf) -and -not $sources.Contains($source)) {
+                $sources.Add($source)
+            }
+        }
+
+        foreach ($sourcePath in $sources) {
+            $image = $null; $icon = $null; $bitmap = $null; $graphics = $null
+            try {
+                Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+                $extension = [System.IO.Path]::GetExtension($sourcePath).ToLowerInvariant()
+                if ($extension -in @('.png','.jpg','.jpeg','.bmp','.gif','.ico')) {
+                    $image = [System.Drawing.Image]::FromFile($sourcePath)
+                } elseif ($extension -in @('.exe','.dll','.icl')) {
+                    $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($sourcePath)
+                    if ($null -eq $icon) { continue }
+                    $bitmap = $icon.ToBitmap()
+                    $image = $bitmap
+                } else {
+                    continue
+                }
+                if ($null -eq $image -or $image.Width -lt 1 -or $image.Height -lt 1) { continue }
+                $cacheDir = [string]$Session.Ctx.CacheDir
+                if (-not (Test-Path -LiteralPath $cacheDir -PathType Container)) {
+                    New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+                }
+                $leaf = 'embedded_' + $Safe + '.png'
+                $destination = Join-Path $cacheDir $leaf
+                # Preserve the original aspect ratio here. The normal ICO builder
+                # creates multiple sizes and performs the requested square crop.
+                if ($image -is [System.Drawing.Bitmap] -and $image.Width -eq 256 -and $image.Height -eq 256) {
+                    $image.Save($destination, [System.Drawing.Imaging.ImageFormat]::Png)
+                } else {
+                    $bitmapOut = [System.Drawing.Bitmap]::new(256,256,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+                    try {
+                        $graphics = [System.Drawing.Graphics]::FromImage($bitmapOut)
+                        $graphics.Clear([System.Drawing.Color]::Transparent)
+                        $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                        $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+                        $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+                        $side = [Math]::Min($image.Width,$image.Height)
+                        $sx = [int][Math]::Floor(($image.Width-$side)/2)
+                        $sy = [int][Math]::Floor(($image.Height-$side)/2)
+                        $graphics.DrawImage($image, [System.Drawing.Rectangle]::new(0,0,256,256), $sx, $sy, $side, $side, [System.Drawing.GraphicsUnit]::Pixel)
+                        $bitmapOut.Save($destination, [System.Drawing.Imaging.ImageFormat]::Png)
+                    } finally {
+                        if ($graphics) { $graphics.Dispose() }
+                        $bitmapOut.Dispose()
+                    }
+                }
+                if (Test-Path -LiteralPath $destination -PathType Leaf) {
+                    $url = '/cache/' + [uri]::EscapeDataString($leaf)
+                    return [PSCustomObject]@{ Url = $url; Thumb = $url; Score = 100; Width = 256; Height = 256; Source = $sourcePath }
+                }
+            } catch {
+                Write-Log "Embedded icon extraction failed for '$Name' from '$sourcePath': $($_.Exception.Message)" 'DEBUG'
+            } finally {
+                if ($graphics) { $graphics.Dispose() }
+                if ($icon) { $icon.Dispose() }
+                if ($image -and $image -ne $bitmap) { $image.Dispose() }
+                if ($bitmap) { $bitmap.Dispose() }
+            }
+        }
+    }
+    return $null
+}
+
 function Step-WebScan {
     <#
         Resolves ONE game (zero-based index) using the FAST path:
@@ -799,12 +955,30 @@ function Step-WebScan {
     }
 
     $name = [string]$names[$Index]
-    try {
-        $fast = Get-GameMatchFast -ApiKey $ctx.ApiKey -Query $name -Category $ctx.Category -CoversPerGame $ctx.TopN
-    } catch [System.UnauthorizedAccessException] {
-        return @{ ok = $false; error = 'SteamGridDB rejected the API key.' }
-    } catch {
-        $fast = $null
+    $fast = $null
+    if ($Session.IconSearchOnly) {
+        # Program/App mode performs automatic software-icon matching when an
+        # API key is configured. Without a key, leave the item unmatched so it
+        # can be handled from the review grid with Google/Yandex/local images.
+        if (-not [string]::IsNullOrWhiteSpace([string]$ctx.ApiKey)) {
+            try {
+                $fast = Get-ProgramIconMatchFast -ApiKey $ctx.ApiKey -Query $name -TopMatches 6 -IconsPerMatch ([Math]::Min(12,$ctx.TopN))
+            } catch [System.UnauthorizedAccessException] {
+                Write-Log "SteamGridDB rejected the API key while looking up app '$name'; trying the embedded icon fallback." 'WARN'
+                $fast = $null
+            } catch {
+                Write-Log "Automatic app-icon lookup failed for '$name': $($_.Exception.Message)" 'WARN'
+                $fast = $null
+            }
+        }
+    } else {
+        try {
+            $fast = Get-GameMatchFast -ApiKey $ctx.ApiKey -Query $name -Category $ctx.Category -CoversPerGame $ctx.TopN
+        } catch [System.UnauthorizedAccessException] {
+            return @{ ok = $false; error = 'SteamGridDB rejected the API key.' }
+        } catch {
+            $fast = $null
+        }
     }
 
     $safe = Get-SafeFileName -Name $name
@@ -826,9 +1000,15 @@ function Step-WebScan {
         # stop for borderline-but-likely matches.
         if (@($fast.candidateGames).Count -gt 0) { $topScore = [int]([double]$fast.candidateGames[0].Score * 100) }
         if (@($fast.best.Covers).Count -gt 0 -and $topScore -ge 55) { $autoConfident = $true }
+        if ($Session.IconSearchOnly -and @($fast.best.Covers).Count -gt 0) {
+            # The app-icon workflow is batch-first: choose the best-ranked
+            # candidate automatically and expose the full preview grid after
+            # the scan, where the user can change selected items.
+            $autoConfident = $true
+        }
         $covers = @()
         foreach ($c in @($fast.best.Covers)) {
-            $covers += @{ url = [string]$c.Url; thumb = [string]$c.Thumb; score = [int]$c.Score }
+            $covers += @{ url = [string]$c.Url; thumb = [string]$c.Thumb; score = [int]$c.Score; source = 'SteamGridDB'; title = [string]$fast.best.GameName; width = [int]$c.Width; height = [int]$c.Height; searchPage = '' }
         }
         $jsonSections += @{
             gameId   = [int]$fast.best.GameId
@@ -841,6 +1021,89 @@ function Step-WebScan {
                 gameId = [int]$g.GameId; gameName = [string]$g.GameName
                 year = [int]$g.Year; score = [int]([double]$g.Score * 100)
             }
+        }
+    }
+
+    if ($Session.IconSearchOnly) {
+        # v6.35: real web-image candidates complement the sparse SteamGridDB software catalogue.
+        # Google/Yandex are queried in parallel; the merged results are ranked by square ratio,
+        # available dimensions, file type and likely image relevance before the preview grid appears.
+        $onlineCandidates = @()
+        try { $onlineCandidates = @(Get-OnlineProgramIconCandidates -Query $name -Provider 'both' -MaxResults 24 -Session $Session) }
+        catch { Write-Log "Online icon search failed for '$name': $($_.Exception.Message)" 'DEBUG' }
+        if ($onlineCandidates.Count -gt 0) {
+            $mergedCovers = New-Object System.Collections.Generic.List[object]
+            foreach ($candidate in $onlineCandidates) {
+                $mergedCovers.Add(@{
+                    url = [string]$candidate.Url; thumb = [string]$candidate.Thumb
+                    score = [int]$candidate.Score; source = [string]$candidate.Source
+                    title = [string]$candidate.Title; width = [int]$candidate.Width
+                    height = [int]$candidate.Height; searchPage = [string]$candidate.SearchPage
+                })
+            }
+            # Preserve SGDB alternatives after the web-ranked candidates instead of discarding them.
+            foreach ($existingSection in @($jsonSections)) {
+                foreach ($cover in @($existingSection.covers)) {
+                    if ([string]::IsNullOrWhiteSpace([string]$cover.url)) { continue }
+                    $dupe = $false
+                    foreach ($prior in $mergedCovers) { if ([string]$prior.url -eq [string]$cover.url) { $dupe = $true; break } }
+                    if (-not $dupe) {
+                        $sgScore = 62
+                        if ($cover.score -gt 0) { $sgScore = [Math]::Min(78, 62 + [int][Math]::Min(16, [Math]::Log10([double]$cover.score + 1) * 5)) }
+                        $mergedCovers.Add(@{ url=[string]$cover.url; thumb=[string]$cover.thumb; score=$sgScore; source='SteamGridDB'; title=[string]$existingSection.gameName; width=0; height=0; searchPage='' })
+                    }
+                }
+            }
+            $topScore = [int]$onlineCandidates[0].Score
+            # When web candidates are weak, keep the executable's own icon as a real fallback
+            # rather than allowing a polished but unrelated image to dominate.
+            if ($topScore -lt 82) {
+                try {
+                    $embeddedAlternative = Get-EmbeddedProgramIconSource -Session $Session -Name $name -Safe $safe
+                    if ($null -ne $embeddedAlternative) {
+                        $embedUrl = [string]$embeddedAlternative.Url
+                        $hasEmbed = $false
+                        foreach ($prior in $mergedCovers) { if ([string]$prior.url -eq $embedUrl) { $hasEmbed = $true; break } }
+                        if (-not $hasEmbed) {
+                            $mergedCovers.Add(@{ url=$embedUrl; thumb=$embedUrl; score=68; source='Embedded application icon'; title="$name (original executable icon)"; width=256; height=256; searchPage='' })
+                        }
+                    }
+                } catch { }
+            }
+            $orderedCovers = @($mergedCovers | Sort-Object -Property @{Expression='score';Descending=$true} | Select-Object -First 24)
+            $jsonSections = @(@{ gameId=0; gameName="$name (Google + Yandex + brand-icon candidates)"; year=0; covers=$orderedCovers })
+            # Never auto-accept a generic high-resolution image on quality alone. The semantic score must clear a conservative threshold.
+            $autoConfident = ($topScore -ge 82)
+            Write-Log "Online image search found $($onlineCandidates.Count) candidate(s) for app '$name'; best score $topScore; auto-confidence=$autoConfident; source=$($onlineCandidates[0].Source)." 'INFO'
+        }
+    }
+
+    if ($Session.IconSearchOnly -and $onlineCandidates.Count -eq 0) {
+        # If the web providers return no parseable candidates, do not let a
+        # possibly unrelated game-catalog result outrank the program's own icon.
+        # Prefer the embedded EXE/ICO icon first, keeping SGDB results only as
+        # manually selectable alternatives. If no embedded icon exists, leave
+        # the available catalogue options for review rather than claiming a web match.
+        $embedded = $null
+        try { $embedded = Get-EmbeddedProgramIconSource -Session $Session -Name $name -Safe $safe } catch { }
+        if ($null -ne $embedded) {
+            $fallbackCovers = New-Object System.Collections.Generic.List[object]
+            $fallbackCovers.Add(@{ url = [string]$embedded.Url; thumb = [string]$embedded.Thumb; score = 100; source = 'Embedded application icon'; title = "$name (embedded icon)"; width = 0; height = 0; searchPage = '' })
+            foreach ($existingSection in @($jsonSections)) {
+                foreach ($cover in @($existingSection.covers)) {
+                    if ([string]::IsNullOrWhiteSpace([string]$cover.url)) { continue }
+                    $dupe = $false
+                    foreach ($prior in $fallbackCovers) { if ([string]$prior.url -eq [string]$cover.url) { $dupe = $true; break } }
+                    if (-not $dupe) { $fallbackCovers.Add($cover) }
+                }
+            }
+            $jsonSections = @(@{ gameId=0; gameName="$name (embedded icon + alternatives)"; year=0; covers=@($fallbackCovers) })
+            $autoConfident = $true
+            $topScore = 100
+        } elseif ($jsonSections.Count -gt 0) {
+            # Never automatically trust the game catalogue for a non-game app.
+            $autoConfident = $false
+            $confident = $false
         }
     }
 
@@ -861,6 +1124,7 @@ function Step-WebScan {
         confident      = $confident
         autoConfident  = $autoConfident
         topScore       = $topScore
+        iconSearchOnly = [bool]$Session.IconSearchOnly
     }
 
     # Remembered choice? Mark it so the browser can offer to skip /
@@ -868,8 +1132,16 @@ function Step-WebScan {
     try {
         if ($ctx.SavedChoices.ContainsKey($name)) {
             $sc = $ctx.SavedChoices[$name]
+            $savedKind = if ($sc.PSObject.Properties.Name -contains 'Kind') { [string]$sc.Kind } else { '' }
+            $kindMatches = if ($Session.IconSearchOnly) { $savedKind -eq 'icon' } else { $savedKind -ne 'icon' }
             $savedUrl = [string]$sc.Url
-            if (-not [string]::IsNullOrWhiteSpace($savedUrl)) {
+            $savedSourceExists = $true
+            if ($savedUrl -match '^/cache/') {
+                $savedLeaf = [uri]::UnescapeDataString((($savedUrl -split '\?')[0] -replace '^/cache/', ''))
+                $savedLeaf = [System.IO.Path]::GetFileName($savedLeaf)
+                $savedSourceExists = Test-Path -LiteralPath (Join-Path $ctx.CacheDir $savedLeaf) -PathType Leaf
+            }
+            if ($kindMatches -and $savedSourceExists -and -not [string]::IsNullOrWhiteSpace($savedUrl)) {
                 $item.remembered = $true
                 $item.savedUrl = $savedUrl
                 $item.savedGameName = [string]$sc.GameName
@@ -944,20 +1216,25 @@ function Step-WebApply {
         $nm = [string]$entry.Name
 
         if (-not $pickMap.ContainsKey($key) -or [string]::IsNullOrWhiteSpace($pickMap[$key].Url)) {
-            # No usable pick: placeholder cover keeps the run complete.
+            # In app/file mode, never overwrite an unresolved target with a fake
+            # placeholder. The normal apply engine reports it as Skipped.
+            if ($Session.IconSearchOnly) { continue }
             $resolutions[$nm] = @{ Placeholder = $true; IcoPath = [string]$entry.IcoPath; GameName = $nm; Failed = $false; Cached = $false }
             continue
         }
 
         $pick = $pickMap[$key]
+        $kind = if ($Session.IconSearchOnly) { 'icon' } else { [string]$ctx.Category }
         $resolutions[$nm] = New-ArtworkResolution -Ctx $ctx -Name $nm -Safe ([string]$entry.Safe) -IcoPath ([string]$entry.IcoPath) `
-            -Url ([string]$pick.Url) -Kind ([string]$ctx.Category) -GameName ([string]$pick.GameName) -Score 1.0 -DeleteRaw ([string]$pick.Url -notlike '/cache/*')
+            -Url ([string]$pick.Url) -Kind $kind -GameName ([string]$pick.GameName) -Score 1.0 -DeleteRaw ([string]$pick.Url -notlike '/cache/*')
 
-        if ($pick.GameId -gt 0) { $ctx.Overrides[$nm] = [int]$pick.GameId }
+        if (-not $Session.IconSearchOnly) {
+            if ($pick.GameId -gt 0) { $ctx.Overrides[$nm] = [int]$pick.GameId }
+        }
         $ctx.SavedChoices[$nm] = [PSCustomObject]@{
             Url      = [string]$pick.Url
             GameName = [string]$pick.GameName
-            Kind     = [string]$ctx.Category
+            Kind     = $kind
             PickedAt = (Get-Date -Format 'yyyy-MM-dd HH:mm')
         }
     }
@@ -1039,16 +1316,19 @@ function Start-WebScanFiles {
     #>
     param(
         [Parameter(Mandatory)]$Session,
-        [Parameter(Mandatory)][string[]]$Files
+        [Parameter(Mandatory)][string[]]$Files,
+        [bool]$IconSearchOnly = $false
     )
 
+    $Session.IconSearchOnly = [bool]$IconSearchOnly
+    $Session.CoverCache = @{}
     if ($Files.Count -eq 0) {
         return @{ ok = $false; error = 'No files selected.' }
     }
 
     $shortcuts = @(Get-ShortcutsFromPaths -Paths $Files)
     if ($shortcuts.Count -eq 0) {
-        return @{ ok = $false; error = 'None of the selected files were readable shortcuts.' }
+        return @{ ok = $false; error = 'No supported files or shortcuts were selected.' }
     }
     foreach ($s in $shortcuts) {
         if ($s.Status -ne 'Failed') { $s.NormalizedName = Get-NormalizedGameName -Name $s.Name }

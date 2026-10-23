@@ -3,12 +3,16 @@ data/Cache/
 data/Logs/
 data/Backups/
 data/Icons/
+data/RestorePoints/
+data/restore-points/
+data/Downloaded/
 
 # User-specific config and state (do not commit your own keys/choices)
 data/settings.json
 data/overrides.json
 data/choices.json
 data/knownGames.json
+data/known-games.json
 data/history.json
 
 # The auto-created launcher shortcut (regenerated on first run)
@@ -20,3 +24,6 @@ desktop.ini
 .DS_Store
 *.tmp
 *.log
+
+# Local release build output
+release-output/

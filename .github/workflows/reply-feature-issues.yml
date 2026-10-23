@@ -1,0 +1,62 @@
+name: Reply to Game Icons Studio Feature Issues
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Published release version (for example 6.35, without the v prefix)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify release exists and post missing comments
+        uses: actions/github-script@v7
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        with:
+          script: |
+            const version = process.env.RELEASE_VERSION;
+            if (!/^\d+\.\d+$/.test(version)) {
+              core.setFailed(`Version must look like 6.35 without a leading v; got '${version}'.`);
+              return;
+            }
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            try {
+              await github.rest.repos.getReleaseByTag({ owner, repo, tag: `v${version}` });
+            } catch (error) {
+              core.setFailed(`Release v${version} was not found. Publish the release before replying to issues.`);
+              return;
+            }
+            const messages = [
+              {
+                issue_number: 1,
+                marker: `<!-- gis-release-${version}-issue-1 -->`,
+                body: `Thanks for the suggestion, and sorry for the long wait! Restore points are available with configurable retention. The app snapshots relevant shortcut and folder icon state before applying changes and provides a restore flow. Please try v${version} and let us know if you encounter any restoration issues.\n\n<!-- gis-release-${version}-issue-1 -->`
+              },
+              {
+                issue_number: 2,
+                marker: `<!-- gis-release-${version}-issue-2 -->`,
+                body: `Thanks for the suggestion, and apologies for the delay! Local image selection is supported, including drag-and-drop, clipboard paste, and image URL input. Selected images are processed through the app's ICO conversion pipeline, so you can use your own square artwork when catalogue results are not suitable. Please try v${version} and let us know how it works for you.\n\n<!-- gis-release-${version}-issue-2 -->`
+              }
+            ];
+            for (const item of messages) {
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner, repo, issue_number: item.issue_number, per_page: 100
+              });
+              if (comments.some(c => (c.body || '').includes(item.marker))) {
+                core.info(`Issue #${item.issue_number}: reply for v${version} already exists; skipping.`);
+                continue;
+              }
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: item.issue_number, body: item.body
+              });
+              core.info(`Posted prepared reply to issue #${item.issue_number}.`);
+            }

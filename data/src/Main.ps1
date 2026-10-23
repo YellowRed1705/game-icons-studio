@@ -1,5 +1,5 @@
 # ============================================================
-#  Main.ps1 - Game Icons Studio (v6.0)
+#  Main.ps1 - Game Icons Studio (v6.35)
 #  Menu: Full Auto | Smart Auto | Manual | Selected Files Only
 #        Revision | Manual Search | Rebuild | Cache
 # ============================================================
@@ -24,8 +24,10 @@ if ([string]::IsNullOrWhiteSpace($Root)) { $Root = $ScriptDir }
 . (Join-Path $ScriptDir 'Settings.ps1')
 . (Join-Path $ScriptDir 'ShortcutTools.ps1')
 . (Join-Path $ScriptDir 'SteamGridDB.ps1')
+. (Join-Path $ScriptDir 'ImageSearch.ps1')
 . (Join-Path $ScriptDir 'IconTools.ps1')
 . (Join-Path $ScriptDir 'ExplorerRefresh.ps1')
+. (Join-Path $ScriptDir 'IconBackup.ps1')
 . (Join-Path $ScriptDir 'Maintenance.ps1')
 . (Join-Path $ScriptDir 'SelectionPage.ps1')
 . (Join-Path $ScriptDir 'Workflows.ps1')
@@ -35,9 +37,9 @@ if ([string]::IsNullOrWhiteSpace($Root)) { $Root = $ScriptDir }
 function Show-Banner {
     Write-Host ''
     Write-Host '  ============================================================' -ForegroundColor DarkCyan
-    Write-Host '   GAME ICONS STUDIO  v6.27' -ForegroundColor Cyan
-    Write-Host '   From generic icons to a game shelf.' -ForegroundColor Gray
-    Write-Host '   Download covers. Replace icons. Modernize your Games folder.' -ForegroundColor DarkGray
+    Write-Host '   GAME ICONS STUDIO  v6.35' -ForegroundColor Cyan
+    Write-Host '   Game and app icons, with safe restore history.' -ForegroundColor Gray
+    Write-Host '   Find game covers and app icons. Modernize your shortcuts.' -ForegroundColor DarkGray
     Write-Host '  ============================================================' -ForegroundColor DarkCyan
 }
 
@@ -195,11 +197,20 @@ function New-ArtworkResolution {
         [bool]$DeleteRaw = $true
     )
 
-    $ext = [System.IO.Path]::GetExtension(($Url -split '\?')[0])
+    $urlPath = ($Url -split '\?')[0]
+    $ext = [System.IO.Path]::GetExtension($urlPath)
     if ([string]::IsNullOrWhiteSpace($ext)) { $ext = '.png' }
     $rawPath = Join-Path $Ctx.CacheDir "$Safe$ext"
 
-    if ($DeleteRaw -and (Test-Path $rawPath)) {
+    # Custom images are first stored in the local /cache endpoint. Point the
+    # ICO converter at the exact on-disk source instead of a non-existent
+    # game-name path, otherwise drag/drop imports can fail at build time.
+    if ($Url -match '^/cache/') {
+        $cacheLeaf = [uri]::UnescapeDataString(($urlPath -replace '^/cache/', ''))
+        $cacheLeaf = [System.IO.Path]::GetFileName($cacheLeaf)
+        $localSource = Join-Path $Ctx.CacheDir $cacheLeaf
+        if (Test-Path -LiteralPath $localSource -PathType Leaf) { $rawPath = $localSource }
+    } elseif ($DeleteRaw -and (Test-Path $rawPath)) {
         Remove-Item -Path $rawPath -Force -ErrorAction SilentlyContinue
     }
     if ([string]::IsNullOrWhiteSpace($GameName)) { $GameName = $Name }
@@ -634,6 +645,24 @@ function Invoke-ApplyPipeline {
         Write-Log 'choices.json updated.' 'INFO'
     }
 
+    # ---------- SAFETY BACKUP (before managed ICO files can be overwritten) ----------
+    $backupTransaction = $null
+    try {
+        $retentionLimit = 50
+        if ($Ctx.Settings.PSObject.Properties.Name -contains 'BackupRetentionLimit') { $retentionLimit = [int]$Ctx.Settings.BackupRetentionLimit }
+        $backupTransaction = New-IconBackupTransaction -Root $Ctx.Root -Shortcuts $Shortcuts -Resolutions $Resolutions -RetentionLimit $retentionLimit
+    } catch {
+        Write-Log "SAFETY STOP: $($_.Exception.Message)" 'ERROR' $true
+        Write-Log 'The ICO build/apply phase was cancelled because a complete restore point could not be created.' 'ERROR' $true
+        foreach ($item in @($Shortcuts)) {
+            if ($null -ne $item -and $item.Status -ne 'Failed') {
+                $item.Status = 'Failed'
+                $item.Detail = 'Safety backup failed; no icons were changed.'
+            }
+        }
+        return
+    }
+
     # ---------- PHASE 3/5: Build ICO files ----------
     $swPhase = [System.Diagnostics.Stopwatch]::StartNew()
     $buildKeys = @($Resolutions.Keys | Where-Object { -not $Resolutions[$_].Failed -and -not $Resolutions[$_].Cached })
@@ -703,6 +732,8 @@ function Invoke-ApplyPipeline {
 
             if ($isFolder) {
                 Set-FolderCustomIcon -FolderPath $s.Path -IcoPath $r.IcoPath
+            } elseif ($s.PSObject.Properties.Name -contains 'IsGeneratedFileShortcut' -and [bool]$s.IsGeneratedFileShortcut) {
+                Set-FileCustomIconShortcut -FilePath ([string]$s.SourcePath) -ShortcutPath $s.Path -IcoPath $r.IcoPath
             } else {
                 Set-ShortcutIcon -ShortcutPath $s.Path -IcoPath $r.IcoPath
             }

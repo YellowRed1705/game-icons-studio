@@ -85,6 +85,52 @@ function Set-ShortcutIcon {
     $lnk.Save()
 }
 
+function Set-FileCustomIconShortcut {
+    <#
+        Windows Explorer does not expose a per-file icon property for every
+        arbitrary file type. For regular files, create/update an adjacent
+        companion .lnk with a custom icon, leaving the original file untouched.
+        .ps1 files are launched through PowerShell; .bat/.cmd through cmd.exe;
+        other file types open via their normal shell association.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$FilePath,
+        [Parameter(Mandatory)][string]$ShortcutPath,
+        [Parameter(Mandatory)][string]$IcoPath
+    )
+    if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) { throw "Source file not found: $FilePath" }
+    if (-not (Test-Path -LiteralPath $IcoPath -PathType Leaf)) { throw "Icon file not found: $IcoPath" }
+
+    $fullFile = [System.IO.Path]::GetFullPath($FilePath)
+    $extension = [System.IO.Path]::GetExtension($fullFile).ToLowerInvariant()
+    $directory = [System.IO.Path]::GetDirectoryName($fullFile)
+    $shell = Get-WshShell
+    $link = $shell.CreateShortcut($ShortcutPath)
+    $link.WorkingDirectory = $directory
+
+    if ($extension -in @('.ps1','.psm1','.psd1')) {
+        $psExe = $null
+        try { $psExe = (Get-Command pwsh.exe -ErrorAction Stop).Source } catch { }
+        if ([string]::IsNullOrWhiteSpace($psExe)) {
+            try { $psExe = (Get-Command powershell.exe -ErrorAction Stop).Source } catch { }
+        }
+        if ([string]::IsNullOrWhiteSpace($psExe)) { throw 'PowerShell executable was not found.' }
+        $link.TargetPath = $psExe
+        $link.Arguments = '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + $fullFile + '"'
+    } elseif ($extension -in @('.bat','.cmd')) {
+        $cmdExe = [string]$env:ComSpec
+        if ([string]::IsNullOrWhiteSpace($cmdExe)) { $cmdExe = Join-Path $env:SystemRoot 'System32\cmd.exe' }
+        $link.TargetPath = $cmdExe
+        $link.Arguments = '/d /c ""' + $fullFile + '""'
+    } else {
+        $link.TargetPath = $fullFile
+        $link.Arguments = ''
+    }
+
+    $link.IconLocation = "$IcoPath,0"
+    $link.Save()
+}
+
 function Get-CurrentIconFile {
     <#
         Extracts the file part of an IconLocation string ("C:\path\x.ico,0").
@@ -233,8 +279,8 @@ function Select-ShortcutFiles {
         $owner.Activate()
 
         $dialog = New-Object System.Windows.Forms.OpenFileDialog
-        $dialog.Title = 'Select the shortcuts whose icons you want to change (Ctrl+click for multiple)'
-        $dialog.Filter = 'Shortcuts (*.lnk)|*.lnk|All files (*.*)|*.*'
+        $dialog.Title = 'Select shortcuts or files whose icons you want to customize (Ctrl+click for multiple)'
+        $dialog.Filter = 'All supported files (*.*)|*.*'
         $dialog.Multiselect = $true
         $dialog.CheckFileExists = $true
         if (-not [string]::IsNullOrWhiteSpace($InitialFolder) -and (Test-Path $InitialFolder)) {
@@ -273,9 +319,9 @@ function Select-ShortcutFiles {
 
 function Get-ShortcutsFromPaths {
     <#
-        Builds shortcut objects from an explicit list of .lnk paths
-        (used by the file-picker "Change Icons" mode). Same shape as
-        Get-Shortcuts output.
+        Builds scan targets from explicitly selected items. Existing .lnk
+        files are edited directly. For any other file, a companion shortcut
+        is created beside the file during apply; the source stays untouched.
     #>
     param([Parameter(Mandatory)][string[]]$Paths)
 
@@ -283,22 +329,55 @@ function Get-ShortcutsFromPaths {
     $wsh = Get-WshShell
 
     foreach ($p in $Paths) {
-        if ([string]::IsNullOrWhiteSpace($p) -or -not (Test-Path $p)) { continue }
+        if ([string]::IsNullOrWhiteSpace($p) -or -not (Test-Path -LiteralPath $p -PathType Leaf)) { continue }
         try {
-            $lnk = $wsh.CreateShortcut($p)
+            $fullPath = [System.IO.Path]::GetFullPath($p)
+            $extension = [System.IO.Path]::GetExtension($fullPath)
+            if ($extension -ieq '.lnk') {
+                $lnk = $wsh.CreateShortcut($fullPath)
+                $results.Add([PSCustomObject]@{
+                    Path = $fullPath
+                    Name = [System.IO.Path]::GetFileNameWithoutExtension($fullPath)
+                    Target = [string]$lnk.TargetPath
+                    Arguments = [string]$lnk.Arguments
+                    WorkingDirectory = [string]$lnk.WorkingDirectory
+                    IconLocation = [string]$lnk.IconLocation
+                    NormalizedName = $null
+                    Status = 'Pending'
+                    Detail = ''
+                    IsGeneratedFileShortcut = $false
+                })
+                continue
+            }
+
+            $dir = [System.IO.Path]::GetDirectoryName($fullPath)
+            $stem = [System.IO.Path]::GetFileNameWithoutExtension($fullPath)
+            $shortcutPath = Join-Path $dir ($stem + ' (Custom Icon).lnk')
+            $suffix = 2
+            while (Test-Path -LiteralPath $shortcutPath -PathType Leaf) {
+                $existing = $wsh.CreateShortcut($shortcutPath)
+                $isSame = ([string]$existing.TargetPath -ieq $fullPath) -or
+                    ([string]$existing.Arguments).IndexOf($fullPath,[System.StringComparison]::OrdinalIgnoreCase) -ge 0
+                if ($isSame) { break }
+                $shortcutPath = Join-Path $dir ($stem + ' (Custom Icon ' + $suffix + ').lnk')
+                $suffix++
+            }
+
             $results.Add([PSCustomObject]@{
-                Path             = $p
-                Name             = [System.IO.Path]::GetFileNameWithoutExtension($p)
-                Target           = $lnk.TargetPath
-                Arguments        = $lnk.Arguments
-                WorkingDirectory = $lnk.WorkingDirectory
-                IconLocation     = $lnk.IconLocation
-                NormalizedName   = $null
-                Status           = 'Pending'
-                Detail           = ''
+                Path = $shortcutPath
+                Name = $stem
+                Target = $fullPath
+                Arguments = ''
+                WorkingDirectory = $dir
+                IconLocation = ''
+                NormalizedName = $null
+                Status = 'Pending'
+                Detail = 'Custom icon will be applied to a companion shortcut; the source file will remain unchanged.'
+                IsGeneratedFileShortcut = $true
+                SourcePath = $fullPath
             })
         } catch {
-            Write-Log "Invalid or unreadable shortcut skipped: $p ($($_.Exception.Message))" 'WARN'
+            Write-Log "File target skipped: $p ($($_.Exception.Message))" 'WARN'
         }
     }
     return $results

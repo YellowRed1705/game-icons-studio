@@ -273,7 +273,7 @@ function Get-SgdbArtworkCandidates {
     $endpoint = switch ($Kind) {
         'square' { "/grids/game/$GameId`?dimensions=512x512,1024x1024&$safeFilter" }
         'grid'   { "/grids/game/$GameId`?$safeFilter" }
-        'icon'   { "/icons/game/$GameId" }
+        'icon'   { "/icons/game/$GameId`?types=static&mimes=image/png,image/jpeg" }
         'logo'   { "/logos/game/$GameId`?types=static&mimes=image/png" }
     }
 
@@ -379,6 +379,67 @@ function Get-GameMatchSections {
 }
 
 # ---------------- v6.3: fast single-match for live scanning ----------------
+
+function Get-ProgramIconMatchFast {
+    <#
+        Automatically finds application/software icon artwork for a regular
+        Windows program name. SteamGridDB autocomplete also indexes some
+        software entries. We score name similarity first, then prefer the
+        community-ranked/high-resolution icon candidates. This returns the
+        same shape as Get-GameMatchFast so the browser can reuse its review UI.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$ApiKey,
+        [Parameter(Mandatory)][string]$Query,
+        [int]$TopMatches = 6,
+        [int]$IconsPerMatch = 8
+    )
+
+    $candidates = @(Get-SgdbGameCandidates -ApiKey $ApiKey -Query $Query -Top $TopMatches)
+    if ($candidates.Count -eq 0) {
+        return [PSCustomObject]@{ best = $null; candidateGames = @(); confident = $false }
+    }
+
+    $matched = New-Object System.Collections.Generic.List[object]
+    foreach ($candidate in $candidates) {
+        # Program titles can overlap game titles. Require a meaningful name
+        # match so unrelated games are not silently treated as applications.
+        if ([double]$candidate.Score -lt 0.60) { continue }
+        $icons = @(Get-SgdbArtworkCandidates -ApiKey $ApiKey -GameId ([int]$candidate.GameId) -Kind 'icon' -Top $IconsPerMatch)
+        if ($icons.Count -eq 0) { continue }
+        $matched.Add([PSCustomObject]@{
+            GameId = [int]$candidate.GameId
+            GameName = [string]$candidate.Name
+            Year = [int]$candidate.Year
+            Score = [double]$candidate.Score
+            Covers = $icons
+        })
+    }
+
+    if ($matched.Count -eq 0) {
+        return [PSCustomObject]@{ best = $null; candidateGames = @(); confident = $false }
+    }
+
+    $ranked = @($matched | Sort-Object -Property @(
+        @{ Expression = 'Score'; Descending = $true },
+        @{ Expression = { if (@($_.Covers).Count -gt 0) { [int]$_.Covers[0].Score } else { 0 } }; Descending = $true },
+        @{ Expression = { if (@($_.Covers).Count -gt 0) { [int]$_.Covers[0].Width * [int]$_.Covers[0].Height } else { 0 } }; Descending = $true }
+    ))
+
+    $best = $ranked[0]
+    $confident = ([double]$best.Score -ge 0.78)
+    if ($ranked.Count -gt 1 -and [double]$ranked[1].Score -ge 0.78 -and ([double]$best.Score - [double]$ranked[1].Score) -lt 0.04) {
+        $confident = $false
+    }
+
+    return [PSCustomObject]@{
+        best = $best
+        candidateGames = @($ranked | ForEach-Object {
+            [PSCustomObject]@{ GameId = $_.GameId; GameName = $_.GameName; Year = $_.Year; Score = $_.Score }
+        })
+        confident = $confident
+    }
+}
 
 function Get-GameMatchFast {
     <#
