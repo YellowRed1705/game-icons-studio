@@ -13,7 +13,7 @@ The release workflow supports automatic publishing and manual publishing. A comm
 1. Update the app version labels in the launcher, main banner, web UI, restore-point metadata, and image-search user agent.
 2. Add `CHANGELOG-vX.Y.md` and `UPGRADE-INSTRUCTIONS-vX.Y.txt`; update `README.md` to show that version and summarize the change.
 3. Commit the release changes to `main`. Adding a new `CHANGELOG-vX.Y.md` automatically triggers validation, clean ZIP builds, SHA-256 generation, and GitHub Release publication.
-4. To publish manually instead, open Actions → Publish Game Icons Studio Release → Run workflow and enter the numeric version without `v`.
+4. To publish manually instead, open Actions → Build and Publish Game Icons Studio Release → Run workflow and enter the numeric version without `v`.
 5. Issue replies remain disabled for automatic releases. Enable `reply_to_issues` only on a manual run when replies should be posted; hidden markers prevent duplicates.
 
 ## Packaging safety
