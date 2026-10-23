@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.35) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.36) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio v6.35</title>
+<title>Game Icons Studio v6.36</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {
@@ -238,6 +238,9 @@ function Get-WebAppHtml {
     transition:border-color .12s, transform .12s; }
   .tile:hover { transform:translateY(-2px); }
   .tile img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; background:var(--panel2); display:block; }
+  .tile img.cover-loading { opacity:.58; }
+  .tile img.cover-ready { opacity:1; transition:opacity .14s ease; }
+  .tile img.cover-error { opacity:.28; }
   .tile.sel { border-color:var(--accent); }
   .tile.focus { border-color:var(--accent2); }
 
@@ -1269,9 +1272,97 @@ var state = {
 var coverCache = {};
 var currentPollId = 0;
 
+// Cover previews use a small, prioritized queue instead of eager-loading every
+// candidate at once. This keeps the visible picker responsive on slow CDNs.
+var coverLoadQueue = [];
+var coverActiveTasks = [];
+var coverActiveLoads = 0;
+var coverLoadSequence = 0;
+var coverGridObserver = null;
+var MAX_CONCURRENT_COVER_LOADS = 4;
+
+function stopCoverImageLoading(){
+  if (coverGridObserver){ coverGridObserver.disconnect(); coverGridObserver = null; }
+  coverLoadQueue = [];
+  coverActiveTasks.slice().forEach(function(job){
+    if (!job || job.done) return;
+    job.done = true;
+    coverActiveLoads = Math.max(0, coverActiveLoads - 1);
+    if (job.img){
+      job.img.onload = null;
+      job.img.onerror = null;
+      try { job.img.removeAttribute('src'); } catch(e){}
+      job.img.dataset.coverState = 'cancelled';
+    }
+  });
+  coverActiveTasks = [];
+}
+
+function pumpCoverImageQueue(){
+  coverLoadQueue.sort(function(a,b){
+    return (b.priority - a.priority) || (a.sequence - b.sequence);
+  });
+  while (coverActiveLoads < MAX_CONCURRENT_COVER_LOADS && coverLoadQueue.length){
+    var job = coverLoadQueue.shift();
+    if (!job || !job.img || !job.img.isConnected || job.img.dataset.coverState !== 'queued') continue;
+    job.done = false;
+    job.img.dataset.coverState = 'loading';
+    coverActiveLoads++;
+    coverActiveTasks.push(job);
+    (function(task){
+      function complete(ok){
+        if (task.done) return;
+        task.done = true;
+        coverActiveLoads = Math.max(0, coverActiveLoads - 1);
+        coverActiveTasks = coverActiveTasks.filter(function(active){ return active !== task; });
+        if (task.img && task.img.isConnected){
+          task.img.dataset.coverState = ok ? 'loaded' : 'error';
+          task.img.classList.remove('cover-loading');
+          task.img.classList.add(ok ? 'cover-ready' : 'cover-error');
+          if (!ok) task.img.alt = 'Preview unavailable';
+        }
+        pumpCoverImageQueue();
+      }
+      task.img.onload = function(){ complete(true); };
+      task.img.onerror = function(){ complete(false); };
+      task.img.src = task.url;
+    })(job);
+  }
+}
+
+function queueCoverImage(img, url, priority){
+  if (!img || !url || img.dataset.coverState) return;
+  img.dataset.coverState = 'queued';
+  coverLoadQueue.push({
+    img: img, url: url, priority: Number(priority) || 0,
+    sequence: coverLoadSequence++, done: false
+  });
+}
+
+function observeCoverImages(grid){
+  var imgs = grid.querySelectorAll('img[data-cover-src]');
+  if (typeof window.IntersectionObserver === 'function'){
+    coverGridObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (!entry.isIntersecting) return;
+        if (coverGridObserver) coverGridObserver.unobserve(entry.target);
+        queueCoverImage(entry.target, entry.target.dataset.coverSrc, entry.target.dataset.coverPriority);
+      });
+      pumpCoverImageQueue();
+    }, { root: grid, rootMargin: '120px 0px', threshold: 0.01 });
+    imgs.forEach(function(img){ coverGridObserver.observe(img); });
+  } else {
+    imgs.forEach(function(img){
+      queueCoverImage(img, img.dataset.coverSrc, img.dataset.coverPriority);
+    });
+    pumpCoverImageQueue();
+  }
+}
+
 function $(id){ return document.getElementById(id); }
 var SCREENS = ['step-custom','step-convert','step-convert-ok','step-memory','step-newgames','step-restore-ok','step-backups','step-history','step-about','step-health','step-confirm-apply','step-key','step-noart','step-home','step-folder','step-loading','step-confirm','step-artwork','step-matches','step-review','step-report'];
 function show(id){
+  if (id !== 'step-artwork') stopCoverImageLoading();
   SCREENS.forEach(function(s){ $(s).classList.add('hidden'); });
   $(id).classList.remove('hidden');
   $('progressWrap').classList.toggle('hidden', (id === 'step-home' || id === 'step-key'));
@@ -1372,25 +1463,21 @@ function finishAndOpen(){
 
 
 // ---- image preloading ----
-function preloadItem(it, full){
+function preloadItem(it){
   if (!it || !it.sections) return;
-  it.sections.forEach(function(sec, si){
-    var covers = sec.covers || [];
-    // During scan we only warm the best cover of the best section to
-    // keep bandwidth free; the rest preload when the user arrives.
-    var limit = full ? covers.length : ((si === 0) ? 1 : 0);
-    for (var i = 0; i < Math.min(limit, covers.length); i++){
-      var c = covers[i];
-      if (c.thumb && !coverCache[c.thumb]){
-        var img = new Image(); img.src = c.thumb; coverCache[c.thumb] = img;
-      }
-    }
-  });
+  // Warm only the first candidate for the current item; the cover picker
+  // schedules the other previews as they become visible.
+  var sec = it.sections[0];
+  var c = sec && sec.covers && sec.covers[0];
+  if (c && c.thumb && !coverCache[c.thumb]){
+    var img = new Image();
+    img.decoding = 'async';
+    img.src = c.thumb;
+    coverCache[c.thumb] = img;
+  }
 }
 function preloadAround(pos){
-  // Fully preload the current item (all covers) and lightly warm the next two.
-  if (state.items[pos]) preloadItem(state.items[pos], true);
-  for (var k = pos+1; k < Math.min(state.items.length, pos+3); k++){ preloadItem(state.items[k], false); }
+  if (state.items[pos]) preloadItem(state.items[pos]);
 }
 
 // ---- API KEY ----
@@ -2171,6 +2258,7 @@ function setGallery(on){
   try { localStorage.setItem('gis-gallery', state.gallery ? '1':'0'); } catch(e){}
 }
 function showArtwork(){
+  stopCoverImageLoading();
   var it = currentItem();
   var pick = state.picks[it.index];
   var sec = it.sections[pick.game-1] || it.sections[0];
@@ -2184,13 +2272,21 @@ function showArtwork(){
     var d = document.createElement('div');
     d.className = 'tile' + (i===(pick.cover-1)?' sel':'');
     d.tabIndex = 0;
-    d.innerHTML = '<img src="'+c.thumb+'" loading="eager">';
+    var img = document.createElement('img');
+    img.alt = sec.gameName + ' cover ' + (i+1);
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.className = 'cover-loading';
+    img.dataset.coverSrc = String(c.thumb || c.url || '');
+    img.dataset.coverPriority = i === (pick.cover-1) ? '100' : (i < 4 ? String(60-i) : '0');
+    d.appendChild(img);
     d.onclick = function(){ pick.cover = i+1; acceptMatch(); };
     grid.appendChild(d);
   });
   state.focusIdx = pick.cover-1; show('step-artwork');
   setGallery(state.gallery);
   focusTiles('#artworkGrid');
+  observeCoverImages(grid);
 }
 
 function showOtherMatches(){
