@@ -1,6 +1,6 @@
 # ============================================================
 # ImageSearch.ps1 - multi-provider web image search for app icons
-# v6.36
+# v6.37
 # Structured brand-icon search plus semantically-filtered image-engine candidates.
 # Best-effort parser for public Google Images / Yandex Images result pages.
 # Official API mode is not required; if providers block automated requests,
@@ -120,7 +120,7 @@ function Get-IconifyBrandIconCandidates {
     try {
         $client = [System.Net.Http.HttpClient]::new()
         $client.Timeout = [TimeSpan]::FromSeconds(4)
-        $null = $client.DefaultRequestHeaders.UserAgent.TryParseAdd('Game-Icons-Studio/6.36 (local desktop utility)')
+        $null = $client.DefaultRequestHeaders.UserAgent.TryParseAdd('Game-Icons-Studio/6.37 (local desktop utility)')
         foreach ($q in $queries) {
             try {
                 $url = 'https://api.iconify.design/search?query=' + [uri]::EscapeDataString($q) + '&limit=64&prefixes=' + [uri]::EscapeDataString($prefixes)
