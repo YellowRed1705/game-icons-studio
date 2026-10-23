@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version without the v prefix; must match the checked-in README and CHANGELOG (for example 6.36)'
+        description: 'Release version without the v prefix; must match the checked-in README and CHANGELOG (for example 6.37)'
         required: true
         type: string
       reply_to_issues:
@@ -79,7 +79,7 @@ jobs:
             $version = ($env:RELEASE_VERSION -as [string]).Trim()
           }
 
-          if ($version -notmatch '^\d+\.\d+$') { throw "Version must be numeric like 6.36 without a leading v; got '$version'." }
+          if ($version -notmatch '^\d+\.\d+$') { throw "Version must be numeric like 6.37 without a leading v; got '$version'." }
           $tag = "v$version"
           $remote = git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}"
           if ($LASTEXITCODE -notin @(0, 2)) { throw 'Could not check remote tags.' }
