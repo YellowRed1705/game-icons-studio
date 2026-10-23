@@ -45,6 +45,18 @@ jobs:
           node --check $scriptPath
           if ($LASTEXITCODE -ne 0) { throw 'Browser JavaScript syntax check failed.' }
 
+          $scriptFiles = @(Get-ChildItem -LiteralPath 'data/src' -Filter '*.ps1' -File) + @(Get-ChildItem -LiteralPath 'scripts' -Filter '*.ps1' -File)
+          foreach ($file in $scriptFiles) {
+            $tokens = $null
+            $parseErrors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$parseErrors)
+            if ($parseErrors.Count -gt 0) {
+              $messages = ($parseErrors | ForEach-Object { "$($_.Message) (line $($_.Extent.StartLineNumber))" }) -join '; '
+              throw "PowerShell syntax check failed in $($file.FullName): $messages"
+            }
+          }
+          Write-Host "Syntax validation passed for $($scriptFiles.Count) PowerShell scripts."
+
       - name: Validate release version and ensure tag is unused
         id: version
         shell: pwsh
