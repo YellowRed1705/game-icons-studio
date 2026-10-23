@@ -797,7 +797,6 @@ function Invoke-ApplyPipeline {
     Send-ApplyProgress -Callback $ProgressCallback -Phase 'refresh' -Current 0 -Total 1 -Label 'Refreshing Windows Explorer' -Status 'running'
     Update-ExplorerIcons
     Send-ApplyProgress -Callback $ProgressCallback -Phase 'refresh' -Current 1 -Total 1 -Label 'Windows Explorer refresh complete' -Status 'complete'
-    Send-ApplyProgress -Callback $ProgressCallback -Phase 'complete' -Current 1 -Total 1 -Label 'All operations complete' -Status 'complete'
 
     $total       = @($Shortcuts).Count
     $updated     = @($Shortcuts | Where-Object { $_.Status -eq 'Updated' }).Count
