@@ -1,5 +1,5 @@
 # ============================================================
-#  WebServer.ps1 (v6) - Local browser-driven mode
+#  WebServer.ps1 (v6.37) - Local browser-driven mode
 #  A tiny HttpListener server on http://localhost:PORT that
 #  serves a single-page web app and a small JSON API. The whole
 #  workflow (folder pick, scan, match, cover choice, apply, live
@@ -53,6 +53,23 @@ function Send-HttpResponse {
     } catch {
         Write-Log "Failed to send HTTP response: $($_.Exception.Message)" 'WARN' $true
     }
+}
+
+function Write-HttpProgressEvent {
+    <#
+        Writes one newline-delimited JSON event and flushes immediately.
+        The browser can display true pipeline progress while the same
+        request continues processing the selected icons.
+    #>
+    param(
+        [Parameter(Mandatory)]$Context,
+        [Parameter(Mandatory)]$Data
+    )
+    $line = (ConvertTo-JsonSafe -Data $Data -Depth 10) + "`n"
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($line)
+    $stream = $Context.Response.OutputStream
+    $stream.Write($bytes, 0, $bytes.Length)
+    $stream.Flush()
 }
 
 function Send-HttpFile {
@@ -593,8 +610,36 @@ function Invoke-WebRoute {
         try { $body = $bodyText | ConvertFrom-Json } catch { }
         $i = 0
         if ($body -and $null -ne $body.i) { $i = [int]$body.i }
-        $result = Step-WebApply -Session $Session -Index $i
-        Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe $result)
+
+        # Stream NDJSON progress events in this response so the UI does not
+        # need a second request while the main HttpListener thread is busy.
+        $response = $Context.Response
+        $response.StatusCode = 200
+        $response.ContentType = 'application/x-ndjson; charset=utf-8'
+        $response.Headers['Cache-Control'] = 'no-cache, no-store'
+        $response.SendChunked = $true
+        $response.KeepAlive = $true
+        $progressCallback = {
+            param($eventData)
+            Write-HttpProgressEvent -Context $Context -Data $eventData
+        }.GetNewClosure()
+
+        try {
+            $result = Step-WebApply -Session $Session -Index $i -ProgressCallback $progressCallback
+            Write-HttpProgressEvent -Context $Context -Data @{
+                type = 'complete'; ok = [bool]$result.ok
+                report = $result.report; error = $result.error
+            }
+        } catch {
+            Write-Log "Browser apply failed: $($_.Exception.Message)" 'ERROR' $true
+            try {
+                Write-HttpProgressEvent -Context $Context -Data @{
+                    type = 'complete'; ok = $false; error = $_.Exception.Message
+                }
+            } catch { }
+        } finally {
+            try { $Context.Response.OutputStream.Close() } catch { }
+        }
         return
     }
 
@@ -1188,7 +1233,8 @@ function Step-WebApply {
     #>
     param(
         [Parameter(Mandatory)]$Session,
-        [Parameter(Mandatory)][int]$Index
+        [Parameter(Mandatory)][int]$Index,
+        [scriptblock]$ProgressCallback = $null
     )
 
     $ctx = $Session.Ctx
@@ -1241,7 +1287,7 @@ function Step-WebApply {
     Save-Overrides -Root $ctx.Root -Overrides $ctx.Overrides
     Save-SavedChoices -Root $ctx.Root -Choices $ctx.SavedChoices
 
-    Invoke-ApplyPipeline -Ctx $ctx -Shortcuts $shortcuts -Resolutions $resolutions -Force $true
+    Invoke-ApplyPipeline -Ctx $ctx -Shortcuts $shortcuts -Resolutions $resolutions -Force $true -ProgressCallback $ProgressCallback
 
     # Record what we changed into the history log (newest first).
     try {
