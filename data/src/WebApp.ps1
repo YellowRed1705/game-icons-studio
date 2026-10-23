@@ -2525,8 +2525,11 @@ function updateApplyProgress(eventData){
   if (eventData.item) counter += ' · ' + eventData.item;
   $('loadCounter').textContent = counter;
   var detail = String(eventData.label||'');
-  if (eventData.status === 'failed') detail += ' — no shortcut changes were applied after the safety check failed.';
-  else if (eventData.status === 'complete' && eventData.item) detail += ' · ' + eventData.item;
+  if (eventData.status === 'failed'){
+    if (phase === 'backup') detail += ' — no shortcut changes were applied because the safety restore point could not be created.';
+    else detail += ' — this item failed; the operation will continue where possible.';
+  } else if (eventData.status === 'complete' && eventData.item) detail += ' · ' + eventData.item;
+  state._lastApplyProgress = eventData;
   $('loadDetail').textContent = detail;
 }
 
@@ -2632,12 +2635,26 @@ function applyAll(){
       $('loadCounter').textContent = 'Stopped';
       return;
     }
-    $('loadFill').style.width = '100%';
-    $('loadPercent').textContent = '100%';
-    $('loadBar').setAttribute('aria-valuenow', '100');
-    $('loadCounter').textContent = 'Complete';
-    $('loadingMsg').textContent = 'Done! Your game shelf is ready.';
-    $('loadDetail').textContent = 'All reported operations have finished.';
+    var report = result.report || {};
+    var totalResult = Number(report.total)||0;
+    var updatedResult = Number(report.updated)||0;
+    var failedResult = Number(report.failed)||0;
+    var lastProgress = state._lastApplyProgress || {};
+    var stoppedForSafety = lastProgress.phase === 'backup' && lastProgress.status === 'failed';
+    if (stoppedForSafety){
+      $('loadingMsg').textContent = 'Update stopped safely';
+      $('loadCounter').textContent = 'No icons changed';
+      $('loadDetail').textContent = 'The restore point could not be created, so the app stopped before changing any shortcuts.';
+    } else {
+      $('loadFill').style.width = '100%';
+      $('loadPercent').textContent = '100%';
+      $('loadBar').setAttribute('aria-valuenow', '100');
+      $('loadCounter').textContent = failedResult > 0 ? (updatedResult + ' / ' + totalResult + ' updated · ' + failedResult + ' failed') : 'Complete';
+      $('loadingMsg').textContent = failedResult > 0 ? 'Finished with some issues' : 'Done! Your game shelf is ready.';
+      $('loadDetail').textContent = failedResult > 0
+        ? 'The real operation has finished. Review the results below for failed or skipped items.'
+        : 'All reported operations have finished.';
+    }
     setTimeout(function(){ renderReport(result.report); }, 500);
   }).catch(function(error){
     $('loadingMsg').textContent = 'Progress stream interrupted';
