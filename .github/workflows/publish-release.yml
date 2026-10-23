@@ -38,7 +38,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $webText = Get-Content -LiteralPath 'data/src/WebApp.ps1' -Raw
-          $scripts = [regex]::Matches($webText, '(?is)<script\\b[^>]*>(.*?)</script>')
+          $scripts = [regex]::Matches($webText, '(?is)<script\b[^>]*>(.*?)</script>')
           if ($scripts.Count -ne 1) { throw "Expected one browser script block, found $($scripts.Count)." }
           $scriptPath = Join-Path $env:RUNNER_TEMP 'game-icons-studio-webapp.js'
           [System.IO.File]::WriteAllText($scriptPath, $scripts[0].Groups[1].Value, [System.Text.UTF8Encoding]::new($false))
