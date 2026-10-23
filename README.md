@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.36
+# Game Icons Studio v6.37
 
 ### From generic icons to a game shelf.
 
@@ -53,9 +53,20 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 - 🧰 **Icon-cache repair** — help refresh blank or stale icons displayed by Windows.
 - 🎨 **Multiple themes** — Aurora Glass is the default theme, with other themes available.
 
-## What's new in v6.30–v6.36
+## What's new in v6.30–v6.37
 
 These release notes are an addition to the original introduction above. The logo, demo, before-and-after image, and original page structure are retained.
+
+<details>
+<summary><strong>v6.37 — Real-time operation progress</strong></summary>
+
+- Replaces the fake timer-driven apply progress bar with a live stream of progress events from the actual Windows icon pipeline.
+- Shows the true completed/total artwork downloads (for example, **57 / 59 · 96%**) and the last item being processed.
+- Shows real per-phase progress for downloads, icon building, restore-point creation, shortcut updates, and Windows Explorer refresh.
+- Uses a streamed, flushed response so the browser can update while the operation is still running.
+- Reports safety-backup failures accurately and keeps the interface from claiming success when the update was stopped.
+
+</details>
 
 <details>
 <summary><strong>v6.36 — Faster cover previews</strong></summary>
@@ -110,7 +121,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.36.md](CHANGELOG-v6.36.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.37.md](CHANGELOG-v6.37.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 
