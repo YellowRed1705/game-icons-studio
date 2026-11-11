@@ -13,6 +13,9 @@ The Game Library discovery pass excluded any existing emulator shortcut with no 
 - Show an explicit count of emulator/application shortcuts queued for Program & App Icons.
 - Extend Windows compatibility regression checks for emulator inclusion, per-item mode and the Ryubing alias.
 
+## Release validation
+- Rechecked the Ryujinx/Ryubing emulator profile regex after source publication; the PowerShell pattern includes its full end anchor and Switch ROM extensions.
+
 ## Upgrade
 - Full package: Game-Icons-Studio-v6.43.zip.
 - Existing installation: close Game Icons Studio and extract the Upgrade ZIP over the existing application folder.
