@@ -16,6 +16,9 @@ The Game Library discovery pass excluded any existing emulator shortcut with no 
 ## Release validation
 - Rechecked the Ryujinx/Ryubing emulator profile regex after source publication; the PowerShell pattern includes its full end anchor and Switch ROM extensions.
 
+## Validation
+- Removed a duplicated trailing copy of the scan/picker helpers that had been left after the first Explorer helper. The final WebServer.ps1 retains one definition of each helper and no orphaned tail text.
+
 ## Upgrade
 - Full package: Game-Icons-Studio-v6.43.zip.
 - Existing installation: close Game Icons Studio and extract the Upgrade ZIP over the existing application folder.
