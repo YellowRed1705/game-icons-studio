@@ -1,5 +1,5 @@
 # ============================================================
-#  WebServer.ps1 (v6.38) - Local browser-driven mode
+#  WebServer.ps1 (v6.39) - Local browser-driven mode
 #  A tiny HttpListener server on http://localhost:PORT that
 #  serves a single-page web app and a small JSON API. The whole
 #  workflow (folder pick, scan, match, cover choice, apply, live
