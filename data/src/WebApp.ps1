@@ -519,8 +519,8 @@ function Get-WebAppHtml {
       </button>
       <button class="home-btn" data-home="4" onclick="repairIconCache()">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-5.6 5.6a1.5 1.5 0 0 0 2.1 2.1l5.6-5.6a4 4 0 0 0 5.4-5.4l-2.4 2.4-2.1-2.1Z"/></svg>
-        <div class="t">Repair Icon Cache</div>
-        <div class="d">Fix blank or stale icons by refreshing the Windows icon cache.</div>
+        <div class="t">Repair Broken Icons</div>
+        <div class="d">Scan a game folder, repair missing .ico references from saved artwork, and refresh the Windows icon cache.</div>
       </button>
       <button class="home-btn" data-home="5" onclick="startFullScan(true)">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 8h8v8H8z"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
@@ -540,8 +540,9 @@ function Get-WebAppHtml {
     </div>
     <div class="home-tools">
       <button class="ghost tool-btn" onclick="quickReapply()" title="Re-apply your last saved choices">&#8635; Quick re-apply</button>
+      <button class="ghost tool-btn" onclick="undoLastIconChange()" title="Undo the most recent icon change">&#8617; Undo Last Change</button>
       <button class="ghost tool-btn" onclick="openHistory()" title="See what you changed and when">&#128340; History</button>
-      <button class="ghost tool-btn" id="backupHomeBtn" onclick="openBackups()" title="Restore previous icon states">&#8617; Undo / Restore</button>
+      <button class="ghost tool-btn" id="backupHomeBtn" onclick="openBackups()" title="Browse all restore points">&#8635; Undo / Restore</button>
     </div>
     <div class="kbd-hint"><b>&larr; &rarr;</b> move &nbsp; <b>Enter</b> select &nbsp; <b>F</b> fullscreen</div>
   </div>
@@ -918,8 +919,11 @@ var i18n = {
     descSingleFolder: "اختيار مجلد لعبة واحد محدد لتخصيص أيقونته.",
     btnSpecific: "اختصارات محددة",
     descSpecific: "اختيار ملفات اختصارات محددة لتغيير أيقوناتها.",
-    btnRepair: "إصلاح أيقونات النظام",
-    descRepair: "تحديث ذاكرة التخزين المؤقت للأيقونات في الويندوز لحل مشكلة الأيقونات البيضاء.",
+    btnRepair: "إصلاح الأيقونات التالفة",
+    descRepair: "افحص مجلد الألعاب وأصلح مراجع ICO المفقودة من الصور المحفوظة ثم حدّث ذاكرة أيقونات ويندوز.",
+    btnUndoLast: "التراجع عن آخر تغيير",
+    btnShortcutsOnly: "الاختصارات فقط",
+    descShortcutsOnly: "الوضع القديم: افحص اختصارات Windows القياسية .lnk فقط.",
     btnProgramIcons: "أيقونات البرامج والتطبيقات",
     descProgramIcons: "ابحث عن أيقونات التطبيقات في صور جوجل أو ياندكس وطبّقها على الاختصارات.",
     btnAnyFiles: "أي ملفات وسكربتات",
@@ -1020,8 +1024,11 @@ var i18n = {
     descSingleFolder: "Pick one specific game folder and customize its folder icon.",
     btnSpecific: "Specific Shortcuts",
     descSpecific: "Pick just the shortcuts you want to redo and choose new covers.",
-    btnRepair: "Repair Icon Cache",
-    descRepair: "Fix blank or stale icons by refreshing the Windows icon cache.",
+    btnRepair: "Repair Broken Icons",
+    descRepair: "Scan a game folder, repair missing .ico references from saved artwork, and refresh the Windows icon cache.",
+    btnUndoLast: "↶ Undo Last Change",
+    btnShortcutsOnly: "Shortcuts Only",
+    descShortcutsOnly: "Legacy mode. Scan only existing standard Windows .lnk shortcuts in a folder.",
     btnProgramIcons: "Program & App Icons",
     descProgramIcons: "Search Google or Yandex Images for app icons and apply them to shortcuts.",
     btnAnyFiles: "Any Files & Scripts",
@@ -1172,16 +1179,17 @@ function applyLang() {
       homeBtns[7].querySelector('.d').textContent = t.descShortcutsOnly || i18n.en.descShortcutsOnly;
     }
     if (homeBtns.length >= 8) {
-      homeBtns[7].querySelector('.t').textContent = t.btnGameFiles || i18n.en.btnGameFiles;
-      homeBtns[7].querySelector('.d').textContent = t.descGameFiles || i18n.en.descGameFiles;
+      homeBtns[7].querySelector('.t').textContent = t.btnShortcutsOnly || i18n.en.btnShortcutsOnly;
+      homeBtns[7].querySelector('.d').textContent = t.descShortcutsOnly || i18n.en.descShortcutsOnly;
     }
   }
 
   var toolBtns = document.querySelectorAll('.tool-btn');
-  if(toolBtns.length >= 2) {
+  if(toolBtns.length >= 4) {
     toolBtns[0].textContent = t.btnQuick;
-    toolBtns[1].textContent = t.btnHistory;
-    if (toolBtns.length >= 3) toolBtns[2].textContent = t.btnUndo;
+    toolBtns[1].textContent = t.btnUndoLast || i18n.en.btnUndoLast;
+    toolBtns[2].textContent = t.btnHistory;
+    toolBtns[3].textContent = t.btnUndo;
   }
   if (el('chooseLocalImageBtn')) el('chooseLocalImageBtn').textContent = '📁 ' + t.chooseLocalImage;
   if (el('backupTitle')) el('backupTitle').textContent = t.backupTitle;
@@ -1725,13 +1733,38 @@ function restoreBackup(id, count){
 }
 
 function repairIconCache(){
-  setLoading('Repairing the Windows icon cache...', 'This refreshes how icons are shown.', 50);
-  api('/api/repair-cache', {}).then(function(res){
-    $('restoreResultMsg').textContent = res && res.ok
-      ? 'Icon cache refreshed. Your icons should look correct now. If not, sign out and back in once.'
-      : 'Could not refresh the icon cache automatically.';
+  setLoading('Choose a folder to repair…', 'Select the game library or shortcuts folder whose icons appear blank or white.', null);
+  api('/api/browse-folder', {}).then(function(){
+    pollDialog(function(dialogResult){
+      if (!dialogResult.ok || !dialogResult.folder){ goHome(); return; }
+      state.folder = dialogResult.folder;
+      setLoading('Repairing shortcut icons…', 'Checking persistent ICO files, rebuilding available icons from artwork cache, and refreshing Windows Explorer.', 0);
+      api('/api/repair-shortcut-icons', { folder: dialogResult.folder }).then(function(res){
+        if (!res || (!res.ok && !res.cacheRefreshed)) {
+          $('restoreResultMsg').textContent = (res && res.error) || 'The icon repair could not be completed.';
+        } else {
+          var parts = [
+            'Shortcuts scanned: ' + (res.scanned||0),
+            'References repaired: ' + (res.repaired||0),
+            'ICO files rebuilt from cache: ' + (res.rebuilt||0),
+            'Already valid: ' + (res.alreadyValid||0),
+            'Unresolved: ' + (res.unresolved||0),
+            'Failed: ' + (res.failed||0)
+          ];
+          if (res.cacheRefreshed) parts.push('Windows icon cache refreshed and Explorer restarted.');
+          if ((res.unresolved||0)>0) parts.push('Some icons could not be rebuilt because matching artwork is no longer in the local cache.');
+          $('restoreResultMsg').textContent = parts.join('\n');
+        }
+        show('step-restore-ok');
+      }).catch(function(error){
+        $('restoreResultMsg').textContent = (error && error.message) || 'The icon repair request failed.';
+        show('step-restore-ok');
+      });
+    });
+  }).catch(function(error){
+    $('restoreResultMsg').textContent = (error && error.message) || 'Could not open the Windows folder picker.';
     show('step-restore-ok');
-  }).catch(function(){ goHome(); });
+  });
 }
 
 // ---- FULL SCAN flow ----
