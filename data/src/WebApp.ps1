@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.43) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.44) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio v6.43</title>
+<title>Game Icons Studio v6.44</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {
@@ -393,29 +393,36 @@ function Get-WebAppHtml {
   }
   .url-row { display:flex; gap:8px; width:100%; max-width:680px; justify-content:center; flex-wrap:wrap; }
   .lang-switch {
-    display:inline-flex; align-items:center; gap:3px; padding:4px;
-    border:1px solid var(--line); border-radius:14px;
-    background:var(--panel); box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
-    flex:0 0 auto;
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:0; border:0; border-radius:10px; background:transparent;
+    box-shadow:none; flex:0 0 auto;
   }
   .lang-option {
-    display:inline-flex; align-items:center; justify-content:center; gap:5px;
-    min-width:48px; padding:7px 9px; border:0; border-radius:10px;
-    background:transparent; color:var(--muted); font:inherit;
-    font-size:.76rem; font-weight:800; letter-spacing:.02em; cursor:pointer;
-    transition:background .16s ease,color .16s ease,transform .16s ease;
+    display:none; align-items:center; justify-content:center;
+    width:38px; min-width:38px; height:36px; padding:0;
+    border:1px solid var(--line); border-radius:10px;
+    background:var(--panel); color:var(--text); font:inherit; cursor:pointer;
+    transition:background .16s ease,border-color .16s ease,transform .16s ease;
   }
-  .lang-option:hover { background:var(--line); color:var(--text); }
+  .lang-option:not(.active) { display:none !important; }
+  .lang-option.active { display:inline-flex; background:var(--panel); border-color:var(--accent2); }
+  .lang-option:hover { background:var(--line); transform:translateY(-1px); }
   .lang-option:focus-visible { outline:2px solid var(--accent2); outline-offset:2px; }
-  .lang-option.active { background:var(--accent2); color:#fff; box-shadow:0 2px 8px rgba(0,0,0,.16); }
+  .lang-option span { display:none; }
   #languageSwitcher { direction:ltr; unicode-bidi:isolate; flex:0 0 auto; }
-  #languageSwitcher .lang-option { min-width:52px; }
   #languageSwitcher .lang-flag { pointer-events:none; }
-  .lang-flag { display:block; width:22px; height:15px; flex:0 0 22px; border-radius:3px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.28); }
+  .lang-flag { display:block; width:24px; height:16px; flex:0 0 24px; border-radius:3px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.28); }
   @media(max-width:760px) {
-    .lang-option { min-width:38px; padding:7px 6px; gap:3px; }
-    .lang-flag { width:20px; height:14px; flex-basis:20px; }
+    .lang-option { width:36px; min-width:36px; height:34px; }
+    .lang-flag { width:22px; height:15px; flex-basis:22px; }
   }
+  .game-match-search { display:flex; flex-direction:column; gap:9px; margin:14px 0 18px; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--panel); }
+  .game-match-search-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .game-match-search-row .input-path { flex:1 1 280px; max-width:none; margin:0; }
+  .game-match-search-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  #gameSearchStatus { color:var(--muted); font-size:.82rem; min-height:1.2em; }
+  .review-change-game { display:block; margin:8px auto 0; padding:5px 9px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--accent2); font:inherit; font-size:.72rem; font-weight:700; cursor:pointer; }
+  .review-change-game:hover { border-color:var(--accent2); background:var(--line); }
   .hidden { display:none !important; }
   html[dir="rtl"] { direction: rtl; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
   html[dir="rtl"] .iconbtn, html[dir="rtl"] .theme-btn, html[dir="rtl"] .ghost { margin-left: 0; margin-right: 8px; }
@@ -434,9 +441,9 @@ function Get-WebAppHtml {
   </div>
   <div class="spacer"></div>
   <div class="lang-switch" id="languageSwitcher" role="group" aria-label="Language">
-    <button type="button" class="lang-option" data-lang="en" onclick="setLang('en')" title="English"><svg class="lang-flag" viewBox="0 0 60 30" role="img" aria-label="United Kingdom flag"><clipPath id="uk-clip"><path d="M0 0h60v30H0z"/></clipPath><g clip-path="url(#uk-clip)"><path fill="#012169" d="M0 0h60v30H0z"/><path stroke="#fff" stroke-width="6" d="M0 0l60 30M60 0L0 30"/><path stroke="#C8102E" stroke-width="2.5" d="M0 0l60 30M60 0L0 30"/><path stroke="#fff" stroke-width="10" d="M30 0v30M0 15h60"/><path stroke="#C8102E" stroke-width="6" d="M30 0v30M0 15h60"/></g></svg><span>EN</span></button>
-    <button type="button" class="lang-option" data-lang="tr" onclick="setLang('tr')" title="Türkçe"><svg class="lang-flag" viewBox="0 0 60 30" role="img" aria-label="Turkish flag"><rect width="60" height="30" fill="#E30A17"/><circle cx="25" cy="15" r="8" fill="#fff"/><circle cx="28" cy="15" r="6.4" fill="#E30A17"/><path fill="#fff" d="M39 9.8l1.5 3.7 4 .2-3.1 2.4 1.1 3.8-3.5-2.1-3.4 2.1 1.1-3.8-3.1-2.4 4-.2z"/></svg><span>TR</span></button>
-    <button type="button" class="lang-option" data-lang="ar" onclick="setLang('ar')" title="العربية"><svg class="lang-flag" viewBox="0 0 60 30" role="img" aria-label="Saudi Arabian flag"><rect width="60" height="30" rx="2" fill="#006C35"/><text x="30" y="12.2" text-anchor="middle" direction="rtl" font-family="Tahoma,Arial,sans-serif" font-size="5.1" font-weight="700" fill="#fff">لا إله إلا الله محمد رسول الله</text><path d="M14 19h31" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M44.5 17.8l2 1.2-2 1.2" fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg><span>AR</span></button>
+    <button type="button" class="lang-option active" data-lang="en" onclick="toggleLang()" title="English"><svg class="lang-flag" viewBox="0 0 60 30" role="img" aria-label="United Kingdom flag"><clipPath id="uk-clip"><path d="M0 0h60v30H0z"/></clipPath><g clip-path="url(#uk-clip)"><path fill="#012169" d="M0 0h60v30H0z"/><path stroke="#fff" stroke-width="6" d="M0 0l60 30M60 0L0 30"/><path stroke="#C8102E" stroke-width="2.5" d="M0 0l60 30M60 0L0 30"/><path stroke="#fff" stroke-width="10" d="M30 0v30M0 15h60"/><path stroke="#C8102E" stroke-width="6" d="M30 0v30M0 15h60"/></g></svg><span>EN</span></button>
+    <button type="button" class="lang-option" data-lang="tr" onclick="toggleLang()" title="Türkçe"><svg class="lang-flag" viewBox="0 0 60 30" role="img" aria-label="Turkish flag"><rect width="60" height="30" fill="#E30A17"/><circle cx="25" cy="15" r="8" fill="#fff"/><circle cx="28" cy="15" r="6.4" fill="#E30A17"/><path fill="#fff" d="M39 9.8l1.5 3.7 4 .2-3.1 2.4 1.1 3.8-3.5-2.1-3.4 2.1 1.1-3.8-3.1-2.4 4-.2z"/></svg><span>TR</span></button>
+    <button type="button" class="lang-option" data-lang="ar" onclick="toggleLang()" title="العربية"><svg class="lang-flag" viewBox="0 0 60 30" role="img" aria-label="Saudi Arabian flag"><rect width="60" height="30" rx="2" fill="#006C35"/><text x="30" y="12.2" text-anchor="middle" direction="rtl" font-family="Tahoma,Arial,sans-serif" font-size="5.1" font-weight="700" fill="#fff">لا إله إلا الله محمد رسول الله</text><path d="M14 19h31" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><path d="M44.5 17.8l2 1.2-2 1.2" fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg><span>AR</span></button>
   </div>
   <button class="iconbtn" id="homeBtn" onclick="goHome()" title="Home">&#8962; Home</button>
   <button class="iconbtn" id="aboutBtn" onclick="showAbout()" title="What is GIS?">&#10067; What is GIS</button>
@@ -823,6 +830,16 @@ function Get-WebAppHtml {
   <div class="card hidden" id="step-matches">
     <h2>Pick the correct game</h2>
     <p class="sub" id="matchesShortcut"></p>
+    <div class="game-match-search" id="gameSearchPanel">
+      <div class="game-match-search-row">
+        <input class="input-path" id="gameSearchInput" type="text" maxlength="120" placeholder="Search another game by title…" onkeydown="if(event.key==='Enter'){event.preventDefault();searchGameCandidates();}" />
+        <button class="big-btn btn-go" id="gameSearchButton" type="button" onclick="searchGameCandidates()">Search SteamGridDB</button>
+      </div>
+      <div class="game-match-search-actions">
+        <button class="ghost" id="useCustomGameTitleButton" type="button" onclick="useCustomGameTitle()">Use a custom title + choose cover</button>
+        <span id="gameSearchStatus" aria-live="polite">Select an existing match, search SteamGridDB, or enter a custom title.</span>
+      </div>
+    </div>
     <div class="grid" id="matchesGrid" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr));"></div>
     <div class="footer-nav">
       <button class="back-btn" onclick="goBack()">&larr; Back</button>
@@ -1625,6 +1642,40 @@ function statusText(key) {
   return locale[key] || statusI18n.en[key] || key;
 }
 
+var manualGameI18n = {
+  en: {
+    heading:"Choose a different game", placeholder:"Search another game by title…",
+    searchButton:"Search SteamGridDB", customButton:"Use a custom title + choose cover",
+    prompt:"Choose an existing match, search SteamGridDB, or enter a custom title.",
+    initialMatches:"Automatic alternatives are shown below. Search for more titles above.",
+    searching:"Searching SteamGridDB…", noResults:"No games found. Try another title or use a custom title.",
+    needKey:"A SteamGridDB API Key is required for catalogue search. You can still use a custom title and external cover.",
+    failed:"Game search failed. Check the SteamGridDB API Key and try again.", changeGame:"Change Game"
+  },
+  tr: {
+    heading:"Farklı bir oyun seç", placeholder:"Başka bir oyunu adıyla ara…",
+    searchButton:"SteamGridDB'de ara", customButton:"Özel oyun adı belirle + kapak seç",
+    prompt:"Mevcut eşleşmelerden birini seç, SteamGridDB'de ara veya özel bir oyun adı gir.",
+    initialMatches:"Otomatik alternatifler aşağıda. Daha fazla oyun bulmak için yukarıdan ara.",
+    searching:"SteamGridDB aranıyor…", noResults:"Oyun bulunamadı. Başka bir ad dene veya özel oyun adı kullan.",
+    needKey:"Katalog araması için SteamGridDB API Key gerekli. Yine de özel oyun adı ve harici kapak kullanabilirsin.",
+    failed:"Oyun araması başarısız. SteamGridDB API Key'i kontrol edip tekrar dene.", changeGame:"Oyunu Değiştir"
+  },
+  ar: {
+    heading:"اختر لعبة مختلفة", placeholder:"ابحث عن لعبة أخرى بالاسم…",
+    searchButton:"ابحث في SteamGridDB", customButton:"استخدم اسماً مخصصاً واختر الغلاف",
+    prompt:"اختر تطابقاً موجوداً أو ابحث في SteamGridDB أو أدخل اسم لعبة مخصصاً.",
+    initialMatches:"تظهر البدائل التلقائية أدناه. ابحث عن عناوين أخرى من الأعلى.",
+    searching:"جارٍ البحث في SteamGridDB…", noResults:"لم يتم العثور على ألعاب. جرّب اسماً آخر أو استخدم اسماً مخصصاً.",
+    needKey:"يلزم SteamGridDB API Key للبحث في الكتالوج. يمكنك استخدام اسم مخصص وغلاف خارجي.",
+    failed:"فشل البحث عن اللعبة. تحقق من SteamGridDB API Key ثم حاول مجدداً.", changeGame:"تغيير اللعبة"
+  }
+};
+function manualGameText(key) {
+  var locale = manualGameI18n[currentLang] || manualGameI18n.en;
+  return locale[key] || manualGameI18n.en[key] || key;
+}
+
 var currentLang = 'en';
 
 function formatStr(str, args) {
@@ -1669,10 +1720,16 @@ function applyLang() {
     languageSwitcher.setAttribute('dir','ltr');
     languageSwitcher.setAttribute('aria-label', currentLang === 'ar' ? 'اختيار اللغة' : (currentLang === 'tr' ? 'Dil seçimi' : 'Language selection'));
   }
+  var nextLanguageName = currentLang === 'en' ? 'Turkish' : (currentLang === 'tr' ? 'Arabic' : 'English');
+  var currentLanguageName = currentLang === 'en' ? 'English' : (currentLang === 'tr' ? 'Türkçe' : 'العربية');
   document.querySelectorAll('.lang-option').forEach(function(button) {
     var active = button.getAttribute('data-lang') === currentLang;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    if (active) {
+      button.title = 'Switch to ' + nextLanguageName;
+      button.setAttribute('aria-label', currentLanguageName + '. Switch to ' + nextLanguageName + '.');
+    }
   });
 
   var homeHeroP = document.querySelector('.home-hero p');
@@ -1748,7 +1805,12 @@ function applyLang() {
 
   document.querySelectorAll('.rtg').forEach(function(b) { b.textContent = t.btnReturnGrid; });
 
-  var mH2 = document.querySelector('#step-matches h2'); if(mH2) mH2.textContent = t.titleMatches;
+  var mH2 = document.querySelector('#step-matches h2');
+  if(mH2) mH2.textContent = (typeof state !== 'undefined' && state.iconSearchOnly) ? (screen.altIconTitle || t.titleMatches) : manualGameText('heading');
+  if (el('gameSearchInput')) el('gameSearchInput').placeholder = manualGameText('placeholder');
+  if (el('gameSearchButton')) el('gameSearchButton').textContent = manualGameText('searchButton');
+  if (el('useCustomGameTitleButton')) el('useCustomGameTitleButton').textContent = manualGameText('customButton');
+  document.querySelectorAll('.review-change-game').forEach(function(button){ button.textContent = manualGameText('changeGame'); });
   var aH2 = document.querySelector('#step-artwork h2'); if(aH2) aH2.textContent = t.titleArtwork;
   var rH2 = document.querySelector('#step-review h2'); if(rH2) rH2.textContent = t.titleReview;
   var rSub = document.querySelector('#step-review .sub'); if(rSub) rSub.textContent = t.subReview;
@@ -1951,7 +2013,7 @@ function applyScreenLanguage(screen) {
 
 var state = {
   mode:'full', folder:'', items:[], pos:0, picks:{}, history:[],
-  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false, targetMode:'shortcuts', iconSearchOnly:false, scanIconSearchOnly:false, _backups:[]
+  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false, targetMode:'shortcuts', iconSearchOnly:false, scanIconSearchOnly:false, customGameReturnToMatches:false, _backups:[]
 };
 var coverCache = {};
 var currentPollId = 0;
@@ -3161,37 +3223,115 @@ function showOtherMatches(){
   var matchTitle = document.querySelector('#step-matches h2');
   if (matchTitle) matchTitle.textContent = state.iconSearchOnly
     ? (screenI18n[currentLang] || screenI18n.en).altIconTitle
-    : i18n[currentLang].titleMatches;
-  var grid = $('matchesGrid'); grid.innerHTML = '';
+    : manualGameText('heading');
+  var searchPanel = $('gameSearchPanel');
+  if (searchPanel) searchPanel.style.display = state.iconSearchOnly ? 'none' : '';
+  var searchInput = $('gameSearchInput');
+  if (searchInput) searchInput.value = it.name || '';
+  var searchStatus = $('gameSearchStatus');
+  if (searchStatus) searchStatus.textContent = state.iconSearchOnly ? '' : manualGameText('prompt');
+
   var cands = it.candidateGames || [];
-  if (!cands.length && it.sections && it.sections.length){
-    // fall back to the single known section
-    cands = [{ gameId: it.sections[0].gameId, gameName: it.sections[0].gameName, year: it.sections[0].year }];
+  if (!cands.length && it.sections && it.sections.length && Number(it.sections[0].gameId) > 0) {
+    cands = [{ gameId:it.sections[0].gameId, gameName:it.sections[0].gameName, year:it.sections[0].year }];
   }
-  cands.forEach(function(g, gi){
-    var d = document.createElement('div');
-    d.className = 'tile'; d.tabIndex = 0;
-    d.innerHTML = '<div style="width:100%;aspect-ratio:1;border-radius:8px;background:var(--panel);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.8rem;">'+statusText('loadingCover')+'</div>' +
-      '<div style="font-size:.82rem;margin-top:6px;text-align:center;">'+g.gameName+
-      (g.year>0?(' <span style="color:var(--muted)">('+g.year+')</span>'):'')+'</div>';
-    d.onclick = function(){ pickGame(it, g); };
-    grid.appendChild(d);
-    // lazily fetch one preview cover per candidate
-    api('/api/game-covers', { gameId: g.gameId }).then(function(res){
-      if (res.ok && res.covers && res.covers.length){
-        g._covers = res.covers;
-        var img = document.createElement('img');
-        img.src = res.covers[0].thumb; img.loading = 'eager';
-        var box = d.firstChild;
-        if (box) { box.replaceWith(img); }
-      }
-    });
-  });
-  state.focusIdx = 0; show('step-matches'); focusTiles('#matchesGrid');
+  renderGameCandidates(cands, cands.length ? manualGameText('initialMatches') : manualGameText('noResults'));
+  state.focusIdx = 0;
+  show('step-matches');
+  focusTiles('#matchesGrid');
 }
 
+function renderGameCandidates(candidates, emptyMessage){
+  var it = currentItem();
+  var grid = $('matchesGrid');
+  if (!grid || !it) return;
+  grid.innerHTML = '';
+  var list = Array.isArray(candidates) ? candidates : [];
+  if (!list.length) {
+    grid.textContent = emptyMessage || manualGameText('noResults');
+    state.focusIdx = 0;
+    return;
+  }
+  list.forEach(function(g){
+    var d = document.createElement('div');
+    d.className = 'tile game-match-tile';
+    d.tabIndex = 0;
+    d.setAttribute('role','button');
+    var preview = document.createElement('div');
+    preview.className = 'game-match-preview';
+    preview.style.cssText = 'width:100%;aspect-ratio:1;border-radius:8px;background:var(--panel);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.8rem;text-align:center;padding:8px;';
+    preview.textContent = statusText('loadingCover');
+    var title = document.createElement('div');
+    title.style.cssText = 'font-size:.82rem;margin-top:6px;text-align:center;';
+    title.textContent = String(g.gameName || 'Unknown game') + (Number(g.year)>0 ? ' (' + Number(g.year) + ')' : '');
+    var meta = document.createElement('div');
+    meta.style.cssText = 'color:var(--muted);font-size:.72rem;margin-top:4px;text-align:center;';
+    meta.textContent = Number(g.score)>0 ? ('SteamGridDB · ' + Number(g.score) + '%') : 'SteamGridDB';
+    d.appendChild(preview); d.appendChild(title); d.appendChild(meta);
+    d.onclick = function(){ pickGame(it, g); };
+    d.onkeydown = function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickGame(it,g); } };
+    grid.appendChild(d);
+
+    if (Number(g.gameId) > 0) {
+      api('/api/game-covers', { gameId:g.gameId }).then(function(res){
+        if (res && res.ok && res.covers && res.covers.length) {
+          g._covers = res.covers;
+          var img = document.createElement('img');
+          img.src = res.covers[0].thumb || res.covers[0].url;
+          img.loading = 'lazy'; img.alt = String(g.gameName || 'Game cover');
+          img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;';
+          if (preview.parentNode) preview.replaceWith(img);
+        }
+      });
+    } else { preview.textContent = 'No SteamGridDB cover preview'; }
+  });
+  state.focusIdx = 0;
+}
+
+function searchGameCandidates(){
+  if (state.iconSearchOnly) return;
+  var query = String(($('gameSearchInput') && $('gameSearchInput').value) || '').trim();
+  var status = $('gameSearchStatus'), button = $('gameSearchButton');
+  if (query.length < 2) {
+    if (status) status.textContent = manualGameText('noResults');
+    return;
+  }
+  if (status) status.textContent = manualGameText('searching');
+  if (button) button.disabled = true;
+  api('/api/search-games', { query:query }).then(function(res){
+    if (!res || !res.ok) {
+      if (status) status.textContent = (res && res.error === 'API_KEY_REQUIRED') ? manualGameText('needKey') : ((res && res.error) || manualGameText('failed'));
+      renderGameCandidates([], '');
+      return;
+    }
+    var candidates = res.candidates || [];
+    if (status) status.textContent = candidates.length ? (candidates.length + ' · SteamGridDB') : manualGameText('noResults');
+    renderGameCandidates(candidates, manualGameText('noResults'));
+    focusTiles('#matchesGrid');
+  }).catch(function(){
+    if (status) status.textContent = manualGameText('failed');
+    renderGameCandidates([], '');
+  }).then(function(){ if (button) button.disabled = false; });
+}
+
+function useCustomGameTitle(){
+  if (state.iconSearchOnly) return;
+  var query = String(($('gameSearchInput') && $('gameSearchInput').value) || '').trim();
+  if (query.length < 2) {
+    if ($('gameSearchStatus')) $('gameSearchStatus').textContent = manualGameText('noResults');
+    return;
+  }
+  var it = currentItem();
+  if (!it) return;
+  it.customGameName = query;
+  state.customGameReturnToMatches = true;
+  customSearchKind = 'game';
+  openGoogleCustom(false);
+}
 function pickGame(it, g){
   // Set this game as the item's chosen section and go to artwork.
+  it.customGameName = '';
+  state.customGameReturnToMatches = false;
   if (g._covers && g._covers.length){
     it.sections = [{ gameId:g.gameId, gameName:g.gameName, year:g.year||0, covers:g._covers }];
     state.picks[it.index] = { game:1, cover:1 };
@@ -3239,6 +3379,19 @@ function goReview(){
     // Click anywhere on the tile to toggle selection for changing.
     el.onclick = function(){ toggleReviewSelect(i, el); };
     el.onkeydown = function(e){ if (e.key==='Enter'){ toggleReviewSelect(i, el); } };
+    if (!itemIsProgramIcon) {
+      var changeGameButton = document.createElement('button');
+      changeGameButton.type = 'button';
+      changeGameButton.className = 'review-change-game';
+      changeGameButton.textContent = manualGameText('changeGame');
+      changeGameButton.onclick = function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        editFromReview([i]);
+      };
+      changeGameButton.onkeydown = function(e){ e.stopPropagation(); };
+      el.appendChild(changeGameButton);
+    }
     grid.appendChild(el);
   });
   var sb = $('reviewSearch'); if (sb) sb.value = '';
@@ -3644,7 +3797,12 @@ function isTyping(e){ var el = document.activeElement; return el && (el.tagName 
 function goBack(){
   currentPollId++; // Cancel any active dialog polling
   if (visible('step-custom')){
-    if (state.iconSearchOnly) { cancelCustomIcon(); }
+    if (state.customGameReturnToMatches) {
+      state.customGameReturnToMatches = false;
+      var customItem = currentItem();
+      if (customItem) customItem.customGameName = '';
+      showOtherMatches();
+    } else if (state.iconSearchOnly) { cancelCustomIcon(); }
     else { renderConfirm(); }
     return;
   }
@@ -3668,7 +3826,8 @@ function openGoogleCustom(autoOpenSearch){
   var it = currentItem();
   if (!it) return;
   customSearchKind = state.iconSearchOnly ? 'program' : 'game';
-  $('customShortcutTitle').textContent = formatStr(i18n[currentLang].shortcutProgress, [state.pos+1, state.items.length, it.name]);
+  var customDisplayName = it.customGameName ? (it.name + ' → ' + it.customGameName) : it.name;
+  $('customShortcutTitle').textContent = formatStr(i18n[currentLang].shortcutProgress, [state.pos+1, state.items.length, customDisplayName]);
   $('customUrlInput').value = '';
   $('customStatusMsg').textContent = state.iconSearchOnly
     ? 'Choose Google or Yandex Images, then drag the app icon here.'
@@ -3718,10 +3877,10 @@ function updateCustomSearchKindUi(){
 function getCustomSearchQuery(){
   var it = currentItem();
   if (!it) return '';
-  var name = String(it.name || '').trim();
+  var name = String((customSearchKind === 'game' && it.customGameName) || it.name || '').trim();
   return customSearchKind === 'program'
     ? name + ' icon png high resolution'
-    : name + ' game cover icon high resolution square';
+    : name + ' game cover official box art high resolution square';
 }
 
 function openGoogleSearch(){
@@ -3974,13 +4133,17 @@ function applyCustomCover(){
   api('/api/custom-cover', { name: it.name, dataUrl: pngDataUrl }).then(function(res){
     if (res && res.ok && res.url){
       if (!it.sections) it.sections = [];
+      var chosenArtworkName = (customSearchKind === 'game' && it.customGameName) ? it.customGameName : it.name;
+      var customSuffix = customSearchKind === 'program' ? ' (Custom App Icon)' : (it.customGameName ? ' (Custom Game Cover)' : ' (Custom Icon)');
       it.sections.unshift({
         gameId: 0,
-        gameName: it.name + (customSearchKind === 'program' ? ' (Custom App Icon)' : ' (Custom Icon)'),
+        gameName: chosenArtworkName + customSuffix,
         year: 0,
         covers: [{ url: res.url, thumb: res.url, score: 100 }]
       });
       state.picks[it.index] = { game: 1, cover: 1 };
+      it.customGameName = '';
+      state.customGameReturnToMatches = false;
       acceptMatch();
     } else {
       $('customApplyBtn').disabled = false;
@@ -3993,6 +4156,13 @@ function applyCustomCover(){
 }
 
 function cancelCustomIcon(){
+  if (state.customGameReturnToMatches) {
+    state.customGameReturnToMatches = false;
+    var customItem = currentItem();
+    if (customItem) customItem.customGameName = '';
+    showOtherMatches();
+    return;
+  }
   if (state.iconSearchOnly){
     // Skipped app shortcuts keep the app's normal placeholder behaviour.
     acceptMatch();
