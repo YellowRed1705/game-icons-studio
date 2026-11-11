@@ -104,7 +104,28 @@ try {
         throw "Folder health scan returned incorrect counts: LNK=$($health.lnk), URL=$($health.url)."
     }
 
-    Write-Host 'Shortcut compatibility tests passed: modern picker COM, Steam/Epic/Ubisoft/Battle.net/EA URI schemes, URL parsing and conversion, ROM emulator launch, ICO persistence, folder health.'
+    # Verify reversible file snapshots: an existing .url is restored, while a
+    # shortcut marked as newly created is removed during Undo.
+    . (Join-Path $PSScriptRoot '..\data\src\IconBackup.ps1')
+    $backupFolder = Join-Path $testRoot 'backup-transaction'
+    New-Item -ItemType Directory -Path $backupFolder -Force | Out-Null
+    $restoreSource = Join-Path $testRoot 'Undo Source.url'
+    [System.IO.File]::WriteAllText($restoreSource,'[InternetShortcut]')
+    $sourceRecord = Add-IconBackupFile -OriginalPath $restoreSource -TransactionFolder $backupFolder -ItemNumber 1 -FileNumber 1
+    Remove-Item -LiteralPath $restoreSource -Force
+    Restore-IconBackupFile -FileRecord $sourceRecord -TransactionFolder $backupFolder
+    if (-not (Test-Path -LiteralPath $restoreSource) -or [System.IO.File]::ReadAllText($restoreSource) -ne '[InternetShortcut]') {
+        throw 'Undo file backup did not restore the original URL shortcut.'
+    }
+
+    $newShortcut = Join-Path $testRoot 'New Generated Shortcut.lnk'
+    [System.IO.File]::WriteAllText($newShortcut,'new shortcut placeholder')
+    $newRecord = Add-IconBackupFile -OriginalPath $newShortcut -TransactionFolder $backupFolder -ItemNumber 2 -FileNumber 1 -AssumeMissing
+    if ([bool]$newRecord.Existed) { throw 'A newly generated shortcut was incorrectly marked as existing in its backup.' }
+    Restore-IconBackupFile -FileRecord $newRecord -TransactionFolder $backupFolder
+    if (Test-Path -LiteralPath $newShortcut) { throw 'Undo did not remove a newly generated shortcut.' }
+
+    Write-Host 'Shortcut compatibility tests passed: modern picker COM, launcher URI conversion, ROM emulator launch, ICO persistence, folder health, source URL restore and new-link undo.'
 }
 finally {
     try { if ($shell) { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null } } catch { }
