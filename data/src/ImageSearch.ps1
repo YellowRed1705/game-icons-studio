@@ -120,7 +120,7 @@ function Get-IconifyBrandIconCandidates {
     try {
         $client = [System.Net.Http.HttpClient]::new()
         $client.Timeout = [TimeSpan]::FromSeconds(4)
-        $null = $client.DefaultRequestHeaders.UserAgent.TryParseAdd('Game-Icons-Studio/6.44 (local desktop utility)')
+        $null = $client.DefaultRequestHeaders.UserAgent.TryParseAdd('Game-Icons-Studio/6.45 (local desktop utility)')
         foreach ($q in $queries) {
             try {
                 $url = 'https://api.iconify.design/search?query=' + [uri]::EscapeDataString($q) + '&limit=64&prefixes=' + [uri]::EscapeDataString($prefixes)
