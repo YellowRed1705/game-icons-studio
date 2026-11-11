@@ -1,5 +1,5 @@
 # ============================================================
-#  WebServer.ps1 (v6.37) - Local browser-driven mode
+#  WebServer.ps1 (v6.38) - Local browser-driven mode
 #  A tiny HttpListener server on http://localhost:PORT that
 #  serves a single-page web app and a small JSON API. The whole
 #  workflow (folder pick, scan, match, cover choice, apply, live
@@ -396,6 +396,16 @@ function Invoke-WebRoute {
         if ($body -and $body.files) { $files = @($body.files | ForEach-Object { [string]$_ }) }
         $iconSearchOnly = [bool]($body -and $body.iconSearchOnly)
         $result = Start-WebScanFiles -Session $Session -Files $files -IconSearchOnly $iconSearchOnly
+        Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe $result)
+        return
+    }
+
+    if ($path -eq '/api/scan-game-folder-begin' -and $method -eq 'POST') {
+        $bodyText = Read-RequestBody -Context $Context
+        $body = $null
+        try { $body = $bodyText | ConvertFrom-Json } catch { }
+        $folder = if ($body -and $body.folder) { [string]$body.folder } else { '' }
+        $result = Start-WebScanGameFolder -Session $Session -Folder $folder
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe $result)
         return
     }
@@ -1357,6 +1367,172 @@ function Step-WebApply {
         }
     }
 }
+function Start-WebScanGameFolder {
+    <#
+        Recursively scans a selected game-install/library folder for launchable
+        game entries. Existing .lnk files are retained, .url launcher entries
+        are safely converted to standard .lnk files, and eligible EXE/BAT/CMD
+        files receive working companion shortcuts during the normal apply step.
+        Original executable/script files are never changed.
+    #>
+    param(
+        [Parameter(Mandatory)]$Session,
+        [Parameter(Mandatory)][string]$Folder
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Folder) -or -not (Test-Path -LiteralPath $Folder -PathType Container)) {
+        return @{ ok = $false; error = 'Please choose an existing game folder.' }
+    }
+
+    $folderItem = Get-Item -LiteralPath $Folder -ErrorAction SilentlyContinue
+    if ($null -eq $folderItem -or -not $folderItem.PSIsContainer) {
+        return @{ ok = $false; error = 'The selected path is not a folder.' }
+    }
+    $Folder = $folderItem.FullName
+    $Session.Ctx.Folder = $Folder
+    $Session.Ctx.Settings.LastFolder = $Folder
+    try { Save-Settings -Root $Session.Root -Settings $Session.Ctx.Settings } catch { }
+
+    $files = New-Object System.Collections.Generic.List[string]
+    $seenPaths = @{}
+    $existingLinkTargets = @{}
+    $existingLinkNames = @{}
+    $wsh = Get-WshShell
+    $existingLinks = @()
+    try {
+        $existingLinks = @(Get-ChildItem -LiteralPath $Folder -Filter '*.lnk' -Recurse -File -ErrorAction SilentlyContinue)
+    } catch { }
+
+    foreach ($linkFile in $existingLinks) {
+        $keyPath = ([string]$linkFile.FullName).ToLowerInvariant()
+        if (-not $seenPaths.ContainsKey($keyPath)) {
+            $seenPaths[$keyPath] = $true
+            $files.Add([string]$linkFile.FullName)
+        }
+        $existingLinkNames[[System.IO.Path]::GetFileNameWithoutExtension($linkFile.Name).ToLowerInvariant()] = $true
+        try {
+            $link = $wsh.CreateShortcut($linkFile.FullName)
+            $target = [string]$link.TargetPath
+            if (-not [string]::IsNullOrWhiteSpace($target)) {
+                try { $target = [System.IO.Path]::GetFullPath($target) } catch { }
+                $existingLinkTargets[$target.ToLowerInvariant()] = $true
+            }
+            $arguments = [string]$link.Arguments
+            if (-not [string]::IsNullOrWhiteSpace($arguments)) {
+                foreach ($candidate in @($arguments -split '"')) {
+                    if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path -LiteralPath $candidate -PathType Leaf -ErrorAction SilentlyContinue)) {
+                        try { $candidate = [System.IO.Path]::GetFullPath($candidate) } catch { }
+                        $existingLinkTargets[$candidate.ToLowerInvariant()] = $true
+                    }
+                }
+            }
+        } catch {
+            Write-Log "Existing shortcut could not be inspected: $($linkFile.FullName)" 'DEBUG'
+        }
+    }
+
+    $convertedUrls = 0
+    $failedUrls = 0
+    $urlFallbacks = New-Object System.Collections.Generic.List[string]
+    foreach ($internetShortcut in @(Get-InternetShortcuts -Folder $Folder)) {
+        $urlStem = ([string]$internetShortcut.Name).ToLowerInvariant()
+        if ($existingLinkNames.ContainsKey($urlStem)) {
+            # A standard shortcut with the same display name already exists.
+            # Do not create a second launcher or remove the original .url.
+            continue
+        }
+        $newLink = Convert-InternetShortcut -Shortcut $internetShortcut -RemoveOriginal $true
+        if (-not [string]::IsNullOrWhiteSpace([string]$newLink) -and (Test-Path -LiteralPath $newLink -PathType Leaf)) {
+            $newKey = ([string]$newLink).ToLowerInvariant()
+            if (-not $seenPaths.ContainsKey($newKey)) {
+                $seenPaths[$newKey] = $true
+                $files.Add([string]$newLink)
+            }
+            $existingLinkNames[$urlStem] = $true
+            $convertedUrls++
+        } else {
+            $failedUrls++
+            # If conversion fails, leave the .url untouched and let the normal
+            # file-shortcut builder create a companion link as a safe fallback.
+            $urlFallbacks.Add([string]$internetShortcut.Path)
+        }
+    }
+    foreach ($fallback in $urlFallbacks) {
+        $keyPath = $fallback.ToLowerInvariant()
+        if (-not $seenPaths.ContainsKey($keyPath)) {
+            $seenPaths[$keyPath] = $true
+            $files.Add($fallback)
+        }
+    }
+
+    $includedExecutables = 0
+    $includedScripts = 0
+    $excludedHelpers = 0
+    $alreadyLinked = 0
+    $helperNamePattern = '^(?i:setup|install|unins\d*|uninstall|crashreportclient|unitycrashhandler(?:64)?|eosoverlayrenderer|easyanticheat|battleye|vc_redist.*|dxsetup|ueprereqsetup|reportcrash|werfault|patcher|updater)(?:$|[-_. ])'
+    $helperPathPattern = '[\\/](?i:_commonredist|redist|redistributables|directx|easyanticheat|battleye|crashreporter|crashreports)[\\/]'
+    $candidateFiles = @()
+    try {
+        $candidateFiles = @(Get-ChildItem -LiteralPath $Folder -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Extension -in @('.exe','.bat','.cmd') })
+    } catch {
+        Write-Log "Could not enumerate playable files under '$Folder': $($_.Exception.Message)" 'WARN'
+    }
+
+    foreach ($candidate in $candidateFiles) {
+        $extension = [string]$candidate.Extension.ToLowerInvariant()
+        $baseName = [System.IO.Path]::GetFileNameWithoutExtension($candidate.Name)
+        if ($extension -eq '.exe' -and ($baseName -match $helperNamePattern -or $candidate.FullName -match $helperPathPattern)) {
+            $excludedHelpers++
+            continue
+        }
+
+        $fullPath = [System.IO.Path]::GetFullPath($candidate.FullName)
+        $targetKey = $fullPath.ToLowerInvariant()
+        if ($existingLinkTargets.ContainsKey($targetKey)) {
+            $alreadyLinked++
+            continue
+        }
+
+        $pathKey = $fullPath.ToLowerInvariant()
+        if ($seenPaths.ContainsKey($pathKey)) { continue }
+        $seenPaths[$pathKey] = $true
+        $files.Add($fullPath)
+        if ($extension -eq '.exe') { $includedExecutables++ } else { $includedScripts++ }
+    }
+
+    $maxTargets = 1000
+    $truncated = 0
+    if ($files.Count -gt $maxTargets) {
+        $truncated = $files.Count - $maxTargets
+        $files = New-Object System.Collections.Generic.List[string] (,$files.GetRange(0, $maxTargets))
+        Write-Log "Game folder scan limited to $maxTargets entries; $truncated additional entries were left untouched." 'WARN'
+    }
+
+    if ($files.Count -eq 0) {
+        return @{
+            ok = $false
+            error = 'No game shortcuts or playable EXE/BAT/CMD files were found in that folder.'
+            convertedUrls = $convertedUrls; failedUrls = $failedUrls
+            excludedHelpers = $excludedHelpers; alreadyLinked = $alreadyLinked
+        }
+    }
+
+    Write-Log "Game folder scan: $($files.Count) entries, $includedExecutables EXE, $includedScripts scripts, $convertedUrls URL converted, $alreadyLinked already linked, $excludedHelpers helper installers skipped." 'INFO'
+    $result = Start-WebScanFiles -Session $Session -Files @($files.ToArray()) -IconSearchOnly $false
+    if ($result.ok) {
+        $result | Add-Member -NotePropertyName sourceFiles -NotePropertyValue $files.Count -Force
+        $result | Add-Member -NotePropertyName includedExecutables -NotePropertyValue $includedExecutables -Force
+        $result | Add-Member -NotePropertyName includedScripts -NotePropertyValue $includedScripts -Force
+        $result | Add-Member -NotePropertyName convertedUrls -NotePropertyValue $convertedUrls -Force
+        $result | Add-Member -NotePropertyName failedUrls -NotePropertyValue $failedUrls -Force
+        $result | Add-Member -NotePropertyName excludedHelpers -NotePropertyValue $excludedHelpers -Force
+        $result | Add-Member -NotePropertyName alreadyLinked -NotePropertyValue $alreadyLinked -Force
+        $result | Add-Member -NotePropertyName truncated -NotePropertyValue $truncated -Force
+    }
+    return $result
+}
+
 function Start-WebScanFiles {
     <#
         Change Icons: begins a chunked scan limited to the explicit
