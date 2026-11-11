@@ -63,6 +63,21 @@ if (-not $webAppText.Contains("api('/api/custom-cover', { name: it.name, dataUrl
     -not $webAppText.Contains('gameName: chosenArtworkName + customSuffix')) {
     throw 'Custom game titles must not replace the original Shortcut name.'
 }
+
+$imageSearchText = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\src\ImageSearch.ps1') -Raw
+foreach ($token in @('$googleTop = @($ranked', '$yandexTop = @($ranked', 'Select-Object -First 5', 'if ($Provider -eq ''both'') {')) {
+    if (-not $imageSearchText.Contains($token)) { throw "Provider-balanced Top 5 image search is missing: $token" }
+}
+foreach ($token in @('googleTop5 = $googleTop5','yandexTop5 = $yandexTop5','-MaxResults 80')) {
+    if (-not $webServerText.Contains($token)) { throw "Image search API is missing provider Top 5 data: $token" }
+}
+foreach ($token in @('googleImageResultsGrid','yandexImageResultsGrid','function fetchAndApplyOnlineCandidate','function loadOnlineCandidateForCrop','Fetch & Apply','Crop first','function onCustomCropPointerDown','function zoomCustomCrop','customSourceCanvas','customCropState.crop')) {
+    if (-not $webAppText.Contains($token)) { throw "Automatic image selection or crop UI is missing: $token" }
+}
+$iconToolsText = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\src\IconTools.ps1') -Raw
+foreach ($token in @('function New-StyledBitmap','function ConvertTo-Ico','New-RoundedRectPath','CornerRadiusPercent','BorderWidthPercent','ShadowEnabled')) {
+    if (-not $iconToolsText.Contains($token)) { throw "Shared ICO shape/style pipeline is missing: $token" }
+}
 $modernDialogText = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\src\ModernDialogs.ps1') -Raw
 if ($modernDialogText -notmatch 'WatchAndMaximizeDialog\(dialogTitle, activeOwner\)' -or
     $modernDialogText -notmatch 'dialog\.Show\(activeOwner\)') {
