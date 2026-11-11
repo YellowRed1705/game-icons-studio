@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.42) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.43) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio v6.42</title>
+<title>Game Icons Studio v6.43</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {
@@ -1951,7 +1951,7 @@ function applyScreenLanguage(screen) {
 
 var state = {
   mode:'full', folder:'', items:[], pos:0, picks:{}, history:[],
-  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false, targetMode:'shortcuts', iconSearchOnly:false, _backups:[]
+  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false, targetMode:'shortcuts', iconSearchOnly:false, scanIconSearchOnly:false, _backups:[]
 };
 var coverCache = {};
 var currentPollId = 0;
@@ -2828,6 +2828,7 @@ function startChangeIcons(anyFiles){
 
 // ---- shared scan loop ----
 function beginScanLoop(total){
+  state.scanIconSearchOnly = !!state.iconSearchOnly;
   state.items = []; state.pos = 0; state.picks = {}; state.history = []; state.reviewSelected = {};
   state.total = total || 0;
   if (state.total === 0){ alert(state.iconSearchOnly ? statusText('noSupportedFiles') : statusText('noGamesMatched')); goHome(); return; }
@@ -2866,7 +2867,7 @@ function rasterizeImageDataUrlToPng(dataUrl, size){
   });
 }
 function prepareIconifyCandidatesInBrowser(it){
-  if (!state.iconSearchOnly || !it || !it.sections || !it.sections.length) return Promise.resolve();
+  if (!(state.iconSearchOnly || (it && it.iconSearchOnly)) || !it || !it.sections || !it.sections.length) return Promise.resolve();
   var covers = it.sections[0].covers || [];
   var vectors = covers.filter(function(c){ return c && /^Iconify\s*\//i.test(String(c.source||'')) && /\.svg(?:[?#]|$)/i.test(String(c.url||'')); }).slice(0,8);
   if (!vectors.length) return Promise.resolve();
@@ -2902,7 +2903,7 @@ function prepareIconifyCandidatesInBrowser(it){
 
 function rankProgramCandidatesInBrowser(it){
   return new Promise(function(resolve){
-    if (!state.iconSearchOnly || !it || !it.sections || !it.sections.length || !it.sections[0].covers || it.sections[0].covers.length < 2) { resolve(); return; }
+    if (!(state.iconSearchOnly || (it && it.iconSearchOnly)) || !it || !it.sections || !it.sections.length || !it.sections[0].covers || it.sections[0].covers.length < 2) { resolve(); return; }
     var section = it.sections[0], covers = section.covers;
     var sample = covers.slice(0, Math.min(5, covers.length));
     var remaining = sample.length, finished = false;
@@ -2940,7 +2941,7 @@ function scanStep(i){
     if (!res.ok){ alert(res.error || statusText('scanFailed')); goHome(); return; }
     if (res.item){
       state.items.push(res.item); preloadItem(res.item);
-      if (state.iconSearchOnly){
+      if (state.iconSearchOnly || res.item.iconSearchOnly){
         prepareIconifyCandidatesInBrowser(res.item).then(function(){
           rankProgramCandidatesInBrowser(res.item).then(function(){ continueScanStep(res); });
         });
@@ -2987,7 +2988,8 @@ function enterItem(pos){
   setProgress(1);
   preloadAround(pos);
   var it = currentItem();
-  if (!it){ goReview(); return; }
+  if (!it){ state.iconSearchOnly = !!state.scanIconSearchOnly; goReview(); return; }
+  state.iconSearchOnly = !!state.scanIconSearchOnly || !!it.iconSearchOnly;
   if (!state.picks[it.index]) state.picks[it.index] = { game:1, cover:1 };
   if (state.iconSearchOnly) {
     // Batch auto-match: first pass chooses the best-ranked software icon and
@@ -3205,6 +3207,7 @@ function pickGame(it, g){
 }
 
 function goReview(){
+  state.iconSearchOnly = !!state.scanIconSearchOnly;
   state.autoAll = false;
   // One-click quick re-apply: skip the review screen and apply directly.
   if (state._autoApplyAfterScan){
@@ -3228,7 +3231,8 @@ function goReview(){
     var img = cover
       ? '<img src="'+cover.thumb+'" loading="lazy">'
       : '<div style="width:100%;aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,#2b3550,#141821);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;text-align:center;padding:8px;word-break:break-word;">'+it.name+'</div>';
-    var previewLabel = sec ? sec.gameName : (state.iconSearchOnly ? statusText('notAutoMatched') : statusText('placeholderLabel'));
+    var itemIsProgramIcon = !!(state.scanIconSearchOnly || it.iconSearchOnly);
+    var previewLabel = sec ? sec.gameName : (itemIsProgramIcon ? statusText('notAutoMatched') : statusText('placeholderLabel'));
     el.innerHTML = img +
       '<div style="font-size:.78rem;margin-top:6px;text-align:center;">'+it.name+
       '<div style="color:var(--muted)">'+previewLabel+'</div></div>';
@@ -3462,7 +3466,8 @@ function applyAll(){
       index: it.index,
       url: cover ? cover.url : '',
       gameId: sec ? sec.gameId : 0,
-      gameName: sec ? sec.gameName : it.name
+      gameName: sec ? sec.gameName : it.name,
+      isProgramIcon: !!(state.scanIconSearchOnly || it.iconSearchOnly)
     };
   });
   api('/api/apply-begin', { picks: picks }).then(function(res){
