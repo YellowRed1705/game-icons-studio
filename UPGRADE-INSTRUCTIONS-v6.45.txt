@@ -1,0 +1,8 @@
+Game Icons Studio v6.45 — Upgrade Instructions
+
+1. Close Game Icons Studio completely.
+2. Download Game-Icons-Studio-v6.45-Upgrade.zip from GitHub Releases.
+3. Extract the ZIP contents over the existing application folder and approve replacement.
+4. Start Game Icons Studio.bat.
+
+The home screen now uses a compact four-column/two-row dashboard on desktop. Smaller screens automatically use a touch-friendly two-column layout.
