@@ -416,8 +416,8 @@ function Get-WebAppHtml {
   @media(max-width:760px) {
     #step-custom .custom-layout { grid-template-columns:1fr; }
     #step-custom #customDropZone { grid-column:1; grid-row:1; }
-    #step-custom #customCropEditor { grid-column:1; grid-row:2; }
-    #step-custom #customPreviewDropZone { grid-column:1; grid-row:3; }
+    #step-custom #customPreviewDropZone { grid-column:1; grid-row:2; }
+    #step-custom #customCropEditor { grid-column:1; grid-row:3; }
     #step-custom .preview-box { flex-basis:auto; }
     #step-custom #customImageSearchButtons { flex-wrap:wrap; }
   }
