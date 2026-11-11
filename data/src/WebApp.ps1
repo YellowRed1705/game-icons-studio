@@ -1297,7 +1297,7 @@ var screenI18n = {
     onlineBoth:"Find more from both", onlineGoogle:"Google only", onlineYandex:"Yandex only",
     onlineStatus:"Showing candidates discovered during the automatic scan.",
     dropHelp:"Drag an image from Google Images or Yandex Images here. You can also right-click it and choose Copy image, then press Ctrl+V, or click to browse your PC.",
-    previewTitle:"ICON PREVIEW (1:1)", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"Load URL", cancelSkip:"← Cancel / Skip",
+    previewTitle:"ICON PREVIEW (1:1)", previewDropTitle:"You can also drop an image directly onto this Preview", canvasDropTitle:"Drop an image here to Preview it", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"Load URL", cancelSkip:"← Cancel / Skip",
     homeHeader:"⌂ Home", aboutHeader:"❔ What is GIS?", summaryHeader:"↶ Summary",
     fullScreen:"⛶ Fullscreen", exitFullscreen:"⛶ Exit Fullscreen", quit:"Quit",
     gameFilesTitle:"Find games inside a folder", gameFilesDesc:"Scan launcher links, game files and ROMs recursively. Existing Shortcuts are kept; original files stay untouched.", gameFilesButton:"Scan game library",
@@ -1341,7 +1341,7 @@ var screenI18n = {
     onlineBoth:"İki kaynaktan da daha fazla bul", onlineGoogle:"Yalnızca Google", onlineYandex:"Yalnızca Yandex",
     onlineStatus:"Otomatik taramada bulunan adaylar gösteriliyor.",
     dropHelp:"Google Images veya Yandex Images'tan görseli buraya sürükle. Sağ tıklayıp Copy image seçerek Ctrl+V yapabilir ya da bilgisayarından seçmek için tıklayabilirsin.",
-    previewTitle:"ICON PREVIEW (1:1)", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"URL yükle", cancelSkip:"← İptal / Atla",
+    previewTitle:"ICON PREVIEW (1:1)", previewDropTitle:"Bu Preview alanına da doğrudan görsel bırakabilirsin", canvasDropTitle:"Önizlemek için görseli buraya bırak", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"URL yükle", cancelSkip:"← İptal / Atla",
     homeHeader:"⌂ Ana Sayfa", aboutHeader:"❔ GIS nedir?", summaryHeader:"↶ Summary",
     fullScreen:"⛶ Tam Ekran", exitFullscreen:"⛶ Tam Ekrandan Çık", quit:"Çıkış",
     gameFilesTitle:"Klasördeki oyunları bul", gameFilesDesc:"Alt klasörler dâhil Launcher linklerini, oyun dosyalarını ve ROM'ları tara. Mevcut Shortcut'lar korunur; orijinal dosyalara dokunulmaz.", gameFilesButton:"Game Library'yi tara",
@@ -1385,7 +1385,7 @@ var screenI18n = {
     onlineBoth:"المزيد من المصدرين", onlineGoogle:"Google فقط", onlineYandex:"Yandex فقط",
     onlineStatus:"تظهر النتائج المكتشفة أثناء الفحص التلقائي.",
     dropHelp:"اسحب صورة من Google Images أو Yandex Images إلى هنا. يمكنك أيضاً النقر بزر الفأرة الأيمن واختيار Copy image ثم الضغط على Ctrl+V، أو النقر لاختيار صورة من جهازك.",
-    previewTitle:"معاينة الأيقونة (1:1)", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"تحميل URL", cancelSkip:"← إلغاء / تخطي",
+    previewTitle:"معاينة الأيقونة (1:1)", previewDropTitle:"يمكنك أيضاً إسقاط صورة مباشرة على هذه المعاينة", canvasDropTitle:"أسقط صورة هنا لمعاينتها", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"تحميل URL", cancelSkip:"← إلغاء / تخطي",
     homeHeader:"⌂ الرئيسية", aboutHeader:"❔ ما هو GIS؟", summaryHeader:"↶ الملخص",
     fullScreen:"⛶ ملء الشاشة", exitFullscreen:"⛶ الخروج من ملء الشاشة", quit:"خروج",
     gameFilesTitle:"العثور على الألعاب داخل مجلد", gameFilesDesc:"افحص روابط Launcher وملفات الألعاب وROM داخل المجلدات الفرعية. تبقى الاختصارات والملفات الأصلية دون تغيير.", gameFilesButton:"فحص مكتبة الألعاب",
@@ -1602,6 +1602,10 @@ function applyScreenLanguage(screen) {
     var node = document.querySelector(selector);
     if (node && typeof value === 'string') node.setAttribute('placeholder', value);
   };
+  var titleAttr = function(selector, value) {
+    var node = document.querySelector(selector);
+    if (node && typeof value === 'string') node.setAttribute('title', value);
+  };
 
   // Header controls
   text('#homeBtn', screen.homeHeader);
@@ -1644,7 +1648,7 @@ function applyScreenLanguage(screen) {
 
   // New games and URL conversion
   text('#step-newgames h2', screen.newGamesTitle);
-  text('#step-newgames p[style*="max-width"]', screen.newGamesPrompt);
+  text('#step-newgames > p.sub:not(#newGamesCount)', screen.newGamesPrompt);
   many('#step-newgames .btn-row button', [screen.newGamesOnly,screen.newGamesAll]);
   text('#step-convert h2', screen.convertTitle);
   many('#step-convert p.sub', [screen.convertBody1,screen.convertBody2]);
@@ -1668,9 +1672,11 @@ function applyScreenLanguage(screen) {
   text('#fitCrop', screen.crop);
   text('#fitContain', screen.fit);
   text('#fitStretch', screen.stretch);
-  text('#fitCrop[title]', screen.crop);
-  text('#fitContain[title]', screen.fit);
-  text('#fitStretch[title]', screen.stretch);
+  titleAttr('#fitCrop', screen.crop);
+  titleAttr('#fitContain', screen.fit);
+  titleAttr('#fitStretch', screen.stretch);
+  titleAttr('#customPreviewDropZone', screen.previewDropTitle);
+  titleAttr('#customCanvas', screen.canvasDropTitle);
   text('#customUrlInput + button', screen.loadUrl);
   text('#customSkipBtn', '← ' + screen.cancelSkip.replace(/^←\s*/, ''));
 
