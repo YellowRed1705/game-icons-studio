@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.45) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.46) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio v6.45</title>
+<title>Game Icons Studio v6.46</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {
@@ -395,6 +395,23 @@ function Get-WebAppHtml {
   .online-search-panel { width:100%; margin:16px 0; padding:14px; border:1px solid var(--line); border-radius:16px; background:var(--panel); text-align:left; }
   .online-search-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:9px; }
   .online-search-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:10px; margin-top:10px; max-height:390px; overflow:auto; }
+  .online-provider-block { margin-top:14px; padding-top:10px; border-top:1px solid var(--line); }
+  .online-provider-title { font-size:.9rem; font-weight:800; margin:0 0 7px; }
+  .online-provider-grid { max-height:none; overflow:visible; }
+  .online-provider-grid .online-candidate { background:var(--panel2); }
+  .online-candidate-auto { margin-top:7px; width:100%; border:1px solid var(--good); border-radius:8px; padding:6px; background:rgba(34,197,94,.12); color:var(--text); cursor:pointer; font-size:.72rem; font-weight:700; }
+  .online-candidate-auto:hover { background:var(--good); color:#092015; }
+  .online-candidate-crop { margin-top:5px; width:100%; border:1px solid var(--line); border-radius:8px; padding:5px; background:transparent; color:var(--muted); cursor:pointer; font-size:.7rem; }
+  .online-candidate-crop:hover { border-color:var(--accent); color:var(--text); }
+  .crop-editor { width:100%; flex:1 1 100%; order:3; padding:14px; border:1px solid var(--line); border-radius:14px; background:var(--panel); text-align:left; }
+  .crop-editor-head { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:9px; }
+  .crop-editor-title { font-weight:800; font-size:.9rem; }
+  .crop-editor-tools { display:flex; gap:6px; align-items:center; }
+  .crop-editor-tools button { min-width:34px; padding:6px 10px; }
+  #customZoomLabel { min-width:48px; text-align:center; color:var(--muted); font-size:.78rem; font-variant-numeric:tabular-nums; }
+  .crop-stage { width:100%; max-width:960px; margin:0 auto; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#0b1019; }
+  #customSourceCanvas { display:block; width:100%; height:auto; aspect-ratio:16/9; touch-action:none; cursor:crosshair; }
+  .crop-editor-hint { color:var(--muted); font-size:.75rem; line-height:1.4; margin-top:8px; text-align:center; }
   .online-candidate { min-width:0; border:1px solid var(--line); border-radius:12px; padding:7px; background:var(--panel2); cursor:pointer; color:var(--text); text-align:center; }
   .online-candidate:hover,.online-candidate:focus { border-color:var(--accent); transform:translateY(-1px); }
   .online-candidate img { width:100%; aspect-ratio:1; object-fit:contain; border-radius:8px; background:rgba(127,127,127,.08); display:block; }
@@ -927,15 +944,26 @@ function Get-WebAppHtml {
     </div>
     <div class="online-search-panel" id="onlineSearchPanel">
       <div class="online-search-head">
-        <div><b>Smart online icon candidates</b><div class="sub" style="margin:3px 0 0;">Google + Yandex results ranked for square shape, resolution and likely icon relevance.</div></div>
+        <div><b id="onlineTopHeading">Smart online icon candidates</b><div class="sub" id="onlineTopSub" style="margin:3px 0 0;">Fetch the best five Google and Yandex image results separately.</div></div>
         <div class="btn-row" style="margin:0;">
-          <button class="ghost" onclick="searchOnlineImageCandidates('both')">Find more from both</button>
+          <button class="ghost btn-good" id="onlineAutoTop5Btn" onclick="searchOnlineImageCandidates('both')">Fetch Top 5 from each</button>
           <button class="ghost" onclick="searchOnlineImageCandidates('google')">Google only</button>
           <button class="ghost" onclick="searchOnlineImageCandidates('yandex')">Yandex only</button>
         </div>
       </div>
-      <div class="sub" id="onlineSearchStatus" aria-live="polite">Showing candidates discovered during the automatic scan.</div>
-      <div class="online-search-grid" id="onlineImageResultsGrid"></div>
+      <div class="sub" id="onlineSearchStatus" aria-live="polite">Google and Yandex results are collected automatically when this screen opens.</div>
+      <div class="online-provider-block">
+        <div class="online-provider-title" id="googleTopTitle">Google Images · Top 5</div>
+        <div class="online-search-grid online-provider-grid" id="googleImageResultsGrid"></div>
+      </div>
+      <div class="online-provider-block">
+        <div class="online-provider-title" id="yandexTopTitle">Yandex Images · Top 5</div>
+        <div class="online-search-grid online-provider-grid" id="yandexImageResultsGrid"></div>
+      </div>
+      <div class="online-provider-block" id="onlineOtherBlock">
+        <div class="online-provider-title" id="onlineOtherTitle">Other suggestions</div>
+        <div class="online-search-grid" id="onlineImageResultsGrid"></div>
+      </div>
     </div>
     <p class="sub search-tip" id="customSearchHint">Search for a high-resolution result, then drag the image directly onto the drop area or icon preview. You can also right-click an image, choose Copy image, and press Ctrl+V.</p>
 
@@ -945,6 +973,22 @@ function Get-WebAppHtml {
         <div style="font-weight:700;font-size:1.02rem;">Drag &amp; Drop an image here, or press <kbd style="background:var(--panel);padding:2px 7px;border-radius:6px;border:1px solid var(--line);">Ctrl+V</kbd></div>
         <div class="sub" style="margin:0;max-width:340px;">Drag an image from Google Images or Yandex Images directly here, right-click it and choose <b>Copy image</b> then press <b>Ctrl+V</b>, or click to browse your PC.</div>
         <input type="file" id="customFileInput" accept="image/*" style="display:none" onchange="handleCustomFileSelect(event)" />
+      </div>
+
+      <div class="crop-editor" id="customCropEditor">
+        <div class="crop-editor-head">
+          <div class="crop-editor-title" id="customCropTitle">Select the area for your icon</div>
+          <div class="crop-editor-tools">
+            <button class="ghost" type="button" onclick="zoomCustomCrop(-1)" title="Zoom out">−</button>
+            <span id="customZoomLabel">100%</span>
+            <button class="ghost" type="button" onclick="zoomCustomCrop(1)" title="Zoom in">+</button>
+            <button class="ghost" type="button" onclick="resetCustomCrop()" id="customCropResetBtn">Reset</button>
+          </div>
+        </div>
+        <div class="crop-stage">
+          <canvas id="customSourceCanvas" width="960" height="540" aria-label="Drag to select a square crop area"></canvas>
+        </div>
+        <div class="crop-editor-hint" id="customCropHint">Drag outside the current square to draw a new selection. Drag inside to move it. Zoom in to select a smaller detail.</div>
       </div>
 
       <div class="preview-box" id="customPreviewDropZone" title="You can also drop an image directly onto this preview">
@@ -1917,6 +1961,8 @@ function applyLang() {
     }
   });
 
+  updateOnlineTopLabels();
+  updateOnlineTopLabels();
   applyScreenLanguage(screen);
 
   // Rebuild the currently visible data-driven screen after a language change.
@@ -3854,6 +3900,116 @@ function goBack(){
 var customImageObj = null;
 var customFitMode = 'crop'; // 'crop' | 'contain' | 'stretch'
 var customSearchKind = 'game'; // 'game' | 'program'
+var customCropState = { zoom:1, crop:null, drag:null };
+
+function resetCustomCropState(){
+  customCropState.zoom=1;customCropState.crop=null;customCropState.drag=null;
+  var label=$('customZoomLabel');if(label)label.textContent='100%';
+}
+function ensureCustomCropSelection(){
+  if(!customImageObj||customCropState.crop)return;
+  var iw=customImageObj.naturalWidth||customImageObj.width,ih=customImageObj.naturalHeight||customImageObj.height;
+  var side=Math.max(1,Math.min(iw,ih)*.72);
+  customCropState.crop={x:(iw-side)/2,y:(ih-side)/2,size:side};
+}
+function getCustomCropGeometry(){
+  var canvas=$('customSourceCanvas');if(!canvas||!customImageObj)return null;
+  var iw=customImageObj.naturalWidth||customImageObj.width,ih=customImageObj.naturalHeight||customImageObj.height;
+  ensureCustomCropSelection();
+  if(customCropState.drag&&customCropState.drag.geometry)return customCropState.drag.geometry;
+  var crop=customCropState.crop,scale=Math.min(canvas.width/iw,canvas.height/ih)*customCropState.zoom;
+  var cx=crop.x+crop.size/2,cy=crop.y+crop.size/2;
+  return {x:canvas.width/2-cx*scale,y:canvas.height/2-cy*scale,scale:scale,iw:iw,ih:ih};
+}
+function renderCustomCropStage(){
+  var canvas=$('customSourceCanvas');if(!canvas)return;
+  var ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0b1019';ctx.fillRect(0,0,W,H);
+  if(!customImageObj){
+    ctx.fillStyle='rgba(180,195,220,.65)';ctx.font='18px Segoe UI,sans-serif';ctx.textAlign='center';
+    ctx.fillText('Load an image to select a crop area',W/2,H/2);return;
+  }
+  ensureCustomCropSelection();
+  var g=getCustomCropGeometry(),crop=customCropState.crop;
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(customImageObj,g.x,g.y,g.iw*g.scale,g.ih*g.scale);
+  var rx=g.x+crop.x*g.scale,ry=g.y+crop.y*g.scale,side=crop.size*g.scale;
+  ctx.fillStyle='rgba(4,8,15,.58)';
+  ctx.fillRect(0,0,W,Math.max(0,ry));ctx.fillRect(0,ry,Math.max(0,rx),side);
+  ctx.fillRect(rx+side,ry,Math.max(0,W-rx-side),side);ctx.fillRect(0,ry+side,W,Math.max(0,H-ry-side));
+  ctx.save();ctx.strokeStyle='#7dd3fc';ctx.lineWidth=3;ctx.setLineDash([9,5]);ctx.strokeRect(rx,ry,side,side);
+  ctx.setLineDash([]);ctx.strokeStyle='rgba(255,255,255,.82)';ctx.lineWidth=1;
+  for(var n=1;n<=2;n++){var off=side*n/3;ctx.beginPath();ctx.moveTo(rx+off,ry);ctx.lineTo(rx+off,ry+side);ctx.stroke();ctx.beginPath();ctx.moveTo(rx,ry+off);ctx.lineTo(rx+side,ry+off);ctx.stroke();}
+  var handle=Math.max(7,Math.min(12,side*.025));
+  [[rx,ry],[rx+side,ry],[rx,ry+side],[rx+side,ry+side]].forEach(function(pt){
+    ctx.beginPath();ctx.arc(pt[0],pt[1],handle,0,Math.PI*2);ctx.fillStyle='#eaf7ff';ctx.fill();ctx.strokeStyle='#0284c7';ctx.lineWidth=2;ctx.stroke();
+  });
+  ctx.restore();
+  var zoom=$('customZoomLabel');if(zoom)zoom.textContent=Math.round(customCropState.zoom*100)+'%';
+}
+function customCropPointerPoint(e){
+  var canvas=$('customSourceCanvas'),rect=canvas.getBoundingClientRect();
+  return {x:(e.clientX-rect.left)*canvas.width/rect.width,y:(e.clientY-rect.top)*canvas.height/rect.height};
+}
+function customCropPointToSource(point,g){return {x:(point.x-g.x)/g.scale,y:(point.y-g.y)/g.scale};}
+function clampCropValue(value,min,max){return Math.max(min,Math.min(max,value));}
+function onCustomCropPointerDown(e){
+  if(!customImageObj||!visible('step-custom'))return;
+  var canvas=$('customSourceCanvas'),point=customCropPointerPoint(e),g=getCustomCropGeometry(),c=customCropState.crop;
+  if(!g)return;
+  var src=customCropPointToSource(point,g);
+  if(src.x<0||src.y<0||src.x>g.iw||src.y>g.ih)return;
+  var inside=src.x>=c.x&&src.x<=c.x+c.size&&src.y>=c.y&&src.y<=c.y+c.size;
+  customCropState.drag={mode:inside?'move':'draw',geometry:g,start:src,origin:{x:c.x,y:c.y,size:c.size}};
+  try{canvas.setPointerCapture(e.pointerId);}catch(err){}
+  e.preventDefault();
+}
+function onCustomCropPointerMove(e){
+  var drag=customCropState.drag;if(!drag||!customImageObj)return;
+  var point=customCropPointerPoint(e),src=customCropPointToSource(point,drag.geometry),iw=drag.geometry.iw,ih=drag.geometry.ih;
+  if(drag.mode==='move'){
+    var size=drag.origin.size;
+    customCropState.crop={x:clampCropValue(drag.origin.x+src.x-drag.start.x,0,iw-size),y:clampCropValue(drag.origin.y+src.y-drag.start.y,0,ih-size),size:size};
+  }else{
+    var dx=src.x-drag.start.x,dy=src.y-drag.start.y,side=Math.min(Math.abs(dx),Math.abs(dy));
+    if(side<4)return;
+    var x=dx>=0?drag.start.x:drag.start.x-side,y=dy>=0?drag.start.y:drag.start.y-side;
+    x=clampCropValue(x,0,iw);y=clampCropValue(y,0,ih);side=Math.min(side,iw-x,ih-y);
+    if(side<4)return;
+    customCropState.crop={x:x,y:y,size:side};customFitMode='crop';
+    ['Crop','Contain','Stretch'].forEach(function(m){var b=$('fit'+m);if(b)b.classList.toggle('active',m.toLowerCase()==='crop');});
+  }
+  renderCustomCanvas();e.preventDefault();
+}
+function onCustomCropPointerUp(e){
+  if(!customCropState.drag)return;
+  customCropState.drag=null;renderCustomCanvas();
+  try{$('customSourceCanvas').releasePointerCapture(e.pointerId);}catch(err){}
+  e.preventDefault();
+}
+function zoomCustomCrop(direction){
+  if(!customImageObj)return;
+  var canvas=$('customSourceCanvas'),iw=customImageObj.naturalWidth||customImageObj.width,ih=customImageObj.naturalHeight||customImageObj.height;
+  ensureCustomCropSelection();
+  var c=customCropState.crop,cx=c.x+c.size/2,cy=c.y+c.size/2;
+  var base=Math.min(canvas.width/iw,canvas.height/ih),displaySide=c.size*base*customCropState.zoom;
+  customCropState.zoom=clampCropValue(customCropState.zoom+(direction>0?.25:-.25),1,4);
+  var size=clampCropValue(displaySide/(base*customCropState.zoom),Math.min(24,Math.min(iw,ih)),Math.min(iw,ih));
+  customCropState.crop={x:clampCropValue(cx-size/2,0,iw-size),y:clampCropValue(cy-size/2,0,ih-size),size:size};
+  renderCustomCanvas();
+}
+function resetCustomCrop(){
+  if(!customImageObj)return;
+  customCropState.zoom=1;customCropState.crop=null;customCropState.drag=null;ensureCustomCropSelection();setCustomFitMode('crop');
+}
+(function initCustomCropEvents(){
+  var canvas=$('customSourceCanvas');if(!canvas)return;
+  canvas.addEventListener('pointerdown',onCustomCropPointerDown);
+  canvas.addEventListener('pointermove',onCustomCropPointerMove);
+  canvas.addEventListener('pointerup',onCustomCropPointerUp);
+  canvas.addEventListener('pointercancel',onCustomCropPointerUp);
+  canvas.addEventListener('wheel',function(e){if(!customImageObj)return;e.preventDefault();zoomCustomCrop(e.deltaY<0?1:-1);},{passive:false});
+})();
 
 function openGoogleCustom(autoOpenSearch){
   var it = currentItem();
@@ -3867,6 +4023,7 @@ function openGoogleCustom(autoOpenSearch){
     : 'Waiting for an image (drag & drop, Ctrl+V, URL, or local file)...';
   $('customApplyBtn').disabled = true;
   customImageObj = null;
+  resetCustomCropState();
   clearCustomCanvas();
   show('step-custom');
   updateCustomSearchKindUi();
@@ -3875,9 +4032,16 @@ function openGoogleCustom(autoOpenSearch){
     if (it.sections && it.sections.length) {
       it.sections.forEach(function(sec){ (sec.covers || []).forEach(function(c){ existing.push(c); }); });
     }
-    _onlineCandidateCache = existing.slice();
-    _onlineCandidateCache = existing.slice();
-    renderOnlineImageCandidates(existing);
+    _onlineProviderCandidateCache = {
+      google: existing.filter(function(c){ return String(c.source||'').toLowerCase().indexOf('google images')>=0; }).slice(0,5),
+      yandex: existing.filter(function(c){ return String(c.source||'').toLowerCase().indexOf('yandex images')>=0; }).slice(0,5)
+    };
+    _onlineCandidateCache = existing.filter(function(c){
+      var src=String(c.source||'').toLowerCase();
+      return src.indexOf('google images')<0 && src.indexOf('yandex images')<0;
+    });
+    renderOnlineProviderCandidates();
+    renderOnlineImageCandidates(_onlineCandidateCache);
     if (!existing.length) {
       $('onlineSearchStatus').textContent = statusText('onlineLoading');
     }
@@ -3927,71 +4091,156 @@ function openYandexSearch(){
 // Backwards-compatible name used by existing buttons in other screens.
 function reopenGoogleSearch(){ openGoogleSearch(); }
 
+var onlineTopI18n = {
+  en: {
+    heading:"Smart online icon candidates", sub:"Fetch the best five Google and Yandex image results separately.",
+    auto:"Fetch Top 5 from each", google:"Google Images · Top 5", yandex:"Yandex Images · Top 5", other:"Other suggestions",
+    emptyGoogle:"No usable Google results were found.", emptyYandex:"No usable Yandex results were found.",
+    fetchApply:"Fetch & Apply", cropFirst:"Crop first", fetching:"Downloading and applying image…",
+    fetchFailed:"Could not download this result. Try another image.",
+    cropTitle:"Select the area for your icon",
+    cropHint:"Drag outside the current square to draw a new selection. Drag inside to move it. Zoom in to select a smaller detail.",
+    reset:"Reset"
+  },
+  tr: {
+    heading:"Akıllı çevrimiçi icon adayları", sub:"Google ve Yandex'ten en iyi beş görsel sonucu ayrı ayrı getir.",
+    auto:"İki sağlayıcıdan İlk 5'i getir", google:"Google Images · İlk 5", yandex:"Yandex Images · İlk 5", other:"Diğer öneriler",
+    emptyGoogle:"Google'dan kullanılabilir sonuç bulunamadı.", emptyYandex:"Yandex'ten kullanılabilir sonuç bulunamadı.",
+    fetchApply:"İndir ve Uygula", cropFirst:"Önce kırp", fetching:"Görsel indiriliyor ve uygulanıyor…",
+    fetchFailed:"Bu sonuç indirilemedi. Başka bir görsel dene.",
+    cropTitle:"Icon için alanı seç",
+    cropHint:"Yeni kare alan çizmek için mevcut karenin dışından sürükle. Seçimi taşımak için içinden sürükle. Daha küçük ayrıntı için yakınlaştır.",
+    reset:"Sıfırla"
+  },
+  ar: {
+    heading:"اقتراحات الأيقونات عبر الإنترنت", sub:"اجلب أفضل خمس صور من Google وYandex بشكل منفصل.",
+    auto:"اجلب أفضل 5 من كليهما", google:"صور Google · أفضل 5", yandex:"صور Yandex · أفضل 5", other:"اقتراحات أخرى",
+    emptyGoogle:"لم يتم العثور على نتائج قابلة للاستخدام من Google.", emptyYandex:"لم يتم العثور على نتائج قابلة للاستخدام من Yandex.",
+    fetchApply:"تنزيل وتطبيق", cropFirst:"قص أولاً", fetching:"جارٍ تنزيل الصورة وتطبيقها…",
+    fetchFailed:"تعذر تنزيل هذه النتيجة. جرّب صورة أخرى.",
+    cropTitle:"حدد منطقة الأيقونة",
+    cropHint:"اسحب خارج المربع الحالي لرسم تحديد جديد. اسحب داخل المربع لتحريكه. كبّر الصورة لتحديد تفاصيل أصغر.",
+    reset:"إعادة ضبط"
+  }
+};
+function onlineTopText(key) {
+  var locale = onlineTopI18n[currentLang] || onlineTopI18n.en;
+  return locale[key] || onlineTopI18n.en[key] || key;
+}
+function updateOnlineTopLabels() {
+  var labels = {
+    onlineTopHeading:'heading', onlineTopSub:'sub', onlineAutoTop5Btn:'auto',
+    googleTopTitle:'google', yandexTopTitle:'yandex', onlineOtherTitle:'other',
+    customCropTitle:'cropTitle', customCropResetBtn:'reset', customCropHint:'cropHint'
+  };
+  Object.keys(labels).forEach(function(id){
+    var node=document.getElementById(id);
+    if(node)node.textContent=onlineTopText(labels[id]);
+  });
+}
+
 var _onlineCandidateCache = [];
-function renderOnlineImageCandidates(candidates){
-  var grid = $('onlineImageResultsGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
-  var list = (candidates || []).slice();
-  // Newest/best-ranked candidates first. Scores already include provider,
-  // dimensions, aspect ratio hints and image-type hints from the server.
-  list.sort(function(a,b){ return (+b.score||0) - (+a.score||0); });
-  if (!list.length){
-    grid.textContent = statusText('noArtCandidates');
+var _onlineProviderCandidateCache = { google:[], yandex:[] };
+function renderOnlineCandidateGrid(candidates, gridId, providerAutoApply){
+  var grid=$(gridId);if(!grid)return;
+  grid.innerHTML='';
+  var list=(candidates||[]).slice().sort(function(a,b){return (+b.score||0)-(+a.score||0);});
+  if(!list.length){
+    grid.textContent=providerAutoApply?onlineTopText(gridId==='googleImageResultsGrid'?'emptyGoogle':'emptyYandex'):statusText('noArtCandidates');
     return;
   }
+  list=list.slice(0,providerAutoApply?5:18);
   list.forEach(function(candidate,index){
-    var tile = document.createElement('div');
-    tile.className = 'online-candidate';
-    var img = document.createElement('img');
-    img.loading = index < 8 ? 'eager' : 'lazy';
-    img.referrerPolicy = 'no-referrer';
-    img.alt = candidate.title || ((candidate.source || 'Image') + ' candidate');
-    img.onerror = function(){ this.style.opacity = '.2'; this.title = statusText('previewUnavailable'); };
-    img.onload = function(){
-      var iw = this.naturalWidth || 0, ih = this.naturalHeight || 0;
-      if (!iw || !ih) return;
-      candidate.actualWidth = iw; candidate.actualHeight = ih;
-      var rank = (+candidate.score || 45), ratio = Math.min(iw,ih) / Math.max(iw,ih), minSide = Math.min(iw,ih);
-      rank += ratio >= .94 ? 5 : (ratio >= .82 ? 2 : (ratio >= .65 ? 0 : -10));
-      rank += minSide >= 1024 ? 5 : (minSide >= 512 ? 4 : (minSide >= 256 ? 2 : -12));
-      candidate.clientScore = Math.max(1, Math.min(100, Math.round(rank)));
-      tile.dataset.rank = String(candidate.clientScore);
-      var qualityLabel = tile.querySelector('.online-candidate-quality');
-      if (qualityLabel) qualityLabel.textContent = statusText('quality') + ' ' + candidate.clientScore + '/100';
-      var realMeta = tile.querySelector('.online-candidate-meta');
-      if (realMeta) realMeta.textContent = (candidate.source || 'Online') + ' · ' + iw + ' × ' + ih + ' · ' + (iw/ih >= .88 && iw/ih <= 1.14 ? statusText('nearSquare') : statusText('notSquare'));
-      var parent = tile.parentNode;
-      if (parent) Array.prototype.slice.call(parent.children).sort(function(a,b){ return (+b.dataset.rank||+b.dataset.baseRank||0) - (+a.dataset.rank||+a.dataset.baseRank||0); }).forEach(function(node){ parent.appendChild(node); });
+    var tile=document.createElement('div');tile.className='online-candidate';tile.tabIndex=0;
+    var img=document.createElement('img');img.loading=index<5?'eager':'lazy';img.referrerPolicy='no-referrer';
+    img.alt=candidate.title||((candidate.source||'Image')+' candidate');
+    img.onerror=function(){this.style.opacity='.2';this.title=statusText('previewUnavailable');};
+    img.onload=function(){
+      var iw=this.naturalWidth||0,ih=this.naturalHeight||0;if(!iw||!ih)return;
+      candidate.actualWidth=iw;candidate.actualHeight=ih;
+      var rank=(+candidate.score||45),ratio=Math.min(iw,ih)/Math.max(iw,ih),minSide=Math.min(iw,ih);
+      rank+=ratio>=.94?5:(ratio>=.82?2:(ratio>=.65?0:-10));
+      rank+=minSide>=1024?5:(minSide>=512?4:(minSide>=256?2:-12));
+      candidate.clientScore=Math.max(1,Math.min(100,Math.round(rank)));tile.dataset.rank=String(candidate.clientScore);
+      var q=tile.querySelector('.online-candidate-quality');if(q)q.textContent=statusText('quality')+' '+candidate.clientScore+'/100';
+      var m=tile.querySelector('.online-candidate-meta');if(m)m.textContent=(candidate.source||'Online')+' · '+iw+' × '+ih;
+      var parent=tile.parentNode;if(parent)Array.prototype.slice.call(parent.children).sort(function(a,b){return (+b.dataset.rank||+b.dataset.baseRank||0)-(+a.dataset.rank||+a.dataset.baseRank||0);}).forEach(function(node){parent.appendChild(node);});
     };
-    img.src = candidate.thumb || candidate.url || '';
-    var title = document.createElement('div');
-    title.className = 'online-candidate-title';
-    title.textContent = candidate.title || (statusText('candidate') + ' ' + (index+1));
-    var meta = document.createElement('div');
-    meta.className = 'online-candidate-meta';
-    var dimensions = (+candidate.width > 0 && +candidate.height > 0) ? (candidate.width + ' × ' + candidate.height) : statusText('sizeUnknown');
-    meta.textContent = (candidate.source || 'Online') + ' · ' + dimensions;
-    var quality = document.createElement('div');
-    quality.className = 'online-candidate-meta online-candidate-quality';
-    quality.textContent = statusText('quality') + ' ' + (candidate.score || '?') + '/100';
-    tile.dataset.baseRank = String(+candidate.score || 0);
-    var use = document.createElement('button');
-    use.className = 'online-candidate-use';
-    use.type = 'button';
-    use.textContent = statusText('useImage');
-    use.onclick = function(e){
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      if (!candidate.url) return;
-      $('onlineSearchStatus').textContent = statusText('loadingPreview');
-      loadCustomUrl(candidate.url, candidate.thumb && candidate.thumb !== candidate.url ? candidate.thumb : null);
-    };
-    tile.appendChild(img); tile.appendChild(title); tile.appendChild(meta); tile.appendChild(quality); tile.appendChild(use);
-    tile.onclick = function(e){ if (e.target !== use) use.click(); };
+    img.src=candidate.thumb||candidate.url||'';
+    var title=document.createElement('div');title.className='online-candidate-title';title.textContent=candidate.title||(statusText('candidate')+' '+(index+1));
+    var meta=document.createElement('div');meta.className='online-candidate-meta';
+    meta.textContent=(candidate.source||'Online')+' · '+((+candidate.width>0&&+candidate.height>0)?candidate.width+' × '+candidate.height:statusText('sizeUnknown'));
+    var quality=document.createElement('div');quality.className='online-candidate-meta online-candidate-quality';
+    quality.textContent=statusText('quality')+' '+(candidate.score||'?')+'/100';tile.dataset.baseRank=String(+candidate.score||0);
+    tile.appendChild(img);tile.appendChild(title);tile.appendChild(meta);tile.appendChild(quality);
+    if(providerAutoApply){
+      var auto=document.createElement('button');auto.className='online-candidate-auto';auto.type='button';auto.textContent=onlineTopText('fetchApply');
+      auto.onclick=function(e){if(e){e.preventDefault();e.stopPropagation();}fetchAndApplyOnlineCandidate(candidate,auto);};
+      var crop=document.createElement('button');crop.className='online-candidate-crop';crop.type='button';crop.textContent=onlineTopText('cropFirst');
+      crop.onclick=function(e){if(e){e.preventDefault();e.stopPropagation();}loadOnlineCandidateForCrop(candidate);};
+      tile.appendChild(auto);tile.appendChild(crop);
+      tile.onclick=function(e){if(e.target!==auto&&e.target!==crop)auto.click();};
+      tile.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();auto.click();}};
+    }else{
+      var use=document.createElement('button');use.className='online-candidate-use';use.type='button';use.textContent=statusText('useImage');
+      use.onclick=function(e){if(e){e.preventDefault();e.stopPropagation();}loadOnlineCandidateForCrop(candidate);};
+      tile.appendChild(use);tile.onclick=function(e){if(e.target!==use)use.click();};
+    }
     grid.appendChild(tile);
   });
 }
-function searchOnlineImageCandidates(provider, silent){
+function renderOnlineImageCandidates(candidates){renderOnlineCandidateGrid(candidates,'onlineImageResultsGrid',false);}
+function renderOnlineProviderCandidates(){
+  renderOnlineCandidateGrid(_onlineProviderCandidateCache.google,'googleImageResultsGrid',true);
+  renderOnlineCandidateGrid(_onlineProviderCandidateCache.yandex,'yandexImageResultsGrid',true);
+}
+function searchOnlineImageCandidates(provider,silent){
+  if(customSearchKind!=='program'&&!state.iconSearchOnly)return;
+  var it=currentItem();if(!it)return;
+  provider=provider||'both';
+  var status=$('onlineSearchStatus');
+  if(status)status.textContent=statusText(provider==='both'?'searchingBoth':(provider==='google'?'searchingGoogle':'searchingYandex'));
+  api('/api/search-images',{name:it.name,provider:provider}).then(function(res){
+    if(!res||!res.ok){if(status)status.textContent=(res&&res.error)||statusText('onlineFailed');return;}
+    var incoming=res.candidates||[];
+    if(provider==='both'||provider==='google')_onlineProviderCandidateCache.google=(res.googleTop5||incoming.filter(function(c){return String(c.source||'').toLowerCase().indexOf('google images')>=0;})).slice(0,5);
+    if(provider==='both'||provider==='yandex')_onlineProviderCandidateCache.yandex=(res.yandexTop5||incoming.filter(function(c){return String(c.source||'').toLowerCase().indexOf('yandex images')>=0;})).slice(0,5);
+    var kept=_onlineCandidateCache.filter(function(c){
+      var src=String(c.source||'').toLowerCase();
+      if(provider==='both')return src.indexOf('google images')<0&&src.indexOf('yandex images')<0;
+      if(provider==='google')return src.indexOf('google images')<0;
+      if(provider==='yandex')return src.indexOf('yandex images')<0;
+      return true;
+    });
+    var extras=incoming.filter(function(c){
+      var src=String(c.source||'').toLowerCase();
+      return src.indexOf('google images')<0&&src.indexOf('yandex images')<0;
+    });
+    var seen={};
+    _onlineCandidateCache=kept.concat(extras).filter(function(c){var key=String(c.url||'');if(!key||seen[key])return false;seen[key]=true;return true;});
+    var total=_onlineProviderCandidateCache.google.length+_onlineProviderCandidateCache.yandex.length;
+    if(status)status.textContent=total?(total+' provider result(s) · '+_onlineProviderCandidateCache.google.length+' Google · '+_onlineProviderCandidateCache.yandex.length+' Yandex'):statusText('onlineNoResults');
+    renderOnlineProviderCandidates();renderOnlineImageCandidates(_onlineCandidateCache);
+  }).catch(function(){if(status)status.textContent=statusText('onlineFailed');});
+}
+function loadOnlineCandidateForCrop(candidate){
+  if(!candidate||!candidate.url)return;
+  $('onlineSearchStatus').textContent=statusText('loadingPreview');
+  loadCustomUrl(candidate.url,candidate.thumb&&candidate.thumb!==candidate.url?candidate.thumb:null);
+  var editor=$('customCropEditor');if(editor&&editor.scrollIntoView)editor.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function fetchAndApplyOnlineCandidate(candidate,button){
+  if(!candidate||!candidate.url||!button)return;
+  button.disabled=true;button.textContent=onlineTopText('fetching');$('onlineSearchStatus').textContent=onlineTopText('fetching');
+  api('/api/fetch-remote-image',{url:candidate.url}).then(function(res){
+    if(!res||!res.ok||!res.dataUrl||res.dataUrl.indexOf('data:image/')!==0)throw new Error((res&&res.error)||onlineTopText('fetchFailed'));
+    loadDataUrlIntoCustomCanvas(res.dataUrl,function(){applyCustomCover();},function(){
+      button.disabled=false;button.textContent=onlineTopText('fetchApply');$('onlineSearchStatus').textContent=onlineTopText('fetchFailed');
+    });
+  }).catch(function(err){
+    button.disabled=false;button.textContent=onlineTopText('fetchApply');$('onlineSearchStatus').textContent=err&&err.message?err.message:onlineTopText('fetchFailed');
+  });
+}function searchOnlineImageCandidates(provider, silent){
   if (customSearchKind !== 'program' && !state.iconSearchOnly) return;
   var it = currentItem();
   if (!it) return;
@@ -4023,59 +4272,48 @@ function searchOnlineImageCandidates(provider, silent){
 }
 
 function clearCustomCanvas(){
-  var c = $('customCanvas');
-  if (!c) return;
-  var ctx = c.getContext('2d');
-  ctx.clearRect(0, 0, c.width, c.height);
+  var c=$('customCanvas');if(c){var ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);}
+  var source=$('customSourceCanvas');if(source){var sx=source.getContext('2d');sx.clearRect(0,0,source.width,source.height);renderCustomCropStage();}
 }
-
 function setCustomFitMode(mode){
-  customFitMode = mode;
-  ['Crop','Contain','Stretch'].forEach(function(m){
-    var btn = $('fit'+m);
-    if (btn) btn.classList.toggle('active', m.toLowerCase() === mode);
-  });
-  if (customImageObj) renderCustomCanvas();
+  customFitMode=mode;
+  ['Crop','Contain','Stretch'].forEach(function(m){var b=$('fit'+m);if(b)b.classList.toggle('active',m.toLowerCase()===mode);});
+  if(customImageObj)renderCustomCanvas();
 }
-
 function renderCustomCanvas(){
-  var c = $('customCanvas');
-  if (!c || !customImageObj) return;
-  var ctx = c.getContext('2d');
-  var W = c.width, H = c.height;
-  ctx.clearRect(0, 0, W, H);
-  var iw = customImageObj.naturalWidth || customImageObj.width;
-  var ih = customImageObj.naturalHeight || customImageObj.height;
-  if (!iw || !ih) return;
-
-  if (customFitMode === 'stretch'){
-    ctx.drawImage(customImageObj, 0, 0, W, H);
-  } else if (customFitMode === 'contain'){
-    var scale = Math.min(W / iw, H / ih);
-    var dw = Math.round(iw * scale), dh = Math.round(ih * scale);
-    var dx = Math.round((W - dw) / 2), dy = Math.round((H - dh) / 2);
-    ctx.drawImage(customImageObj, 0, 0, iw, ih, dx, dy, dw, dh);
-  } else {
-    var side = Math.min(iw, ih);
-    var sx = Math.round((iw - side) / 2), sy = Math.round((ih - side) / 2);
-    ctx.drawImage(customImageObj, sx, sy, side, side, 0, 0, W, H);
+  var c=$('customCanvas');
+  if(!c||!customImageObj){renderCustomCropStage();return;}
+  var ctx=c.getContext('2d'),W=c.width,H=c.height;
+  ctx.clearRect(0,0,W,H);
+  var iw=customImageObj.naturalWidth||customImageObj.width,ih=customImageObj.naturalHeight||customImageObj.height;
+  if(!iw||!ih)return;
+  if(customFitMode==='stretch')ctx.drawImage(customImageObj,0,0,W,H);
+  else if(customFitMode==='contain'){
+    var scale=Math.min(W/iw,H/ih),dw=Math.round(iw*scale),dh=Math.round(ih*scale);
+    var dx=Math.round((W-dw)/2),dy=Math.round((H-dh)/2);
+    ctx.drawImage(customImageObj,0,0,iw,ih,dx,dy,dw,dh);
+  }else{
+    ensureCustomCropSelection();
+    var crop=customCropState.crop;
+    ctx.drawImage(customImageObj,crop.x,crop.y,crop.size,crop.size,0,0,W,H);
   }
-  $('customApplyBtn').disabled = false;
-  var qualityHint = (iw < 256 || ih < 256) ? statusText('imageQualityLow') : statusText('imageQualityHigh');
-  $('customStatusMsg').textContent = formatStr(statusText('imageReady'), [iw,ih,qualityHint]);
-  if ($('onlineSearchStatus') && customSearchKind === 'program') $('onlineSearchStatus').textContent = formatStr(statusText('imageLoaded'), [iw,ih]);
+  $('customApplyBtn').disabled=false;
+  var qualityHint=(iw<256||ih<256)?statusText('imageQualityLow'):statusText('imageQualityHigh');
+  $('customStatusMsg').textContent=formatStr(statusText('imageReady'),[iw,ih,qualityHint]);
+  if($('onlineSearchStatus')&&customSearchKind==='program')$('onlineSearchStatus').textContent=formatStr(statusText('imageLoaded'),[iw,ih]);
+  renderCustomCropStage();
 }
-
-function loadDataUrlIntoCustomCanvas(dataUrl){
-  var img = new Image();
-  img.onload = function(){
-    customImageObj = img;
-    renderCustomCanvas();
+function loadDataUrlIntoCustomCanvas(dataUrl,onReady,onError){
+  var img=new Image();
+  img.onload=function(){
+    customImageObj=img;resetCustomCropState();setCustomFitMode('crop');renderCustomCanvas();
+    if(typeof onReady==='function')onReady();
   };
-  img.onerror = function(){
-    $('customStatusMsg').textContent = statusText('imageDecodeError');
+  img.onerror=function(){
+    $('customStatusMsg').textContent=statusText('imageDecodeError');
+    if(typeof onError==='function')onError();
   };
-  img.src = dataUrl;
+  img.src=dataUrl;
 }
 
 function readBlobIntoCustomCanvas(blob){
