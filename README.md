@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.46
+# Game Icons Studio v6.47
 
 ### From generic icons to a game shelf.
 
@@ -58,9 +58,21 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 - 🧰 **Icon-cache repair** — help refresh blank or stale icons displayed by Windows.
 - 🎨 **Multiple themes** — Aurora Glass is the default theme, with other themes available.
 
-## What's new in v6.30–v6.42
+## What's new in v6.30–v6.47
 
 These release notes are an addition to the original introduction above. The logo, demo, before-and-after image, and original page structure are retained.
+
+<details>
+<summary><strong>v6.47 — simpler Google/Yandex image search and instant drag-and-drop</strong></summary>
+
+- Removes the unreliable automatic Top 5 fetch flow and its background Google/Yandex scraping.
+- Keeps Google Images and Yandex Images as two separate, clearly visible search buttons in the first icon-editing screen.
+- Clicking either button opens its image search in a new tab and highlights the app's drop zone, ready for a direct drag-and-drop.
+- Hides the empty crop editor until an image is loaded, keeping the drop zone and preview visible without unnecessary scrolling.
+- Retains local image browsing, Ctrl+V clipboard paste, square crop controls, and the existing ICO styling pipeline.
+- Program scans no longer attempt background web-image collection; the embedded application icon remains the safe fallback until the user chooses a replacement.
+
+</details>
 
 <details>
 <details>
@@ -233,7 +245,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.43.md](CHANGELOG-v6.46.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.47.md](CHANGELOG-v6.47.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 
