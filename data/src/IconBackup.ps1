@@ -29,9 +29,10 @@ function Add-IconBackupFile {
         [Parameter(Mandatory)][string]$OriginalPath,
         [Parameter(Mandatory)][string]$TransactionFolder,
         [Parameter(Mandatory)][int]$ItemNumber,
-        [Parameter(Mandatory)][int]$FileNumber
+        [Parameter(Mandatory)][int]$FileNumber,
+        [switch]$AssumeMissing
     )
-    $exists = Test-Path -LiteralPath $OriginalPath -PathType Leaf
+    $exists = (Test-Path -LiteralPath $OriginalPath -PathType Leaf) -and (-not $AssumeMissing)
     $attributes = 0
     if ($exists) {
         $item = Get-Item -LiteralPath $OriginalPath -Force -ErrorAction Stop
@@ -97,10 +98,12 @@ function New-IconBackupTransaction {
 
             $targetPath = [string]$shortcut.Path
             $isFolder = $false
-            $isFileShortcut = ($shortcut.PSObject.Properties.Name -contains 'IsGeneratedFileShortcut' -and [bool]$shortcut.IsGeneratedFileShortcut)
+            $isGeneratedFileShortcut = ($shortcut.PSObject.Properties.Name -contains 'IsGeneratedFileShortcut' -and [bool]$shortcut.IsGeneratedFileShortcut)
+            $isNewlyConvertedUrl = ($shortcut.PSObject.Properties.Name -contains 'IsNewlyConvertedUrlShortcut' -and [bool]$shortcut.IsNewlyConvertedUrlShortcut)
+            $isFileShortcut = $isGeneratedFileShortcut -or $isNewlyConvertedUrl
             if ($shortcut.PSObject.Properties.Name -contains 'IsFolder') { $isFolder = [bool]$shortcut.IsFolder }
             else { $isFolder = Test-Path -LiteralPath $targetPath -PathType Container }
-            $shortcutExisted = Test-Path -LiteralPath $targetPath -PathType Leaf
+            $shortcutExisted = (Test-Path -LiteralPath $targetPath -PathType Leaf) -and (-not $isNewlyConvertedUrl)
 
             $itemNumber++
             $entry = [ordered]@{
@@ -138,10 +141,15 @@ function New-IconBackupTransaction {
                     $entry.PreviousIconLocation = [string]$lnk.IconLocation
                 }
 
-                # File shortcuts are backed up as whole .lnk files; when the
-                # companion did not exist before, the missing-file marker makes
-                # Undo remove the newly created shortcut instead of leaving it.
+                # Generated file/ROM shortcuts are removed by Undo when new.
+                # Converted URL links additionally snapshot their original .url
+                # source so Undo restores that file and removes the new .lnk.
                 if ($isFileShortcut) { $filePaths.Add($targetPath) }
+                if ($isNewlyConvertedUrl -and
+                    $shortcut.PSObject.Properties.Name -contains 'SourceUrlPath' -and
+                    -not [string]::IsNullOrWhiteSpace([string]$shortcut.SourceUrlPath)) {
+                    $filePaths.Add([string]$shortcut.SourceUrlPath)
+                }
                 if (-not [string]::IsNullOrWhiteSpace([string]$resolution.IcoPath)) { $filePaths.Add([string]$resolution.IcoPath) }
                 $oldIcon = ([string]$entry.PreviousIconLocation -split ',')[0].Trim().Trim('"')
                 if (-not [string]::IsNullOrWhiteSpace($oldIcon) -and [System.IO.Path]::GetExtension($oldIcon) -ieq '.ico' -and (Test-Path -LiteralPath $oldIcon -PathType Leaf)) {
@@ -153,7 +161,11 @@ function New-IconBackupTransaction {
 
             foreach ($filePath in $filePaths) {
                 $fileNumber++
-                $entry.FileBackups += Add-IconBackupFile -OriginalPath $filePath -TransactionFolder $transactionFolder -ItemNumber $itemNumber -FileNumber $fileNumber
+                $assumeMissing = $false
+                if ($isNewlyConvertedUrl -and [string]::Equals($filePath,$targetPath,[System.StringComparison]::OrdinalIgnoreCase)) {
+                    $assumeMissing = $true
+                }
+                $entry.FileBackups += Add-IconBackupFile -OriginalPath $filePath -TransactionFolder $transactionFolder -ItemNumber $itemNumber -FileNumber $fileNumber -AssumeMissing:$assumeMissing
             }
             $manifest.Items += $entry
             # Write after each item so an interrupted process still leaves a
