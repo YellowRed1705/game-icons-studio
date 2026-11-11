@@ -1162,59 +1162,8 @@ function Step-WebScan {
         }
     }
 
-    if ($isProgramIcon) {
-        # v6.35: real web-image candidates complement the sparse SteamGridDB software catalogue.
-        # Google/Yandex are queried in parallel; the merged results are ranked by square ratio,
-        # available dimensions, file type and likely image relevance before the preview grid appears.
-        $onlineCandidates = @()
-        try { $onlineCandidates = @(Get-OnlineProgramIconCandidates -Query $name -Provider 'both' -MaxResults 24 -Session $Session) }
-        catch { Write-Log "Online icon search failed for '$name': $($_.Exception.Message)" 'DEBUG' }
-        if ($onlineCandidates.Count -gt 0) {
-            $mergedCovers = New-Object System.Collections.Generic.List[object]
-            foreach ($candidate in $onlineCandidates) {
-                $mergedCovers.Add(@{
-                    url = [string]$candidate.Url; thumb = [string]$candidate.Thumb
-                    score = [int]$candidate.Score; source = [string]$candidate.Source
-                    title = [string]$candidate.Title; width = [int]$candidate.Width
-                    height = [int]$candidate.Height; searchPage = [string]$candidate.SearchPage
-                })
-            }
-            # Preserve SGDB alternatives after the web-ranked candidates instead of discarding them.
-            foreach ($existingSection in @($jsonSections)) {
-                foreach ($cover in @($existingSection.covers)) {
-                    if ([string]::IsNullOrWhiteSpace([string]$cover.url)) { continue }
-                    $dupe = $false
-                    foreach ($prior in $mergedCovers) { if ([string]$prior.url -eq [string]$cover.url) { $dupe = $true; break } }
-                    if (-not $dupe) {
-                        $sgScore = 62
-                        if ($cover.score -gt 0) { $sgScore = [Math]::Min(78, 62 + [int][Math]::Min(16, [Math]::Log10([double]$cover.score + 1) * 5)) }
-                        $mergedCovers.Add(@{ url=[string]$cover.url; thumb=[string]$cover.thumb; score=$sgScore; source='SteamGridDB'; title=[string]$existingSection.gameName; width=0; height=0; searchPage='' })
-                    }
-                }
-            }
-            $topScore = [int]$onlineCandidates[0].Score
-            # When web candidates are weak, keep the executable's own icon as a real fallback
-            # rather than allowing a polished but unrelated image to dominate.
-            if ($topScore -lt 82) {
-                try {
-                    $embeddedAlternative = Get-EmbeddedProgramIconSource -Session $Session -Name $name -Safe $safe
-                    if ($null -ne $embeddedAlternative) {
-                        $embedUrl = [string]$embeddedAlternative.Url
-                        $hasEmbed = $false
-                        foreach ($prior in $mergedCovers) { if ([string]$prior.url -eq $embedUrl) { $hasEmbed = $true; break } }
-                        if (-not $hasEmbed) {
-                            $mergedCovers.Add(@{ url=$embedUrl; thumb=$embedUrl; score=68; source='Embedded application icon'; title="$name (original executable icon)"; width=256; height=256; searchPage='' })
-                        }
-                    }
-                } catch { }
-            }
-            $orderedCovers = @($mergedCovers | Sort-Object -Property @{Expression='score';Descending=$true} | Select-Object -First 24)
-            $jsonSections = @(@{ gameId=0; gameName="$name (Google + Yandex + brand-icon candidates)"; year=0; covers=$orderedCovers })
-            # Never auto-accept a generic high-resolution image on quality alone. The semantic score must clear a conservative threshold.
-            $autoConfident = ($topScore -ge 82)
-            Write-Log "Online image search found $($onlineCandidates.Count) candidate(s) for app '$name'; best score $topScore; auto-confidence=$autoConfident; source=$($onlineCandidates[0].Source)." 'INFO'
-        }
-    }
+    # Manual web-image scraping was removed; use the embedded app icon until the user chooses a replacement.
+    $onlineCandidates = @()
 
     if ($isProgramIcon -and $onlineCandidates.Count -eq 0) {
         # If the web providers return no parseable candidates, do not let a
