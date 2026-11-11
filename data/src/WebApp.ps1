@@ -1301,7 +1301,7 @@ var screenI18n = {
     homeHeader:"⌂ Home", aboutHeader:"❔ What is GIS?", summaryHeader:"↶ Summary",
     fullScreen:"⛶ Fullscreen", exitFullscreen:"⛶ Exit Fullscreen", quit:"Quit",
     gameFilesTitle:"Find games inside a folder", gameFilesDesc:"Scan launcher links, game files and ROMs recursively. Existing Shortcuts are kept; original files stay untouched.", gameFilesButton:"Scan game library",
-    repairSummary:"Icon repair results"
+    repairSummary:"Icon repair results", altIconMatch:"Choose a different match", iconReviewTitle:"Review this program / file icon", iconSearchHint:"Review the Preview. You can choose a different image from Google, Yandex or your PC.", programIconTitle:"Choose a program icon", altIconResults:"Alternative Icon results for ", altIconTitle:"Choose an alternative Icon result", browseFolderDetail:"Choose a game installation or library folder. I will find playable EXE files, Launcher links and ROMs inside it.", browseFolderGeneric:"A Windows folder window will appear in front. Pick your games folder and click OK."
   },
   tr: {
     refresh:"Yenile", keyTitle:"Kuruluma başlayalım",
@@ -1345,7 +1345,7 @@ var screenI18n = {
     homeHeader:"⌂ Ana Sayfa", aboutHeader:"❔ GIS nedir?", summaryHeader:"↶ Summary",
     fullScreen:"⛶ Tam Ekran", exitFullscreen:"⛶ Tam Ekrandan Çık", quit:"Çıkış",
     gameFilesTitle:"Klasördeki oyunları bul", gameFilesDesc:"Alt klasörler dâhil Launcher linklerini, oyun dosyalarını ve ROM'ları tara. Mevcut Shortcut'lar korunur; orijinal dosyalara dokunulmaz.", gameFilesButton:"Game Library'yi tara",
-    repairSummary:"Icon onarım sonuçları"
+    repairSummary:"Icon onarım sonuçları", altIconMatch:"Farklı bir eşleşme seç", iconReviewTitle:"Bu Program / Dosya için Icon'u incele", iconSearchHint:"Preview'i incele. Google, Yandex veya bilgisayarından farklı bir görsel seçebilirsin.", programIconTitle:"Bir Program Icon'u seç", altIconResults:"Alternatif Icon sonuçları: ", altIconTitle:"Alternatif bir Icon sonucu seç", browseFolderDetail:"Oyun kurulum veya kütüphane klasörünü seç. İçindeki EXE dosyalarını, Launcher linklerini ve ROM'ları bulacağım.", browseFolderGeneric:"Önde bir Windows klasör penceresi açılacak. Oyun klasörünü seçip OK'e bas."
   },
   ar: {
     refresh:"تحديث", keyTitle:"لنبدأ إعداد التطبيق",
@@ -1389,7 +1389,7 @@ var screenI18n = {
     homeHeader:"⌂ الرئيسية", aboutHeader:"❔ ما هو GIS؟", summaryHeader:"↶ الملخص",
     fullScreen:"⛶ ملء الشاشة", exitFullscreen:"⛶ الخروج من ملء الشاشة", quit:"خروج",
     gameFilesTitle:"العثور على الألعاب داخل مجلد", gameFilesDesc:"افحص روابط Launcher وملفات الألعاب وROM داخل المجلدات الفرعية. تبقى الاختصارات والملفات الأصلية دون تغيير.", gameFilesButton:"فحص مكتبة الألعاب",
-    repairSummary:"نتائج إصلاح الأيقونات"
+    repairSummary:"نتائج إصلاح الأيقونات", altIconMatch:"اختر مطابقة أخرى", iconReviewTitle:"راجع أيقونة البرنامج / الملف", iconSearchHint:"راجع Preview. يمكنك اختيار صورة أخرى من Google أو Yandex أو من جهازك.", programIconTitle:"اختر أيقونة البرنامج", altIconResults:"نتائج الأيقونات البديلة لـ ", altIconTitle:"اختر نتيجة أيقونة بديلة", browseFolderDetail:"اختر مجلد تثبيت اللعبة أو مكتبتها. سأبحث عن ملفات EXE وروابط Launcher وملفات ROM داخله.", browseFolderGeneric:"ستظهر نافذة مجلدات Windows في المقدمة. اختر مجلد الألعاب واضغط OK."
   }
 };
 
@@ -1598,6 +1598,10 @@ function applyScreenLanguage(screen) {
       if (nodes[index] && typeof value === 'string') nodes[index].textContent = value;
     });
   };
+  var placeholder = function(selector, value) {
+    var node = document.querySelector(selector);
+    if (node && typeof value === 'string') node.setAttribute('placeholder', value);
+  };
 
   // Header controls
   text('#homeBtn', screen.homeHeader);
@@ -1612,7 +1616,7 @@ function applyScreenLanguage(screen) {
   many('#step-key .key-col-title', [screen.keyNew,screen.keyExisting]);
   many('#step-key .tut-step span:not(.tut-num)', screen.keySteps);
   many('#step-key .key-col .big-btn', [screen.keyCreate,screen.keyGet]);
-  text('#keyInput', screen.keyPlaceholder);
+  placeholder('#keyInput', screen.keyPlaceholder);
   many('#step-key .btn-row button', [screen.keyPaste,screen.keyContinue,screen.keyNoKey]);
 
   // No-art, History and About
@@ -1620,7 +1624,7 @@ function applyScreenLanguage(screen) {
   text('#step-noart p[style*="max-width"]', screen.noArtDescription);
   text('#step-history h2', screen.historyTitle);
   text('#step-history p.sub', screen.historySubtitle);
-  text('#historySearch', screen.historyPlaceholder);
+  placeholder('#historySearch', screen.historyPlaceholder);
   text('#step-history .btn-row button', screen.historyBack);
   text('#step-about h2', screen.aboutTitle);
   text('#step-about > p.sub', screen.aboutSubtitle);
@@ -1648,7 +1652,7 @@ function applyScreenLanguage(screen) {
 
   // Folder picker screen and progress screen
   text('#step-folder > button.big-btn', screen.folderBrowse);
-  text('#folderInput', screen.folderPlaceholder);
+  placeholder('#folderInput', screen.folderPlaceholder);
   text('#loadingMsg', screen.loadingWorking);
   text('#loadCounter', screen.loadingWait);
 
