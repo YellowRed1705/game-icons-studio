@@ -5,6 +5,29 @@
 
 $script:WshShell = $null
 
+function Get-EmulatorLauncherFamily {
+    <#
+        Returns the emulator family for a plain launcher shortcut target.
+        Shortcuts with arguments are ROM/game launch commands, not app launchers.
+    #>
+    param([string]$TargetPath = '',[string]$Arguments = '')
+    if ([string]::IsNullOrWhiteSpace($TargetPath) -or -not [string]::IsNullOrWhiteSpace($Arguments)) { return '' }
+    $leaf = [System.IO.Path]::GetFileNameWithoutExtension($TargetPath)
+    switch -Regex ($leaf) {
+        '^(?i:cemu)(?:[-_].*)?$' { return 'cemu' }
+        '^(?i:ryujinx|ryubing)$' { return 'ryujinx' }
+        '^(?i:eden)$' { return 'eden' }
+        '^(?i:yuzu)$' { return 'yuzu' }
+        '^(?i:dolphin)(?:-qt)?$' { return 'dolphin' }
+        '^(?i:mgba)$' { return 'mgba' }
+        '^(?i:melonds)$' { return 'melonds' }
+        '^(?i:azahar)$' { return 'azahar' }
+        '^(?i:citra)(?:-qt)?$' { return 'citra' }
+        '^(?i:pcsx2)(?:-qt)?$' { return 'pcsx2' }
+    }
+    return ''
+}
+
 function Get-WshShell {
     if ($null -eq $script:WshShell) {
         $script:WshShell = New-Object -ComObject WScript.Shell
