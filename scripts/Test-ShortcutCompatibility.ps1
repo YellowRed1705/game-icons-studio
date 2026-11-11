@@ -22,6 +22,38 @@ foreach ($methodName in @('GetForegroundWindowHandle','ShowMaximizedAndForegroun
 # The helper must be safe to query from an unattended CI desktop session.
 [void][GIS.NativeWindowTools]::GetForegroundWindowHandle()
 
+# Verify the application exposes the three-language selector, defaults to
+# English on a fresh profile, and wires the native picker/Explorer window
+# foreground helpers into the actual UI/server paths.
+$webAppPath = Join-Path $PSScriptRoot '..\data\src\WebApp.ps1'
+$webAppText = Get-Content -LiteralPath $webAppPath -Raw
+foreach ($languageCode in @('en','tr','ar')) {
+    if ($webAppText -notmatch ('data-lang="' + $languageCode + '"')) {
+        throw "Language selector is missing its $languageCode flag button."
+    }
+}
+if ($webAppText -notmatch "var currentLang = 'en';" -or
+    $webAppText -notmatch "localStorage\.getItem\('gis-lang-v2'\)" -or
+    $webAppText -match "localStorage\.getItem\('gis-lang'\)") {
+    throw 'Fresh installs must default to English and use the new language preference key.'
+}
+foreach ($requiredUiToken in @('function setLang(lang)','function applyScreenLanguage(screen)','flag-')) {
+    if ($webAppText -notmatch [regex]::Escape($requiredUiToken)) {
+        throw "Language UI is missing required wiring: $requiredUiToken"
+    }
+}
+
+$webServerPath = Join-Path $PSScriptRoot '..\data\src\WebServer.ps1'
+$webServerText = Get-Content -LiteralPath $webServerPath -Raw
+if ($webServerText -notmatch 'ShowMaximizedAndForeground\(\$hwnd\)' -or
+    $webServerText -notmatch '\$attempt -lt 30') {
+    throw 'The post-apply Explorer folder must be located, maximized and focused.'
+}
+$modernDialogText = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\src\ModernDialogs.ps1') -Raw
+if ($modernDialogText -notmatch 'WatchAndMaximizeDialog\(dialogTitle, activeOwner\)' -or
+    $modernDialogText -notmatch 'dialog\.Show\(activeOwner\)') {
+    throw 'Native file/folder dialogs must use the active owner and foreground/maximize watcher.'
+}
 
 function Write-Log {
     param([string]$Message,[string]$Level='INFO',[bool]$Show=$false)
