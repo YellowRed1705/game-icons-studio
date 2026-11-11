@@ -37,7 +37,7 @@ if ($webAppText -notmatch "var currentLang = 'en';" -or
     $webAppText -match "localStorage\.getItem\('gis-lang'\)") {
     throw 'Fresh installs must default to English and use the new language preference key.'
 }
-foreach ($requiredUiToken in @('function setLang(lang)','function applyScreenLanguage(screen)','lang-flag')) {
+foreach ($requiredUiToken in @('function setLang(lang)','function applyScreenLanguage(screen)','lang-flag','scanIconSearchOnly','res.item.iconSearchOnly','it.iconSearchOnly')) {
     if ($webAppText -notmatch [regex]::Escape($requiredUiToken)) {
         throw "Language UI is missing required wiring: $requiredUiToken"
     }
@@ -49,6 +49,8 @@ if ($webServerText -notmatch 'ShowMaximizedAndForeground\(\$hwnd\)' -or
     $webServerText -notmatch '\$attempt -lt 30') {
     throw 'The post-apply Explorer folder must be located, maximized and focused.'
 }
+$webServerMixedCheck = @('ProgramIconNames','IsProgramIcon','Get-EmulatorLauncherFamily','ryujinx|ryubing')
+foreach ($token in $webServerMixedCheck) { if ($webServerText -notmatch [regex]::Escape($token)) { throw "Game Library emulator-app routing is missing: $token" } }
 $modernDialogText = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\src\ModernDialogs.ps1') -Raw
 if ($modernDialogText -notmatch 'WatchAndMaximizeDialog\(dialogTitle, activeOwner\)' -or
     $modernDialogText -notmatch 'dialog\.Show\(activeOwner\)') {
@@ -120,6 +122,27 @@ try {
     }
 
     $shell = Get-WshShell
+    # Plain emulator launcher shortcuts are app icons; ROM links with arguments are not.
+    $emulatorCases = @(
+        @{ Name = 'Cemu'; Family = 'cemu' },
+        @{ Name = 'Eden'; Family = 'eden' },
+        @{ Name = 'Ryubing'; Family = 'ryujinx' }
+    )
+    foreach ($case in $emulatorCases) {
+        $fakeExe = Join-Path $testRoot ($case.Name + '.exe')
+        $fakeLink = Join-Path $testRoot ($case.Name + '.lnk')
+        [System.IO.File]::WriteAllText($fakeExe,'test emulator executable placeholder')
+        $launcher = $shell.CreateShortcut($fakeLink)
+        $launcher.TargetPath = $fakeExe
+        $launcher.Arguments = ''
+        $launcher.Save()
+        $readBack = $shell.CreateShortcut($fakeLink)
+        $family = Get-EmulatorLauncherFamily -TargetPath ([string]$readBack.TargetPath) -Arguments ([string]$readBack.Arguments)
+        if ($family -ne $case.Family) { throw "$($case.Name) launcher was classified as '$family' instead of '$($case.Family)'." }
+        $romLaunchFamily = Get-EmulatorLauncherFamily -TargetPath ([string]$readBack.TargetPath) -Arguments '"test-game.nsp"'
+        if (-not [string]::IsNullOrWhiteSpace($romLaunchFamily)) { throw "$($case.Name) ROM shortcut was incorrectly classified as an application launcher." }
+    }
+
     $converted = $shell.CreateShortcut($convertedPath)
     $expectedExplorer = Join-Path $env:WINDIR 'explorer.exe'
     if ([string]$converted.TargetPath -ine $expectedExplorer -or
@@ -302,7 +325,7 @@ finally {
     Restore-IconBackupFile -FileRecord $newRecord -TransactionFolder $backupFolder
     if (Test-Path -LiteralPath $newShortcut) { throw 'Undo did not remove a newly generated shortcut.' }
 
-    Write-Host 'Shortcut compatibility tests passed: modern picker COM, launcher URI conversion, ROM emulator launch, ICO persistence, folder health, source URL restore and new-link undo.'
+    Write-Host 'Shortcut compatibility tests passed: modern picker COM, Cemu/Eden/Ryubing app classification, ROM launch separation, launcher URI conversion, ROM emulator launch, ICO persistence, folder health, source URL restore and new-link undo.'
 }
 finally {
     try { if ($shell) { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null } } catch { }
