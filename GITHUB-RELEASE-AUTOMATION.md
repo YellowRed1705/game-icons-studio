@@ -16,6 +16,8 @@ The release workflow supports automatic publishing and manual publishing. A comm
 4. To publish manually instead, open Actions → Build and Publish Game Icons Studio Release → Run workflow and enter the numeric version without `v`.
 5. Issue replies remain disabled for automatic releases. Enable `reply_to_issues` only on a manual run when replies should be posted; hidden markers prevent duplicates.
 
+Before release publishing, Windows CI also compiles the modern Explorer picker COM declarations and runs regression checks for launcher URI parsing/conversion, ROM-to-emulator shortcut launch settings, ICO persistence, and folder health enumeration. A failing test stops ZIP packaging and publishing.
+
 ## Packaging safety
 
 The build script uses an explicit allow-list of application files. It does not package settings, API keys, per-user caches, generated icons, logs, history, restore-point backups, or downloaded artwork. The upgrade archive contains all runtime files at archive root so extracting it directly over an existing program folder updates/merges the app without overwriting runtime user data.
