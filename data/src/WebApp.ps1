@@ -1395,7 +1395,9 @@ var screenI18n = {
 
 var statusI18n = {
   en: {
-    gettingReady:"Getting ready to re-apply…", loadingSavedChoices:"Loading your last folder and saved choices.", checkingSavedBackups:"Checking saved Icon Backups.", restoringPreviousState:"Restoring the previous Icon state…", reversingLatest:"Reversing the latest saved Icon transaction.",     chooseRepairFolder:"Choose a folder to repair…", repairFolderDetail:"Select the game library or Shortcuts folder whose Icons appear blank or white.", repairingIcons:"Repairing Shortcut Icons…", repairingDetail:"Checking persistent ICO files, rebuilding available Icons from cached Artwork, and refreshing Windows Explorer.", selectFilesDetail:"A Windows window will appear in front. Ctrl+click the Shortcuts you want to update, then click Open.", findingProgramIcons:"Finding the best Program Icons…", scanningGames:"Scanning your games…", waitingForApply:"Waiting for live progress from the actual download, build, Backup and apply steps.", stopped:"Stopped", noSupportedFiles:"No supported files or Program Shortcuts were found.", noGamesMatched:"No matchable games were found.",     noPreviousFolder:"There is no previous folder to re-apply yet. Scan a folder first.",
+    gettingReady:"Getting ready to re-apply…", loadingSavedChoices:"Loading your last folder and saved choices.", checkingSavedBackups:"Checking saved Icon Backups.", restoringPreviousState:"Restoring the previous Icon state…", reversingLatest:"Reversing the latest saved Icon transaction.",     chooseRepairFolder:"Choose a folder to repair…", repairFolderDetail:"Select the game library or Shortcuts folder whose Icons appear blank or white.", repairingIcons:"Repairing Shortcut Icons…", repairingDetail:"Checking persistent ICO files, rebuilding available Icons from cached Artwork, and refreshing Windows Explorer.", selectFilesDetail:"A Windows window will appear in front. Ctrl+click the Shortcuts you want to update, then click Open.", findingProgramIcons:"Finding the best Program Icons…", scanningGames:"Scanning your games…", waitingForApply:"Waiting for live progress from the actual download, build, Backup and apply steps.", stopped:"Stopped", noSupportedFiles:"No supported files or Program Shortcuts were found.", noGamesMatched:"No matchable games were found.",     programFilesScanning:"Finding Program and file Icons…", readingFiles:"Reading the files you selected…",
+    applyPreparing:"Preparing your Icon update…", applyStarting:"Starting the apply pipeline…", applyComplete:"All reported operations have finished.", applyFinishedDetail:"The operation has finished. Review the results below for failed or skipped items.", progressConnectionLost:"The browser lost the live progress connection. Check the CMD log before retrying, to avoid repeating an operation that may have completed.",
+        noPreviousFolder:"There is no previous folder to re-apply yet. Scan a folder first.",
     noSavedChoices:"You have no saved choices to re-apply yet.",
     noUnusedRestore:"There is no unused Restore Point yet. Apply an Icon change first to create a Backup.",
     undoConfirm:"Undo the latest Icon change from {0}? This will restore {1} item(s) and remove Shortcuts created by that change.",
@@ -1459,7 +1461,9 @@ var statusI18n = {
     notSquare:"not square"
   },
   tr: {
-    gettingReady:"Quick re-apply hazırlanıyor…", loadingSavedChoices:"Son klasörün ve kayıtlı seçimlerin yükleniyor.", checkingSavedBackups:"Kayıtlı Icon Backup'ları kontrol ediliyor.", restoringPreviousState:"Önceki Icon durumu geri yükleniyor…", reversingLatest:"En son kaydedilen Icon işlemi geri alınıyor.",     chooseRepairFolder:"Onarılacak klasörü seç…", repairFolderDetail:"Icon'ları beyaz veya bozuk görünen Game Library ya da Shortcut klasörünü seç.", repairingIcons:"Shortcut Icon'ları onarılıyor…", repairingDetail:"Kalıcı ICO dosyaları kontrol ediliyor, Cache içindeki Artwork ile yeniden oluşturulabilenler hazırlanıyor ve Windows Explorer yenileniyor.", selectFilesDetail:"Önde bir Windows penceresi açılacak. Güncellemek istediğin Shortcut'ları Ctrl+tıklayarak seç, ardından Open'a bas.", findingProgramIcons:"En uygun Program Icon'ları aranıyor…", scanningGames:"Oyunların taranıyor…", waitingForApply:"Gerçek indirme, Icon oluşturma, Backup ve uygulama işlemlerinden canlı ilerleme bekleniyor.", stopped:"Durduruldu", noSupportedFiles:"Desteklenen dosya veya Program Shortcut bulunamadı.", noGamesMatched:"Eşleştirilebilen oyun bulunamadı.",     noPreviousFolder:"Quick re-apply için kullanılabilecek önceki bir klasör yok. Önce bir klasör tara.",
+    gettingReady:"Quick re-apply hazırlanıyor…", loadingSavedChoices:"Son klasörün ve kayıtlı seçimlerin yükleniyor.", checkingSavedBackups:"Kayıtlı Icon Backup'ları kontrol ediliyor.", restoringPreviousState:"Önceki Icon durumu geri yükleniyor…", reversingLatest:"En son kaydedilen Icon işlemi geri alınıyor.",     chooseRepairFolder:"Onarılacak klasörü seç…", repairFolderDetail:"Icon'ları beyaz veya bozuk görünen Game Library ya da Shortcut klasörünü seç.", repairingIcons:"Shortcut Icon'ları onarılıyor…", repairingDetail:"Kalıcı ICO dosyaları kontrol ediliyor, Cache içindeki Artwork ile yeniden oluşturulabilenler hazırlanıyor ve Windows Explorer yenileniyor.", selectFilesDetail:"Önde bir Windows penceresi açılacak. Güncellemek istediğin Shortcut'ları Ctrl+tıklayarak seç, ardından Open'a bas.", findingProgramIcons:"En uygun Program Icon'ları aranıyor…", scanningGames:"Oyunların taranıyor…", waitingForApply:"Gerçek indirme, Icon oluşturma, Backup ve uygulama işlemlerinden canlı ilerleme bekleniyor.", stopped:"Durduruldu", noSupportedFiles:"Desteklenen dosya veya Program Shortcut bulunamadı.", noGamesMatched:"Eşleştirilebilen oyun bulunamadı.",     programFilesScanning:"Program ve dosya Icon'ları bulunuyor…", readingFiles:"Seçtiğin dosyalar okunuyor…",
+    applyPreparing:"Icon güncellemesi hazırlanıyor…", applyStarting:"Apply işlemi başlatılıyor…", applyComplete:"Bildirilen tüm işlemler tamamlandı.", applyFinishedDetail:"İşlem tamamlandı. Başarısız veya atlanan öğeleri aşağıdaki sonuçlardan incele.", progressConnectionLost:"Tarayıcı ile canlı ilerleme bağlantısı kesildi. Tamamlanmış olabilecek bir işlemi tekrarlamamak için yeniden denemeden önce CMD log'unu kontrol et.",
+        noPreviousFolder:"Quick re-apply için kullanılabilecek önceki bir klasör yok. Önce bir klasör tara.",
     noSavedChoices:"Yeniden uygulanabilecek kayıtlı seçim bulunamadı.",
     noUnusedRestore:"Henüz kullanılmamış Restore Point yok. Önce bir Icon değişikliği uygula.",
     undoConfirm:"{0} tarihli son Icon değişikliğini geri alalım mı? {1} öğeyi geri yükleyecek ve bu işlemde oluşturulan Shortcut'ları kaldıracak.",
@@ -1523,7 +1527,9 @@ var statusI18n = {
     notSquare:"kare değil"
   },
   ar: {
-    gettingReady:"جارٍ التحضير لإعادة التطبيق…", loadingSavedChoices:"جارٍ تحميل المجلد السابق والاختيارات المحفوظة.", checkingSavedBackups:"جارٍ فحص نسخ الأيقونات الاحتياطية المحفوظة.", restoringPreviousState:"جارٍ استعادة حالة الأيقونات السابقة…", reversingLatest:"جارٍ التراجع عن أحدث عملية أيقونات محفوظة.",     chooseRepairFolder:"اختر مجلداً لإصلاحه…", repairFolderDetail:"اختر Game Library أو مجلد Shortcuts الذي تظهر أيقوناته بيضاء أو تالفة.", repairingIcons:"جارٍ إصلاح أيقونات الاختصارات…", repairingDetail:"جارٍ فحص ملفات ICO الدائمة وإعادة إنشاء الأيقونات من Artwork المخزّنة عند توفرها ثم تحديث Windows Explorer.", selectFilesDetail:"ستظهر نافذة Windows في المقدمة. حدّد الاختصارات المطلوبة باستخدام Ctrl ثم اضغط Open.", findingProgramIcons:"جارٍ العثور على أفضل أيقونات البرامج…", scanningGames:"جارٍ فحص الألعاب…", waitingForApply:"بانتظار تقدم مباشر من عمليات التنزيل وإنشاء الأيقونات والنسخ الاحتياطي والتطبيق الفعلية.", stopped:"متوقف", noSupportedFiles:"لم يتم العثور على ملفات مدعومة أو اختصارات برامج.", noGamesMatched:"لم يتم العثور على ألعاب قابلة للمطابقة.",     noPreviousFolder:"لا يوجد مجلد سابق لإعادة التطبيق عليه. افحص مجلداً أولاً.",
+    gettingReady:"جارٍ التحضير لإعادة التطبيق…", loadingSavedChoices:"جارٍ تحميل المجلد السابق والاختيارات المحفوظة.", checkingSavedBackups:"جارٍ فحص نسخ الأيقونات الاحتياطية المحفوظة.", restoringPreviousState:"جارٍ استعادة حالة الأيقونات السابقة…", reversingLatest:"جارٍ التراجع عن أحدث عملية أيقونات محفوظة.",     chooseRepairFolder:"اختر مجلداً لإصلاحه…", repairFolderDetail:"اختر Game Library أو مجلد Shortcuts الذي تظهر أيقوناته بيضاء أو تالفة.", repairingIcons:"جارٍ إصلاح أيقونات الاختصارات…", repairingDetail:"جارٍ فحص ملفات ICO الدائمة وإعادة إنشاء الأيقونات من Artwork المخزّنة عند توفرها ثم تحديث Windows Explorer.", selectFilesDetail:"ستظهر نافذة Windows في المقدمة. حدّد الاختصارات المطلوبة باستخدام Ctrl ثم اضغط Open.", findingProgramIcons:"جارٍ العثور على أفضل أيقونات البرامج…", scanningGames:"جارٍ فحص الألعاب…", waitingForApply:"بانتظار تقدم مباشر من عمليات التنزيل وإنشاء الأيقونات والنسخ الاحتياطي والتطبيق الفعلية.", stopped:"متوقف", noSupportedFiles:"لم يتم العثور على ملفات مدعومة أو اختصارات برامج.", noGamesMatched:"لم يتم العثور على ألعاب قابلة للمطابقة.",     programFilesScanning:"جارٍ العثور على أيقونات البرامج والملفات…", readingFiles:"جارٍ قراءة الملفات التي اخترتها…",
+    applyPreparing:"جارٍ تجهيز تحديث الأيقونات…", applyStarting:"جارٍ بدء عملية التطبيق…", applyComplete:"اكتملت جميع العمليات المبلغ عنها.", applyFinishedDetail:"اكتملت العملية. راجع النتائج أدناه للعناصر التي فشلت أو تم تخطيها.", progressConnectionLost:"انقطع الاتصال المباشر بين المتصفح والتقدم. تحقق من سجل CMD قبل إعادة المحاولة لتجنب تكرار عملية ربما اكتملت بالفعل.",
+        noPreviousFolder:"لا يوجد مجلد سابق لإعادة التطبيق عليه. افحص مجلداً أولاً.",
     noSavedChoices:"لا توجد اختيارات محفوظة لإعادة تطبيقها.",
     noUnusedRestore:"لا توجد Restore Point غير مستخدمة. طبّق تغييراً للأيقونات أولاً لإنشاء Backup.",
     undoConfirm:"هل تريد التراجع عن أحدث تغيير للأيقونات بتاريخ {0}؟ سيستعيد {1} عنصراً ويحذف الاختصارات التي أنشأها هذا التغيير.",
@@ -2702,7 +2708,7 @@ function startChangeIcons(anyFiles){
   api('/api/change-files', {}).then(function(){
     pollDialog(function(res){
       if (!res.ok || !res.files || !res.files.length){ goHome(); return; }
-      setLoading(state.iconSearchOnly ? 'Finding program and file icons...' : 'Scanning SteamGridDB for your games...', 'Reading the files you picked...', 0);
+      setLoading(state.iconSearchOnly ? statusText('programFilesScanning') : statusText('scanningGames'), statusText('readingFiles'), 0);
       api('/api/scan-files-begin', { files: res.files, iconSearchOnly: state.iconSearchOnly }).then(function(r2){
         if (!r2.ok){ alert(r2.error || 'Could not read those files.'); goHome(); return; }
         beginScanLoop(r2.total);
@@ -3336,7 +3342,7 @@ function applyAll(){
   state._applyConfirmed = false;
   setProgress(2);
   state._applyProgressPhase = '';
-  setLoading('Preparing your icon update…', 'Starting the apply pipeline…', 0);
+  setLoading(statusText('applyPreparing'), statusText('applyStarting'), 0);
   $('loadDetail').textContent = statusText('waitingForApply');
   $('autoFeed').innerHTML = '';
   var picks = state.items.map(function(it){
@@ -3376,18 +3382,16 @@ function applyAll(){
       $('loadFill').style.width = '100%';
       $('loadPercent').textContent = '100%';
       $('loadBar').setAttribute('aria-valuenow', '100');
-      $('loadCounter').textContent = failedResult > 0 ? (updatedResult + ' / ' + totalResult + ' updated · ' + failedResult + ' failed') : 'Complete';
+      $('loadCounter').textContent = failedResult > 0 ? (updatedResult + ' / ' + totalResult + ' ' + i18n[currentLang].statUpdated.toLowerCase() + ' · ' + failedResult + ' ' + i18n[currentLang].statFailed.toLowerCase()) : statusText('complete');
       $('loadingMsg').textContent = failedResult > 0 ? statusText('finishedIssues') : statusText('shelfReady');
-      $('loadDetail').textContent = failedResult > 0
-        ? 'The real operation has finished. Review the results below for failed or skipped items.'
-        : 'All reported operations have finished.';
+      $('loadDetail').textContent = failedResult > 0 ? statusText('applyFinishedDetail') : statusText('applyComplete');
     }
     setTimeout(function(){ renderReport(result.report); }, 500);
   }).catch(function(error){
     $('loadingMsg').textContent = statusText('progressInterrupted');
     $('loadDetail').textContent = (error && error.message) ? error.message : 'The server did not return progress data. Check the application log.';
     $('loadCounter').textContent = statusText('checkStatus');
-    alert('The browser lost the live progress connection. Please check the CMD log before retrying, to avoid repeating an operation that may have completed.');
+    alert(statusText('progressConnectionLost'));
   });
 }
 
