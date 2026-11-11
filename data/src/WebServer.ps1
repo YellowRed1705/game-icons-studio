@@ -1,5 +1,5 @@
 # ============================================================
-#  WebServer.ps1 (v6.43) - Local browser-driven mode
+#  WebServer.ps1 (v6.44) - Local browser-driven mode
 #  A tiny HttpListener server on http://localhost:PORT that
 #  serves a single-page web app and a small JSON API. The whole
 #  workflow (folder pick, scan, match, cover choice, apply, live
@@ -648,6 +648,40 @@ function Invoke-WebRoute {
             }
         }
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; covers = $covers })
+        return
+    }
+
+    if ($path -eq '/api/search-games' -and $method -eq 'POST') {
+        $bodyText = Read-RequestBody -Context $Context
+        $body = $null
+        try { $body = $bodyText | ConvertFrom-Json } catch { }
+        $query = if ($body -and $body.query) { ([string]$body.query).Trim() } else { '' }
+        if ($query.Length -lt 2 -or $query.Length -gt 120) {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'Enter a game title between 2 and 120 characters.' })
+            return
+        }
+        $apiKey = [string]$Session.Ctx.ApiKey
+        if ([string]::IsNullOrWhiteSpace($apiKey)) {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'API_KEY_REQUIRED' })
+            return
+        }
+        try {
+            $matches = @(Get-SgdbGameCandidates -ApiKey $apiKey -Query $query -Top 12)
+            $candidates = @($matches | ForEach-Object {
+                @{
+                    gameId = [int]$_.GameId
+                    gameName = [string]$_.Name
+                    year = [int]$_.Year
+                    score = [int]([double]$_.Score * 100)
+                }
+            })
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; count = $candidates.Count; candidates = $candidates })
+        } catch [System.UnauthorizedAccessException] {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'SteamGridDB rejected the API key.' })
+        } catch {
+            Write-Log "Manual SteamGridDB search failed for '$query': $($_.Exception.Message)" 'WARN'
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'SteamGridDB game search failed. Check the API Key and try again.' })
+        }
         return
     }
 
