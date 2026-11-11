@@ -1,5 +1,5 @@
 # ============================================================
-#  Main.ps1 - Game Icons Studio (v6.38)
+#  Main.ps1 - Game Icons Studio (v6.39)
 #  Menu: Full Auto | Smart Auto | Manual | Selected Files Only
 #        Revision | Manual Search | Rebuild | Cache
 # ============================================================
@@ -30,6 +30,7 @@ if ([string]::IsNullOrWhiteSpace($Root)) { $Root = $ScriptDir }
 . (Join-Path $ScriptDir 'IconBackup.ps1')
 . (Join-Path $ScriptDir 'Maintenance.ps1')
 . (Join-Path $ScriptDir 'SelectionPage.ps1')
+. (Join-Path $ScriptDir 'ModernDialogs.ps1')
 . (Join-Path $ScriptDir 'Workflows.ps1')
 . (Join-Path $ScriptDir 'WebServer.ps1')
 . (Join-Path $ScriptDir 'WebApp.ps1')
@@ -37,7 +38,7 @@ if ([string]::IsNullOrWhiteSpace($Root)) { $Root = $ScriptDir }
 function Show-Banner {
     Write-Host ''
     Write-Host '  ============================================================' -ForegroundColor DarkCyan
-    Write-Host '   GAME ICONS STUDIO  v6.38' -ForegroundColor Cyan
+    Write-Host '   GAME ICONS STUDIO  v6.39' -ForegroundColor Cyan
     Write-Host '   Game and app icons, with safe restore history.' -ForegroundColor Gray
     Write-Host '   Find game covers and app icons. Modernize your shortcuts.' -ForegroundColor DarkGray
     Write-Host '  ============================================================' -ForegroundColor DarkCyan
