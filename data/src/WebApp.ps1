@@ -922,6 +922,8 @@ var i18n = {
     descProgramIcons: "ابحث عن أيقونات التطبيقات في صور جوجل أو ياندكس وطبّقها على الاختصارات.",
     btnAnyFiles: "أي ملفات وسكربتات",
     descAnyFiles: "اختر ملفات EXE وBAT وCMD وPS1 وغيرها. يتم إنشاء اختصار منفصل للأيقونات المخصصة.",
+    btnGameFiles: "مجلد ملفات الألعاب",
+    descGameFiles: "افحص مجلد اللعبة بحثاً عن ملفات EXE والاختصارات، وأنشئ اختصارات Windows قابلة للتخصيص.",
     programFolderTitle: "اختر مجلد اختصارات البرامج",
     programFolderSub: "اختر المجلد الذي يحتوي على اختصارات التطبيقات والبرامج، أو الصق مساره.",
     programScanBtn: "فحص الاختصارات واختيار الأيقونات ←",
@@ -1020,6 +1022,8 @@ var i18n = {
     descProgramIcons: "Search Google or Yandex Images for app icons and apply them to shortcuts.",
     btnAnyFiles: "Any Files & Scripts",
     descAnyFiles: "Choose .exe, .bat, .cmd, .ps1 and other files. Custom icon shortcuts are created beside regular files.",
+    btnGameFiles: "Game Files Folder",
+    descGameFiles: "Scan a game folder for playable EXE files and launchers. Create working Windows shortcuts with matching game icons.",
     programFolderTitle: "Choose your program shortcuts folder",
     programFolderSub: "Select the folder that contains your program and app shortcuts, or paste its path.",
     programScanBtn: "Scan shortcuts & choose icons →",
@@ -1158,6 +1162,10 @@ function applyLang() {
     if (homeBtns.length >= 7) {
       homeBtns[6].querySelector('.t').textContent = t.btnAnyFiles || i18n.en.btnAnyFiles;
       homeBtns[6].querySelector('.d').textContent = t.descAnyFiles || i18n.en.descAnyFiles;
+    }
+    if (homeBtns.length >= 8) {
+      homeBtns[7].querySelector('.t').textContent = t.btnGameFiles || i18n.en.btnGameFiles;
+      homeBtns[7].querySelector('.d').textContent = t.descGameFiles || i18n.en.descGameFiles;
     }
   }
 
@@ -1720,6 +1728,7 @@ function repairIconCache(){
 
 // ---- FULL SCAN flow ----
 function startFullScan(iconSearchOnly){
+  state.gameFilesSummary = '';
   state.mode = 'full';
   state.targetMode = 'shortcuts';
   state.iconSearchOnly = !!iconSearchOnly;
@@ -2023,6 +2032,7 @@ function scanAllInstead(){
 
 // ---- CHANGE ICONS flow ----
 function startChangeIcons(anyFiles){
+  state.gameFilesSummary = '';
   state.mode = 'change';
   state.iconSearchOnly = !!anyFiles;
   state.targetMode = 'shortcuts';
