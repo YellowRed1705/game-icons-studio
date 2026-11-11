@@ -5,6 +5,7 @@
 - Makes Game Library Folder the primary home-screen action and keeps the legacy Shortcuts Only mode separate.
 - Recursively inspects existing Windows .lnk links, recognized .url launchers, .exe files, .bat/.cmd scripts and supported emulator ROM formats.
 - Uses LiteralPath and Force during folder discovery so hidden entries and paths containing wildcard characters are enumerated correctly.
+- Filters the recursive file stream to supported shortcut, launcher, executable, script and ROM extensions before materializing the result list, reducing memory use in large game folders.
 - Reuses existing shortcuts and checks their file targets/arguments before creating companions, reducing duplicate game links.
 - Filters common installer, uninstaller, crash reporter, anti-cheat and redistributable helpers; also skips common launcher/emulator utility applications from game matching when their shortcut has no game arguments.
 - Caps a folder scan at 1,000 launchable entries and reports entries left untouched above the safety limit.
