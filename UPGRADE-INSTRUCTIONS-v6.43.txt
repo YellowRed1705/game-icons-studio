@@ -1,0 +1,14 @@
+Game Icons Studio v6.43 — Upgrade Instructions
+
+1. Close Game Icons Studio completely.
+2. Download Game-Icons-Studio-v6.43-Upgrade.zip from GitHub Releases.
+3. Extract the ZIP contents over the existing Game Icons Studio program folder and approve application-file replacement.
+4. Start Game Icons Studio.bat.
+5. Run Game Library Folder again for your gaming folder.
+
+What changed
+- Cemu, Eden and Ryubing launcher shortcuts are included in Game Library artwork matching.
+- These emulator applications use Program & App Icons search. Normal game shortcuts keep the SteamGridDB game-artwork flow.
+- ROM/game shortcuts that target an emulator with command-line arguments remain game entries. Their launch targets and arguments are preserved.
+
+The update changes only scan classification and selected icon artwork. It does not rewrite existing shortcut launch commands.
