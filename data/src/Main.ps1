@@ -256,6 +256,13 @@ function Resolve-Shortcuts {
         ForEach-Object { $_.NormalizedName } | Sort-Object -Unique)
     Write-Log "Unique game names to resolve: $($uniqueNames.Count)" 'INFO'
 
+    $safeNameCounts = @{}
+    foreach ($candidateName in $uniqueNames) {
+        $candidateSafe = Get-SafeFileName -Name ([string]$candidateName)
+        if (-not $safeNameCounts.ContainsKey($candidateSafe)) { $safeNameCounts[$candidateSafe] = 0 }
+        $safeNameCounts[$candidateSafe]++
+    }
+
     $idx = 0
     foreach ($nameRaw in $uniqueNames) {
         $name = [string]$nameRaw
@@ -271,6 +278,14 @@ function Resolve-Shortcuts {
         if (-not $Force -and -not [string]::IsNullOrWhiteSpace([string]$cachedIcoPath)) {
             $resolutions[$name] = @{ IcoPath = $cachedIcoPath; Cached = $true; Failed = $false; GameName = $name; Score = 1.0 }
             Write-Log "$tag '$name' -> immutable cached icon reused: $cachedIcoPath" 'DEBUG'
+            continue
+        }
+        # Preserve the legacy cache when the sanitized name is unambiguous.
+        # If two different items collapse to the same safe name, rebuild both
+        # into identity-specific paths rather than sharing a legacy ICO.
+        if (-not $Force -and $safeNameCounts[$safe] -le 1 -and (Test-ValidIcoFile -Path $icoPath)) {
+            $resolutions[$name] = @{ IcoPath = $icoPath; Cached = $true; Failed = $false; GameName = $name; Score = 1.0 }
+            Write-Log "$tag '$name' -> legacy cached icon preserved until an explicit Rebuild." 'DEBUG'
             continue
         }
 
@@ -674,7 +689,7 @@ function Invoke-ApplyPipeline {
             # The destination is immutable and derived from the actual output
             # bytes, not merely the shortcut name or source URL.
             $safeForIcon = Get-SafeFileName -Name $name
-            $publishedIcoPath = Publish-ContentAddressedIco -StagingPath $stagingIcoPath -IconsDir $Ctx.IconsDir -SafeName $safeForIcon
+            $publishedIcoPath = Publish-ContentAddressedIco -StagingPath $stagingIcoPath -IconsDir $Ctx.IconsDir -SafeName $safeForIcon -IdentityKey $name
             $r.IcoPath = $publishedIcoPath
             Write-Log "Content-addressed ICO ready: $([System.IO.Path]::GetFileName($publishedIcoPath))" 'DEBUG' $true
         } catch {
