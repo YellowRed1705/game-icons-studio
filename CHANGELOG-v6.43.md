@@ -14,6 +14,9 @@ The Game Library folder scanner deliberately excluded existing emulator launcher
 - Preserve the emulator executable map for ROM companion Shortcut creation; no existing launch target or arguments are rewritten by discovery.
 - Add Windows CI tests that create actual .lnk files for Cemu, Eden and Ryubing and verify ROM-launch links are not misclassified.
 
+## CI validation follow-up
+- Repair the pre-existing unterminated content-addressed ICO test assertion so the Windows PowerShell parser can reach the new emulator shortcut regression tests.
+
 ## Upgrade
 - Full package: Game-Icons-Studio-v6.43.zip.
 - Existing installation: close Game Icons Studio and extract the Upgrade ZIP over the existing application folder.
