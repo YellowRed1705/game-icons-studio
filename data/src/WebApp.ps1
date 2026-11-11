@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.44) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.45) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio v6.44</title>
+<title>Game Icons Studio v6.45</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {
@@ -210,19 +210,52 @@ function Get-WebAppHtml {
     display:flex; align-items:center; justify-content:center; margin-top:1px; }
   .btn-row { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
 
-  /* HOME */
+  /* HOME: compact dashboard; all eight primary actions fit without page scrolling on desktop. */
+  #step-home { padding:15px 22px; gap:9px; max-height:none; overflow:visible; }
   .home-hero { text-align:center; }
-  .home-hero h2 { font-size:1.9rem; margin-bottom:6px; }
-  .home-hero p { color:var(--muted); margin:0; }
-  .home-grid { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
-  .home-btn { width:230px; min-height:190px; background:var(--panel2); border:1px solid var(--line);
-    border-radius:16px; padding:24px; cursor:pointer; display:flex; flex-direction:column;
-    align-items:center; gap:12px; text-align:center; transition:transform .12s, border-color .12s; color:var(--text); }
-  .home-btn:hover { transform:translateY(-3px); border-color:var(--accent); }
-  .home-btn.focus { border-color:var(--accent2); transform:translateY(-3px); }
-  .home-btn .ic { width:60px; height:60px; }
-  .home-btn .t { font-size:1.05rem; font-weight:700; }
-  .home-btn .d { font-size:.82rem; color:var(--muted); line-height:1.35; }
+  .home-hero h2 { font-size:1.45rem; line-height:1.15; margin:0 0 3px; }
+  .home-hero p { color:var(--muted); margin:0; font-size:.82rem; line-height:1.25; }
+  .home-grid {
+    display:grid; grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:10px; width:100%; margin-top:0; align-items:stretch;
+  }
+  .home-btn {
+    width:auto; min-width:0; min-height:0; height:clamp(124px,17vh,146px);
+    background:var(--panel2); border:1px solid var(--line); border-radius:13px;
+    padding:10px 12px; cursor:pointer; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:5px; text-align:center;
+    transition:transform .12s,border-color .12s; color:var(--text); overflow:hidden;
+  }
+  .home-btn:hover { transform:translateY(-2px); border-color:var(--accent); }
+  .home-btn.focus { border-color:var(--accent2); transform:translateY(-2px); }
+  .home-btn .ic { width:36px; height:36px; flex:0 0 36px; }
+  .home-btn .t { font-size:.9rem; line-height:1.15; font-weight:700; }
+  .home-btn .d {
+    max-width:100%; font-size:.72rem; color:var(--muted); line-height:1.22;
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3;
+    line-clamp:3; overflow:hidden;
+  }
+  .home-tools { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:1px; }
+  .home-tools .tool-btn { font-size:.76rem; padding:6px 11px; }
+  #step-home > .kbd-hint { font-size:.68rem; line-height:1.1; }
+  @media (max-width:780px) {
+    #step-home { padding:14px; gap:10px; }
+    .home-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    .home-btn { height:auto; min-height:128px; padding:12px 10px; }
+    .home-btn .ic { width:34px; height:34px; flex-basis:34px; }
+    .home-btn .d { -webkit-line-clamp:3; line-clamp:3; }
+    .home-tools { gap:6px; }
+    .home-tools .tool-btn { font-size:.72rem; padding:6px 8px; }
+  }
+  @media (max-height:620px) and (min-width:781px) {
+    #step-home { padding:9px 16px; gap:6px; }
+    .home-grid { gap:7px; }
+    .home-btn { height:112px; padding:7px 9px; gap:3px; }
+    .home-btn .ic { width:28px; height:28px; flex-basis:28px; }
+    .home-btn .t { font-size:.82rem; }
+    .home-btn .d { font-size:.66rem; -webkit-line-clamp:2; line-clamp:2; }
+    .home-tools .tool-btn { padding:4px 9px; }
+  }
 
   .match-row { display:flex; gap:28px; align-items:center; justify-content:center; flex-wrap:wrap; }
   .cover-main { width:min(260px,40vw); height:min(260px,40vw); border-radius:16px; object-fit:cover;
