@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.39
+# Game Icons Studio v6.40
 
 ### From generic icons to a game shelf.
 
@@ -44,6 +44,9 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 
 - 🎮 **Game artwork matching** — finds candidate game artwork through SteamGridDB and lets you review results before applying.
 - 🗂️ **Game Library scan** — recursively inspect `.lnk`, registered `.url` launcher links, `.exe`, `.bat`, `.cmd`, and common emulator ROM formats. Create normal Windows `.lnk` shortcuts, reuse existing launchers, and keep original game files untouched.
+- 🪟 **Maximized, focused Windows dialogs** — native folder/file pickers and post-apply Explorer windows are restored, maximized, and brought to the foreground; Explorer opens in Large Icons view.
+- 🌐 **Three-language interface** — switch between English 🇬🇧, Türkçe 🇹🇷 and العربية 🇸🇦 with a compact flag selector. Fresh installs default to English; the selected language is remembered.
+- 🗺️ **Localized workflow** — setup, scans, restore, repair, image search, progress, help and picker captions are translated throughout the interface.
 - 🧩 **Program & app icons** — search brand/software icon candidates and discover images for application shortcuts.
 - 🔎 **Image search shortcuts** — open Google Images or Yandex Images for additional options.
 - 🖼️ **Use your own artwork** — select an image from disk, drag and drop it, paste it with Ctrl+V, or load it from an image URL.
@@ -55,10 +58,22 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 - 🧰 **Icon-cache repair** — help refresh blank or stale icons displayed by Windows.
 - 🎨 **Multiple themes** — Aurora Glass is the default theme, with other themes available.
 
-## What's new in v6.30–v6.39
+## What's new in v6.30–v6.40
 
 These release notes are an addition to the original introduction above. The logo, demo, before-and-after image, and original page structure are retained.
 
+<details>
+<summary><strong>v6.40 — Foreground Windows dialogs and EN / TR / AR interface</strong></summary>
+
+- Maximizes and focuses the native Windows Common Item Dialog when folder or multi-file selection starts. The owning browser window is restored only when minimized; the picker is brought to the foreground rather than left minimized or behind other windows.
+- Opens the post-apply Explorer folder maximized and focused, then sets its view to Large Icons so the changed artwork is visible immediately.
+- Replaces the single English/Arabic text-toggle with a compact flag-based EN / TR / AR language selector. English is the default for fresh installs; language choice is saved independently from the legacy `gis-lang` key.
+- Adds complete Turkish translations while preserving established technical terms such as `Shortcut`, `Icon`, `ROM`, `Launcher`, `Preview`, `Grid`, `Apply`, `Restore Point`, and `Cache` in English.
+- Expands Arabic and English screen coverage and localizes operational messages, scan counters, estimated duration, game-library summaries, repair results, image candidate metadata, themes, picker titles and accessibility labels.
+- Re-renders data-driven screens such as History, Restore Points, Report, matching and artwork Preview when the language changes.
+- Adds Windows CI source-contract checks for the foreground/maximize window helpers, Explorer behavior, language switcher, default-English preference and localized picker wiring.
+
+</details>
 <details>
 <summary><strong>v6.39 — Game Library, launcher conversion, modern dialogs and repair</strong></summary>
 
@@ -149,7 +164,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.39.md](CHANGELOG-v6.39.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.40.md](CHANGELOG-v6.39.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 
