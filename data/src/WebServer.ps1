@@ -1508,7 +1508,10 @@ function Start-WebScanGameFolder {
                 foreach ($profile in $emulatorProfiles) {
                     if ($targetLeaf -match $profile.Pattern) { $skipAsEmulatorUtility = $true; break }
                 }
-                if (-not $skipAsEmulatorUtility -and $targetLeaf -match '^(?i:steam|steamwebhelper|epicgameslauncher|epiconlineServices|ubisoftconnect|ubisoftgamelauncher|upc|uplay|battle\.net|eadesktop|origin|goggalaxy|galaxyclient|xbox|gamingservicesui|playnite|amazongames|heroic)
+                $launcherClientNames = @('steam','steamwebhelper','epicgameslauncher','epiconlineservices','ubisoftconnect','ubisoftgamelauncher','upc','uplay','battle.net','eadesktop','origin','goggalaxy','galaxyclient','xbox','gamingservicesui','playnite','amazongames','heroic')
+                if (-not $skipAsEmulatorUtility -and $launcherClientNames -contains $targetLeaf.ToLowerInvariant()) {
+                    $skipAsEmulatorUtility = $true
+                }
         } catch { }
         if ($skipAsEmulatorUtility) {
             $excludedLauncherApps++
