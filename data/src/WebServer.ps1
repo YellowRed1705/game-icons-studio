@@ -809,49 +809,6 @@ function Invoke-WebRoute {
         return
     }
 
-    if ($path -eq '/api/search-images' -and $method -eq 'POST') {
-        $bodyText = Read-RequestBody -Context $Context
-        $body = $null
-        try { $body = $bodyText | ConvertFrom-Json } catch { }
-        $query = if ($body -and $body.name) { ([string]$body.name).Trim() } else { '' }
-        $provider = if ($body -and $body.provider) { ([string]$body.provider).ToLowerInvariant() } else { 'both' }
-        if ($provider -notin @('both','google','yandex')) { $provider = 'both' }
-        if ([string]::IsNullOrWhiteSpace($query) -or $query.Length -gt 160) {
-            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'Enter a program name up to 160 characters.'; candidates = @() })
-            return
-        }
-        try {
-            $candidates = @(Get-OnlineProgramIconCandidates -Query $query -Provider $provider -MaxResults 80 -Session $Session)
-            $toImageItem = {
-                param($candidate)
-                @{
-                    url=[string]$candidate.Url
-                    thumb=[string]$candidate.Thumb
-                    source=[string]$candidate.Source
-                    title=[string]$candidate.Title
-                    width=[int]$candidate.Width
-                    height=[int]$candidate.Height
-                    score=[int]$candidate.Score
-                    searchPage=[string]$candidate.SearchPage
-                }
-            }
-            $items = @($candidates | Select-Object -First 30 | ForEach-Object { & $toImageItem $_ })
-            $googleTop5 = @($candidates | Where-Object { [string]$_.Source -eq 'Google Images' } | Select-Object -First 5 | ForEach-Object { & $toImageItem $_ })
-            $yandexTop5 = @($candidates | Where-Object { [string]$_.Source -eq 'Yandex Images' } | Select-Object -First 5 | ForEach-Object { & $toImageItem $_ })
-            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{
-                ok = $true
-                count = $items.Count
-                candidates = $items
-                googleTop5 = $googleTop5
-                yandexTop5 = $yandexTop5
-                provider = $provider
-            })
-        } catch {
-            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'Image search could not retrieve candidates. Open Google/Yandex in a tab or drag an image into the preview.'; candidates = @() })
-        }
-        return
-    }
-
     if ($path -eq '/api/fetch-remote-image' -and $method -eq 'POST') {
         $bodyText = Read-RequestBody -Context $Context
         $body = $null
