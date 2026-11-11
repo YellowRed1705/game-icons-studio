@@ -1298,7 +1298,8 @@ var screenI18n = {
     onlineStatus:"Showing candidates discovered during the automatic scan.",
     dropHelp:"Drag an image from Google Images or Yandex Images here. You can also right-click it and choose Copy image, then press Ctrl+V, or click to browse your PC.",
     previewTitle:"ICON PREVIEW (1:1)", previewDropTitle:"You can also drop an image directly onto this Preview", canvasDropTitle:"Drop an image here to Preview it", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"Load URL", cancelSkip:"← Cancel / Skip",
-    homeHeader:"⌂ Home", aboutHeader:"❔ What is GIS?", summaryHeader:"↶ Summary",
+        retentionOptions:["Last 10 versions","Last 25 versions","Last 50 versions","Last 100 versions","Unlimited (uses more disk space)"],
+homeHeader:"⌂ Home", aboutHeader:"❔ What is GIS?", summaryHeader:"↶ Summary",
     fullScreen:"⛶ Fullscreen", exitFullscreen:"⛶ Exit Fullscreen", quit:"Quit",
     gameFilesTitle:"Find games inside a folder", gameFilesDesc:"Scan launcher links, game files and ROMs recursively. Existing Shortcuts are kept; original files stay untouched.", gameFilesButton:"Scan game library",
     repairSummary:"Icon repair results", altIconMatch:"Choose a different match", iconReviewTitle:"Review this program / file icon", iconSearchHint:"Review the Preview. You can choose a different image from Google, Yandex or your PC.", programIconTitle:"Choose a program icon", altIconResults:"Alternative Icon results for ", altIconTitle:"Choose an alternative Icon result", browseFolderDetail:"Choose a game installation or library folder. I will find playable EXE files, Launcher links and ROMs inside it.", browseFolderGeneric:"A Windows folder window will appear in front. Pick your games folder and click OK.",
@@ -1343,7 +1344,8 @@ var screenI18n = {
     onlineStatus:"Otomatik taramada bulunan adaylar gösteriliyor.",
     dropHelp:"Google Images veya Yandex Images'tan görseli buraya sürükle. Sağ tıklayıp Copy image seçerek Ctrl+V yapabilir ya da bilgisayarından seçmek için tıklayabilirsin.",
     previewTitle:"ICON PREVIEW (1:1)", previewDropTitle:"Bu Preview alanına da doğrudan görsel bırakabilirsin", canvasDropTitle:"Önizlemek için görseli buraya bırak", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"URL yükle", cancelSkip:"← İptal / Atla",
-    homeHeader:"⌂ Ana Sayfa", aboutHeader:"❔ GIS nedir?", summaryHeader:"↶ Summary",
+        retentionOptions:["Son 10 sürüm","Son 25 sürüm","Son 50 sürüm","Son 100 sürüm","Sınırsız (daha fazla disk alanı kullanır)"],
+homeHeader:"⌂ Ana Sayfa", aboutHeader:"❔ GIS nedir?", summaryHeader:"↶ Summary",
     fullScreen:"⛶ Tam Ekran", exitFullscreen:"⛶ Tam Ekrandan Çık", quit:"Çıkış",
     gameFilesTitle:"Klasördeki oyunları bul", gameFilesDesc:"Alt klasörler dâhil Launcher linklerini, oyun dosyalarını ve ROM'ları tara. Mevcut Shortcut'lar korunur; orijinal dosyalara dokunulmaz.", gameFilesButton:"Game Library'yi tara",
     repairSummary:"Icon onarım sonuçları", altIconMatch:"Farklı bir eşleşme seç", iconReviewTitle:"Bu Program / Dosya için Icon'u incele", iconSearchHint:"Preview'i incele. Google, Yandex veya bilgisayarından farklı bir görsel seçebilirsin.", programIconTitle:"Bir Program Icon'u seç", altIconResults:"Alternatif Icon sonuçları: ", altIconTitle:"Alternatif bir Icon sonucu seç", browseFolderDetail:"Oyun kurulum veya kütüphane klasörünü seç. İçindeki EXE dosyalarını, Launcher linklerini ve ROM'ları bulacağım.", browseFolderGeneric:"Önde bir Windows klasör penceresi açılacak. Oyun klasörünü seçip OK'e bas.",
@@ -1388,7 +1390,8 @@ var screenI18n = {
     onlineStatus:"تظهر النتائج المكتشفة أثناء الفحص التلقائي.",
     dropHelp:"اسحب صورة من Google Images أو Yandex Images إلى هنا. يمكنك أيضاً النقر بزر الفأرة الأيمن واختيار Copy image ثم الضغط على Ctrl+V، أو النقر لاختيار صورة من جهازك.",
     previewTitle:"معاينة الأيقونة (1:1)", previewDropTitle:"يمكنك أيضاً إسقاط صورة مباشرة على هذه المعاينة", canvasDropTitle:"أسقط صورة هنا لمعاينتها", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"تحميل URL", cancelSkip:"← إلغاء / تخطي",
-    homeHeader:"⌂ الرئيسية", aboutHeader:"❔ ما هو GIS؟", summaryHeader:"↶ الملخص",
+        retentionOptions:["آخر 10 إصدارات","آخر 25 إصداراً","آخر 50 إصداراً","آخر 100 إصدار","غير محدود (يستخدم مساحة أكبر من القرص)"],
+homeHeader:"⌂ الرئيسية", aboutHeader:"❔ ما هو GIS؟", summaryHeader:"↶ الملخص",
     fullScreen:"⛶ ملء الشاشة", exitFullscreen:"⛶ الخروج من ملء الشاشة", quit:"خروج",
     gameFilesTitle:"العثور على الألعاب داخل مجلد", gameFilesDesc:"افحص روابط Launcher وملفات الألعاب وROM داخل المجلدات الفرعية. تبقى الاختصارات والملفات الأصلية دون تغيير.", gameFilesButton:"فحص مكتبة الألعاب",
     repairSummary:"نتائج إصلاح الأيقونات", altIconMatch:"اختر مطابقة أخرى", iconReviewTitle:"راجع أيقونة البرنامج / الملف", iconSearchHint:"راجع Preview. يمكنك اختيار صورة أخرى من Google أو Yandex أو من جهازك.", programIconTitle:"اختر أيقونة البرنامج", altIconResults:"نتائج الأيقونات البديلة لـ ", altIconTitle:"اختر نتيجة أيقونة بديلة", browseFolderDetail:"اختر مجلد تثبيت اللعبة أو مكتبتها. سأبحث عن ملفات EXE وروابط Launcher وملفات ROM داخله.", browseFolderGeneric:"ستظهر نافذة مجلدات Windows في المقدمة. اختر مجلد الألعاب واضغط OK.",
@@ -1692,6 +1695,7 @@ function applyLang() {
   if (el('backupTitle')) el('backupTitle').textContent = t.backupTitle;
   if (el('backupSubtitle')) el('backupSubtitle').textContent = t.backupSubtitle;
   if (el('backupRetentionLabel')) el('backupRetentionLabel').textContent = t.backupRetentionLabel;
+  many('#backupRetention option', screen.retentionOptions);
   if (el('backupRefreshBtn')) el('backupRefreshBtn').textContent = screen.refresh || 'Refresh';
 
   if (typeof updateFolderScreenLabels === 'function') updateFolderScreenLabels();
@@ -1799,6 +1803,17 @@ function applyLang() {
   });
 
   applyScreenLanguage(screen);
+
+  // Rebuild the currently visible data-driven screen after a language change.
+  if (typeof visible === 'function') {
+    if (visible('step-report') && state.report && typeof renderReport === 'function') renderReport(state.report);
+    else if (visible('step-history') && typeof renderHistory === 'function') renderHistory(state._history || []);
+    else if (visible('step-backups') && typeof renderBackupList === 'function') renderBackupList(state._backups || []);
+    else if (visible('step-confirm') && typeof renderConfirm === 'function') renderConfirm();
+    else if (visible('step-artwork') && typeof showArtwork === 'function') showArtwork();
+    else if (visible('step-matches') && typeof showOtherMatches === 'function') showOtherMatches();
+    else if (visible('step-noart') && typeof renderNoArt === 'function') renderNoArt();
+  }
 }
 
 function applyScreenLanguage(screen) {
@@ -1840,6 +1855,7 @@ function applyScreenLanguage(screen) {
   // No-art, History and About
   text('#step-noart h2', screen.noArtTitle);
   text('#step-noart p[style*="max-width"]', screen.noArtDescription);
+  many('#noartBtns button', screen.noArtButtons);
   text('#step-history h2', screen.historyTitle);
   text('#step-history p.sub', screen.historySubtitle);
   placeholder('#historySearch', screen.historyPlaceholder);
@@ -1903,7 +1919,7 @@ function applyScreenLanguage(screen) {
 
 var state = {
   mode:'full', folder:'', items:[], pos:0, picks:{}, history:[],
-  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false, targetMode:'shortcuts', iconSearchOnly:false
+  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false, targetMode:'shortcuts', iconSearchOnly:false, _backups:[]
 };
 var coverCache = {};
 var currentPollId = 0;
@@ -2300,8 +2316,9 @@ function openBackups(){
   ]).then(function(results){
     var listRes = results[0] || {};
     var settingRes = results[1] || {};
+    state._backups = Array.isArray(listRes.backups) ? listRes.backups : [];
     if (settingRes.ok && $('backupRetention')) $('backupRetention').value = String(settingRes.retention);
-    renderBackupList(Array.isArray(listRes.backups) ? listRes.backups : []);
+    renderBackupList(state._backups);
     show('step-backups');
   }).catch(function(){
     $('backupList').textContent = statusText('backupListError');
@@ -2328,10 +2345,10 @@ function renderBackupList(list){
     info.className = 'hist-info';
     var name = document.createElement('div');
     name.className = 'hist-name';
-    name.textContent = (item.itemCount || 0) + ' item(s) · ' + (item.createdAt || item.id || 'Unknown date');
+    name.textContent = formatStr(statusText('backupItemCount'), [item.itemCount || 0, item.createdAt || item.id || 'Unknown date']);
     var sub = document.createElement('div');
     sub.className = 'hist-sub';
-    sub.textContent = item.restoredAt ? ('Previously restored: ' + item.restoredAt + ' · Can restore again') : 'Original shortcut/folder icon state saved';
+    sub.textContent = item.restoredAt ? formatStr(statusText('backupPreviouslyRestored'), [item.restoredAt]) : statusText('backupOriginalSaved');
     info.appendChild(name); info.appendChild(sub);
     var btn = document.createElement('button');
     btn.className = 'ghost g-good';
@@ -2363,7 +2380,7 @@ function restoreBackup(id, count){
 
 function repairIconCache(){
   setLoading(statusText('chooseRepairFolder'), statusText('repairFolderDetail'), null);
-  api('/api/browse-folder', {}).then(function(){
+  api('/api/browse-folder', { lang: currentLang }).then(function(){
     pollDialog(function(dialogResult){
       if (!dialogResult.ok || !dialogResult.folder){ goHome(); return; }
       state.folder = dialogResult.folder;
@@ -2485,7 +2502,7 @@ function browseFolder(){
   if (state.targetMode === 'folders_single'){ detail = screen.browseFolderSingle || screen.browseFolderGeneric; }
   if (state.targetMode === 'game_files'){ detail = screen.browseFolderDetail; }
   setLoading(screen.openingFolder || 'Opening the folder window...', detail, null);
-  api('/api/browse-folder', {}).then(function(){
+  api('/api/browse-folder', { lang: currentLang }).then(function(){
     pollDialog(function(res){
       if (res.ok && res.folder){
         state.folder = res.folder;
@@ -2711,7 +2728,7 @@ function startChangeIcons(anyFiles){
   state.targetMode = 'shortcuts';
   setProgress(0);
   setLoading(statusText('openingFolder'), statusText('selectFilesDetail'), null);
-  api('/api/change-files', {}).then(function(){
+  api('/api/change-files', { lang: currentLang }).then(function(){
     pollDialog(function(res){
       if (!res.ok || !res.files || !res.files.length){ goHome(); return; }
       setLoading(state.iconSearchOnly ? statusText('programFilesScanning') : statusText('scanningGames'), statusText('readingFiles'), 0);
