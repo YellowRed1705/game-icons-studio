@@ -320,3 +320,20 @@ function Restore-IconBackupTransaction {
     $message = if ($ok) { "Restored $restored item(s) to their previous icon state." } else { "Restored $restored item(s); $($failures.Count) item(s) could not be restored." }
     return @{ ok = $ok; message = $message; restoredCount = $restored; failedCount = $failures.Count; failures = @($failures.ToArray()) }
 }
+
+
+function Restore-LatestIconBackupTransaction {
+    <#
+        One-action Undo. Selects the newest restore point that has not already
+        been restored and replays the same verified transaction restore logic.
+    #>
+    param([Parameter(Mandatory)][string]$Root)
+
+    $candidates = @(Get-IconBackupTransactions -Root $Root -Limit 100 |
+        Where-Object { [string]::IsNullOrWhiteSpace([string]$_.RestoredAt) } |
+        Sort-Object { [datetime]::Parse([string]$_.CreatedAt) } -Descending)
+    if ($candidates.Count -eq 0) {
+        return @{ ok = $false; error = 'There is no unused restore point to undo.'; restoredCount = 0; failedCount = 0; failures = @() }
+    }
+    return Restore-IconBackupTransaction -Root $Root -Id ([string]$candidates[0].Id)
+}
