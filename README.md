@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.40
+# Game Icons Studio v6.41
 
 ### From generic icons to a game shelf.
 
@@ -45,7 +45,7 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 - 🎮 **Game artwork matching** — finds candidate game artwork through SteamGridDB and lets you review results before applying.
 - 🗂️ **Game Library scan** — recursively inspect `.lnk`, registered `.url` launcher links, `.exe`, `.bat`, `.cmd`, and common emulator ROM formats. Create normal Windows `.lnk` shortcuts, reuse existing launchers, and keep original game files untouched.
 - 🪟 **Maximized, focused Windows dialogs** — native folder/file pickers and post-apply Explorer windows are restored, maximized, and brought to the foreground; Explorer opens in Large Icons view.
-- 🌐 **Three-language interface** — switch between English 🇬🇧, Türkçe 🇹🇷 and العربية 🇸🇦 with a compact flag selector. Fresh installs default to English; the selected language is remembered.
+- 🌐 **Three-language interface** — switch between English, Türkçe and العربية with a compact selector using bundled SVG flags. Fresh installs default to English; the selected language is remembered.
 - 🗺️ **Localized workflow** — setup, scans, restore, repair, image search, progress, help and picker captions are translated throughout the interface.
 - 🧩 **Program & app icons** — search brand/software icon candidates and discover images for application shortcuts.
 - 🔎 **Image search shortcuts** — open Google Images or Yandex Images for additional options.
@@ -58,10 +58,22 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 - 🧰 **Icon-cache repair** — help refresh blank or stale icons displayed by Windows.
 - 🎨 **Multiple themes** — Aurora Glass is the default theme, with other themes available.
 
-## What's new in v6.30–v6.40
+## What's new in v6.30–v6.41
 
 These release notes are an addition to the original introduction above. The logo, demo, before-and-after image, and original page structure are retained.
 
+<details>
+<summary><strong>v6.41 — JavaScript recovery, persistent SVG flags and foreground picker ownership</strong></summary>
+
+- Fixes the malformed English, Turkish and Arabic operational-message dictionaries that prevented the browser JavaScript from parsing. This was the root cause of the unresponsive UI buttons.
+- Adds missing locale-object separators and removes malformed/duplicate message properties. The complete embedded browser script now passes the JavaScript syntax check.
+- Replaces emoji-dependent language flags with inline SVG flags for the United Kingdom, Türkiye and Saudi Arabia. The icons are bundled in the UI, stay crisp at small sizes and do not depend on system emoji fonts or external image hosts.
+- Keeps the language selector LTR and accessible even when Arabic RTL mode is active. The selector remains visible and uses explicit flag dimensions.
+- Moves the language preference to `gis-lang-v3` so an old saved Arabic preference cannot override the requested English-first default on the first v6.41 launch. New selections are remembered normally.
+- Captures the foreground browser window handle when a folder or multi-file picker is requested, then passes it to the native Common Item Dialog running on its STA thread. The picker can now restore/maximize itself relative to its real owner instead of guessing the foreground window from the worker thread.
+- Keeps the post-apply Explorer window in Large Icons view and explicitly restores, maximizes and foregrounds the matching folder window.
+
+</details>
 <details>
 <summary><strong>v6.40 — Foreground Windows dialogs and EN / TR / AR interface</strong></summary>
 

@@ -1,0 +1,29 @@
+Game Icons Studio v6.41 — Upgrade Instructions
+
+Recommended: make a copy of your existing Game Icons Studio folder before upgrading.
+
+1. Close Game Icons Studio completely. Use Quit in the browser and allow its CMD/PowerShell console to exit.
+2. Download `Game-Icons-Studio-v6.41.zip`.
+3. Extract the contents of the ZIP over your existing Game Icons Studio program folder.
+4. Approve replacement of application files.
+5. Start `Game Icons Studio.bat`.
+
+UI recovery
+- v6.41 repairs malformed JavaScript message dictionaries that prevented the browser UI from initializing. All existing button actions are retained.
+- The language selector uses bundled SVG flags rather than emoji glyphs.
+- The first v6.41 launch defaults to English. Choose EN, TR or AR in the header; your new selection is remembered.
+
+Windows dialogs and Explorer
+- Folder and multi-file pickers receive the current foreground browser window as their native owner. The dialog is then maximized and brought forward.
+- After Apply → Finish & open my folder, Explorer opens the processed folder in Large Icons view, maximized and focused.
+- Windows may restrict foreground activation in unusual remote-desktop or focus-stealing configurations. If another app remains in front, use Alt+Tab once.
+
+Data preservation
+The package replaces application files only. Keep your existing:
+- Settings and SteamGridDB API key
+- Icons and downloaded artwork
+- Cache
+- Logs and History
+- Restore Point files and backup transactions
+
+Do not delete these files or folders during the upgrade.

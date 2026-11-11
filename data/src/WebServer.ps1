@@ -1,5 +1,5 @@
 # ============================================================
-#  WebServer.ps1 (v6.40) - Local browser-driven mode
+#  WebServer.ps1 (v6.41) - Local browser-driven mode
 #  A tiny HttpListener server on http://localhost:PORT that
 #  serves a single-page web app and a small JSON API. The whole
 #  workflow (folder pick, scan, match, cover choice, apply, live
@@ -348,7 +348,8 @@ function Invoke-WebRoute {
             'ar' { 'اختر مجلد الألعاب أو الاختصارات' }
             default { 'Select your game library or shortcuts folder' }
         }
-        Start-AsyncDialog -Dialog $Session.Dialog -Kind 'folder' -InitialFolder ([string]$Session.Ctx.Settings.LastFolder) -Title $pickerTitle
+        $ownerHwnd = [GIS.NativeWindowTools]::GetForegroundWindowHandle()
+        Start-AsyncDialog -Dialog $Session.Dialog -Kind 'folder' -InitialFolder ([string]$Session.Ctx.Settings.LastFolder) -Title $pickerTitle -OwnerHwnd $ownerHwnd
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; started = $true })
         return
     }
@@ -380,7 +381,8 @@ function Invoke-WebRoute {
             'ar' { 'اختر الاختصارات وروابط Launcher وملفات الألعاب أو ROM' }
             default { 'Choose shortcuts, launchers, game files, or ROMs' }
         }
-        Start-AsyncDialog -Dialog $Session.Dialog -Kind 'files' -InitialFolder ([string]$Session.Ctx.Settings.LastFolder) -Title $pickerTitle
+        $ownerHwnd = [GIS.NativeWindowTools]::GetForegroundWindowHandle()
+        Start-AsyncDialog -Dialog $Session.Dialog -Kind 'files' -InitialFolder ([string]$Session.Ctx.Settings.LastFolder) -Title $pickerTitle -OwnerHwnd $ownerHwnd
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; started = $true })
         return
     }
@@ -1793,7 +1795,8 @@ function Start-AsyncDialog {
         [Parameter(Mandatory)]$Dialog,
         [Parameter(Mandatory)][ValidateSet('folder','files')][string]$Kind,
         [string]$InitialFolder = '',
-        [string]$Title = ''
+        [string]$Title = '',
+        [IntPtr]$OwnerHwnd = [IntPtr]::Zero
     )
 
     if ($Dialog.status -eq 'running') {
@@ -1816,7 +1819,7 @@ function Start-AsyncDialog {
     $Dialog.error  = ''
 
     $worker = {
-        param($Dialog, $Kind, $InitialFolder, $Title)
+        param($Dialog, $Kind, $InitialFolder, $Title, $OwnerHwnd)
 
         try {
             # Native IFileOpenDialog: the modern Windows 10/11 Explorer picker.
@@ -1827,7 +1830,7 @@ function Start-AsyncDialog {
             }
             if ($Kind -eq 'folder') {
                 $selectedFolder = [GIS.NativeFileDialog]::PickFolder(
-                    [IntPtr]::Zero,
+                    $OwnerHwnd,
                     $dialogTitle,
                     [string]$InitialFolder
                 )
@@ -1836,7 +1839,7 @@ function Start-AsyncDialog {
                 }
             } else {
                 $selectedFiles = [GIS.NativeFileDialog]::PickFiles(
-                    [IntPtr]::Zero,
+                    $OwnerHwnd,
                     $dialogTitle,
                     [string]$InitialFolder
                 )
@@ -1856,7 +1859,7 @@ function Start-AsyncDialog {
     $rs.ThreadOptions = 'ReuseThread'
     $rs.Open()
     $ps.Runspace = $rs
-    [void]$ps.AddScript($worker).AddArgument($Dialog).AddArgument($Kind).AddArgument($InitialFolder).AddArgument($Title)
+    [void]$ps.AddScript($worker).AddArgument($Dialog).AddArgument($Kind).AddArgument($InitialFolder).AddArgument($Title).AddArgument($OwnerHwnd)
     $Dialog.handle = $ps.BeginInvoke()
     $Dialog.ps = $ps
 }

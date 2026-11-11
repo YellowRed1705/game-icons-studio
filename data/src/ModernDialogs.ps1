@@ -180,7 +180,7 @@ namespace GIS {
                         if (!IsWindowVisible(hwnd)) return true;
                         System.Text.StringBuilder text = new System.Text.StringBuilder(512);
                         GetWindowText(hwnd, text, text.Capacity);
-                        if (String.Equals(text.ToString(), title, StringComparison.OrdinalIgnoreCase)) {
+                        if (!String.IsNullOrWhiteSpace(title) && (String.Equals(text.ToString(), title, StringComparison.OrdinalIgnoreCase) || text.ToString().IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0)) {
                             ShowMaximizedAndForeground(hwnd);
                             found = true;
                             return false;
