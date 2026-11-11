@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.42
+# Game Icons Studio v6.43
 
 ### From generic icons to a game shelf.
 
@@ -63,6 +63,17 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 These release notes are an addition to the original introduction above. The logo, demo, before-and-after image, and original page structure are retained.
 
 <details>
+<details>
+<summary><strong>v6.43 — emulator app icons are included in Game Library scans</strong></summary>
+
+- Fixes the Game Library filter that treated plain emulator launcher shortcuts as helper utilities and excluded them from artwork matching.
+- Cemu, Eden, Ryujinx and Ryubing shortcuts without ROM launch arguments now enter the scan as Program & App Icons items. ROM/game shortcuts with arguments remain game entries.
+- Keeps emulator profiles available for generated ROM shortcuts, so the detection change does not rewrite ROM launch targets or arguments.
+- Adds item-level search and apply modes: emulator launchers use software/brand artwork and embedded-icon fallback, while game shortcuts continue using SteamGridDB game artwork.
+- Adds Windows regression tests for Cemu, Eden and Ryubing.
+
+</details>
+
 <summary><strong>v6.42 — per-browser API keys and matching-flow repair</strong></summary>
 
 - Stores each user's SteamGridDB API key only in that user's browser profile `localStorage` under `gis-sgdb-api-key`. The key is validated when the app starts and is sent to the local server in a request header only when needed.
@@ -188,7 +199,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.42.md](CHANGELOG-v6.42.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.43.md](CHANGELOG-v6.42.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 
