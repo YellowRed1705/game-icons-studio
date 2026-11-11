@@ -392,7 +392,29 @@ function Get-WebAppHtml {
   .ghost.btn-google:hover { background:linear-gradient(135deg,#0284c7,#2563eb); color:#fff; box-shadow:0 0 0 1px rgba(56,189,248,.5), 0 8px 22px rgba(56,189,248,.4); }
   .btn-yandex { border:1px solid #ffcc00 !important; color:var(--text); background:linear-gradient(135deg,rgba(255,204,0,.12),rgba(255,204,0,.04)); }
   .btn-yandex:hover { background:#ffcc00; color:#171717; box-shadow:0 8px 22px rgba(255,204,0,.22); }
-  .online-search-panel { width:100%; margin:16px 0; padding:14px; border:1px solid var(--line); border-radius:16px; background:var(--panel); text-align:left; }
+  #step-custom { gap:10px; }
+  #step-custom .search-tip { margin:0; }
+  #step-custom #customImageSearchButtons { width:100%; max-width:760px; margin:0 auto; gap:12px; }
+  #step-custom #customImageSearchButtons button { flex:1 1 220px; min-height:48px; margin:0; }
+  #step-custom .custom-layout { display:grid; grid-template-columns:minmax(280px,1fr) 240px; gap:14px; align-items:stretch; }
+  #step-custom .drop-zone { min-height:250px; height:100%; }
+  #step-custom .preview-box { min-width:0; }
+  @media(max-width:760px) {
+    #step-custom .custom-layout { grid-template-columns:1fr; }
+    #step-custom .preview-box { flex-basis:auto; }
+    #step-custom #customImageSearchButtons { flex-wrap:wrap; }
+  }
+  @media(max-height:850px) and (min-width:761px) {
+    #step-custom { padding:14px 20px; gap:7px; max-height:calc(100vh - 112px); overflow-y:auto; }
+    #step-custom h2 { font-size:1.25rem; }
+    #step-custom .search-tip { font-size:.78rem; line-height:1.25; }
+    #step-custom .custom-layout { gap:10px; }
+    #step-custom .drop-zone { min-height:190px; padding:12px; gap:7px; }
+    #step-custom #customCanvas { width:140px; height:140px; }
+    #step-custom .preview-box { padding:10px; gap:6px; }
+    #step-custom .url-row { gap:6px; }
+    #step-custom #customStatusMsg { min-height:.8em !important; }
+  }
   .online-search-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:9px; }
   .online-search-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:10px; margin-top:10px; max-height:390px; overflow:auto; }
   .online-provider-block { margin-top:14px; padding-top:10px; border-top:1px solid var(--line); }
@@ -942,29 +964,7 @@ function Get-WebAppHtml {
       <button class="big-btn btn-yandex" id="yandexImagesBtn" onclick="openYandexSearch()">&#128269; Yandex Images</button>
       <button class="ghost" id="chooseLocalImageBtn" onclick="triggerCustomFile()">&#128193; Choose Local Image</button>
     </div>
-    <div class="online-search-panel" id="onlineSearchPanel">
-      <div class="online-search-head">
-        <div><b id="onlineTopHeading">Smart online icon candidates</b><div class="sub" id="onlineTopSub" style="margin:3px 0 0;">Fetch the best five Google and Yandex image results separately.</div></div>
-        <div class="btn-row" style="margin:0;">
-          <button class="ghost btn-good" id="onlineAutoTop5Btn" onclick="searchOnlineImageCandidates('both')">Fetch Top 5 from each</button>
-          <button class="ghost" onclick="searchOnlineImageCandidates('google')">Google only</button>
-          <button class="ghost" onclick="searchOnlineImageCandidates('yandex')">Yandex only</button>
-        </div>
-      </div>
-      <div class="sub" id="onlineSearchStatus" aria-live="polite">Google and Yandex results are collected automatically when this screen opens.</div>
-      <div class="online-provider-block">
-        <div class="online-provider-title" id="googleTopTitle">Google Images · Top 5</div>
-        <div class="online-search-grid online-provider-grid" id="googleImageResultsGrid"></div>
-      </div>
-      <div class="online-provider-block">
-        <div class="online-provider-title" id="yandexTopTitle">Yandex Images · Top 5</div>
-        <div class="online-search-grid online-provider-grid" id="yandexImageResultsGrid"></div>
-      </div>
-      <div class="online-provider-block" id="onlineOtherBlock">
-        <div class="online-provider-title" id="onlineOtherTitle">Other suggestions</div>
-        <div class="online-search-grid" id="onlineImageResultsGrid"></div>
-      </div>
-    </div>
+    <div class="sub" id="onlineSearchStatus" aria-live="polite" style="min-height:1.2em;max-width:760px;">Choose Google or Yandex Images, then drag an image into the large drop area below.</div>
     <p class="sub search-tip" id="customSearchHint">Search for a high-resolution result, then drag the image directly onto the drop area or icon preview. You can also right-click an image, choose Copy image, and press Ctrl+V.</p>
 
     <div class="custom-layout">
@@ -4027,30 +4027,7 @@ function openGoogleCustom(autoOpenSearch){
   clearCustomCanvas();
   show('step-custom');
   updateCustomSearchKindUi();
-  if (customSearchKind === 'program') {
-    var existing = [];
-    if (it.sections && it.sections.length) {
-      it.sections.forEach(function(sec){ (sec.covers || []).forEach(function(c){ existing.push(c); }); });
-    }
-    _onlineProviderCandidateCache = {
-      google: existing.filter(function(c){ return String(c.source||'').toLowerCase().indexOf('google images')>=0; }).slice(0,5),
-      yandex: existing.filter(function(c){ return String(c.source||'').toLowerCase().indexOf('yandex images')>=0; }).slice(0,5)
-    };
-    _onlineCandidateCache = existing.filter(function(c){
-      var src=String(c.source||'').toLowerCase();
-      return src.indexOf('google images')<0 && src.indexOf('yandex images')<0;
-    });
-    renderOnlineProviderCandidates();
-    renderOnlineImageCandidates(_onlineCandidateCache);
-    if (!existing.length) {
-      $('onlineSearchStatus').textContent = statusText('onlineLoading');
-    }
-    // Search is user-triggered by entering the editor, never during the scan's
-    // step loop, so the batch scan stays responsive and can keep the embedded icon fallback.
-    searchOnlineImageCandidates('both', true);
-  } else {
-    $('onlineSearchPanel').style.display = 'none';
-  }
+  if ($('onlineSearchStatus')) $('onlineSearchStatus').textContent = 'Choose Google or Yandex Images, then drag an image into the large drop area below.';
   // In app-icon-only mode, do not open tabs automatically: browser popup blockers may reject new tabs.
   if (autoOpenSearch !== false) {
     if (customSearchKind === 'program') openYandexSearch();
@@ -4091,185 +4068,8 @@ function openYandexSearch(){
 // Backwards-compatible name used by existing buttons in other screens.
 function reopenGoogleSearch(){ openGoogleSearch(); }
 
-var onlineTopI18n = {
-  en: {
-    heading:"Smart online icon candidates", sub:"Fetch the best five Google and Yandex image results separately.",
-    auto:"Fetch Top 5 from each", google:"Google Images · Top 5", yandex:"Yandex Images · Top 5", other:"Other suggestions",
-    emptyGoogle:"No usable Google results were found.", emptyYandex:"No usable Yandex results were found.",
-    fetchApply:"Fetch & Apply", cropFirst:"Crop first", fetching:"Downloading and applying image…",
-    fetchFailed:"Could not download this result. Try another image.",
-    cropTitle:"Select the area for your icon",
-    cropHint:"Drag outside the current square to draw a new selection. Drag inside to move it. Zoom in to select a smaller detail.",
-    reset:"Reset"
-  },
-  tr: {
-    heading:"Akıllı çevrimiçi icon adayları", sub:"Google ve Yandex'ten en iyi beş görsel sonucu ayrı ayrı getir.",
-    auto:"İki sağlayıcıdan İlk 5'i getir", google:"Google Images · İlk 5", yandex:"Yandex Images · İlk 5", other:"Diğer öneriler",
-    emptyGoogle:"Google'dan kullanılabilir sonuç bulunamadı.", emptyYandex:"Yandex'ten kullanılabilir sonuç bulunamadı.",
-    fetchApply:"İndir ve Uygula", cropFirst:"Önce kırp", fetching:"Görsel indiriliyor ve uygulanıyor…",
-    fetchFailed:"Bu sonuç indirilemedi. Başka bir görsel dene.",
-    cropTitle:"Icon için alanı seç",
-    cropHint:"Yeni kare alan çizmek için mevcut karenin dışından sürükle. Seçimi taşımak için içinden sürükle. Daha küçük ayrıntı için yakınlaştır.",
-    reset:"Sıfırla"
-  },
-  ar: {
-    heading:"اقتراحات الأيقونات عبر الإنترنت", sub:"اجلب أفضل خمس صور من Google وYandex بشكل منفصل.",
-    auto:"اجلب أفضل 5 من كليهما", google:"صور Google · أفضل 5", yandex:"صور Yandex · أفضل 5", other:"اقتراحات أخرى",
-    emptyGoogle:"لم يتم العثور على نتائج قابلة للاستخدام من Google.", emptyYandex:"لم يتم العثور على نتائج قابلة للاستخدام من Yandex.",
-    fetchApply:"تنزيل وتطبيق", cropFirst:"قص أولاً", fetching:"جارٍ تنزيل الصورة وتطبيقها…",
-    fetchFailed:"تعذر تنزيل هذه النتيجة. جرّب صورة أخرى.",
-    cropTitle:"حدد منطقة الأيقونة",
-    cropHint:"اسحب خارج المربع الحالي لرسم تحديد جديد. اسحب داخل المربع لتحريكه. كبّر الصورة لتحديد تفاصيل أصغر.",
-    reset:"إعادة ضبط"
-  }
-};
-function onlineTopText(key) {
-  var locale = onlineTopI18n[currentLang] || onlineTopI18n.en;
-  return locale[key] || onlineTopI18n.en[key] || key;
-}
-function updateOnlineTopLabels() {
-  var labels = {
-    onlineTopHeading:'heading', onlineTopSub:'sub', onlineAutoTop5Btn:'auto',
-    googleTopTitle:'google', yandexTopTitle:'yandex', onlineOtherTitle:'other',
-    customCropTitle:'cropTitle', customCropResetBtn:'reset', customCropHint:'cropHint'
-  };
-  Object.keys(labels).forEach(function(id){
-    var node=document.getElementById(id);
-    if(node)node.textContent=onlineTopText(labels[id]);
-  });
-}
-
-var _onlineCandidateCache = [];
-var _onlineProviderCandidateCache = { google:[], yandex:[] };
-function renderOnlineCandidateGrid(candidates, gridId, providerAutoApply){
-  var grid=$(gridId);if(!grid)return;
-  grid.innerHTML='';
-  var list=(candidates||[]).slice().sort(function(a,b){return (+b.score||0)-(+a.score||0);});
-  if(!list.length){
-    grid.textContent=providerAutoApply?onlineTopText(gridId==='googleImageResultsGrid'?'emptyGoogle':'emptyYandex'):statusText('noArtCandidates');
-    return;
-  }
-  list=list.slice(0,providerAutoApply?5:18);
-  list.forEach(function(candidate,index){
-    var tile=document.createElement('div');tile.className='online-candidate';tile.tabIndex=0;
-    var img=document.createElement('img');img.loading=index<5?'eager':'lazy';img.referrerPolicy='no-referrer';
-    img.alt=candidate.title||((candidate.source||'Image')+' candidate');
-    img.onerror=function(){this.style.opacity='.2';this.title=statusText('previewUnavailable');};
-    img.onload=function(){
-      var iw=this.naturalWidth||0,ih=this.naturalHeight||0;if(!iw||!ih)return;
-      candidate.actualWidth=iw;candidate.actualHeight=ih;
-      var rank=(+candidate.score||45),ratio=Math.min(iw,ih)/Math.max(iw,ih),minSide=Math.min(iw,ih);
-      rank+=ratio>=.94?5:(ratio>=.82?2:(ratio>=.65?0:-10));
-      rank+=minSide>=1024?5:(minSide>=512?4:(minSide>=256?2:-12));
-      candidate.clientScore=Math.max(1,Math.min(100,Math.round(rank)));tile.dataset.rank=String(candidate.clientScore);
-      var q=tile.querySelector('.online-candidate-quality');if(q)q.textContent=statusText('quality')+' '+candidate.clientScore+'/100';
-      var m=tile.querySelector('.online-candidate-meta');if(m)m.textContent=(candidate.source||'Online')+' · '+iw+' × '+ih;
-      var parent=tile.parentNode;if(parent)Array.prototype.slice.call(parent.children).sort(function(a,b){return (+b.dataset.rank||+b.dataset.baseRank||0)-(+a.dataset.rank||+a.dataset.baseRank||0);}).forEach(function(node){parent.appendChild(node);});
-    };
-    img.src=candidate.thumb||candidate.url||'';
-    var title=document.createElement('div');title.className='online-candidate-title';title.textContent=candidate.title||(statusText('candidate')+' '+(index+1));
-    var meta=document.createElement('div');meta.className='online-candidate-meta';
-    meta.textContent=(candidate.source||'Online')+' · '+((+candidate.width>0&&+candidate.height>0)?candidate.width+' × '+candidate.height:statusText('sizeUnknown'));
-    var quality=document.createElement('div');quality.className='online-candidate-meta online-candidate-quality';
-    quality.textContent=statusText('quality')+' '+(candidate.score||'?')+'/100';tile.dataset.baseRank=String(+candidate.score||0);
-    tile.appendChild(img);tile.appendChild(title);tile.appendChild(meta);tile.appendChild(quality);
-    if(providerAutoApply){
-      var auto=document.createElement('button');auto.className='online-candidate-auto';auto.type='button';auto.textContent=onlineTopText('fetchApply');
-      auto.onclick=function(e){if(e){e.preventDefault();e.stopPropagation();}fetchAndApplyOnlineCandidate(candidate,auto);};
-      var crop=document.createElement('button');crop.className='online-candidate-crop';crop.type='button';crop.textContent=onlineTopText('cropFirst');
-      crop.onclick=function(e){if(e){e.preventDefault();e.stopPropagation();}loadOnlineCandidateForCrop(candidate);};
-      tile.appendChild(auto);tile.appendChild(crop);
-      tile.onclick=function(e){if(e.target!==auto&&e.target!==crop)auto.click();};
-      tile.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();auto.click();}};
-    }else{
-      var use=document.createElement('button');use.className='online-candidate-use';use.type='button';use.textContent=statusText('useImage');
-      use.onclick=function(e){if(e){e.preventDefault();e.stopPropagation();}loadOnlineCandidateForCrop(candidate);};
-      tile.appendChild(use);tile.onclick=function(e){if(e.target!==use)use.click();};
-    }
-    grid.appendChild(tile);
-  });
-}
-function renderOnlineImageCandidates(candidates){renderOnlineCandidateGrid(candidates,'onlineImageResultsGrid',false);}
-function renderOnlineProviderCandidates(){
-  renderOnlineCandidateGrid(_onlineProviderCandidateCache.google,'googleImageResultsGrid',true);
-  renderOnlineCandidateGrid(_onlineProviderCandidateCache.yandex,'yandexImageResultsGrid',true);
-}
-function searchOnlineImageCandidates(provider,silent){
-  if(customSearchKind!=='program'&&!state.iconSearchOnly)return;
-  var it=currentItem();if(!it)return;
-  provider=provider||'both';
-  var status=$('onlineSearchStatus');
-  if(status)status.textContent=statusText(provider==='both'?'searchingBoth':(provider==='google'?'searchingGoogle':'searchingYandex'));
-  api('/api/search-images',{name:it.name,provider:provider}).then(function(res){
-    if(!res||!res.ok){if(status)status.textContent=(res&&res.error)||statusText('onlineFailed');return;}
-    var incoming=res.candidates||[];
-    if(provider==='both'||provider==='google')_onlineProviderCandidateCache.google=(res.googleTop5||incoming.filter(function(c){return String(c.source||'').toLowerCase().indexOf('google images')>=0;})).slice(0,5);
-    if(provider==='both'||provider==='yandex')_onlineProviderCandidateCache.yandex=(res.yandexTop5||incoming.filter(function(c){return String(c.source||'').toLowerCase().indexOf('yandex images')>=0;})).slice(0,5);
-    var kept=_onlineCandidateCache.filter(function(c){
-      var src=String(c.source||'').toLowerCase();
-      if(provider==='both')return src.indexOf('google images')<0&&src.indexOf('yandex images')<0;
-      if(provider==='google')return src.indexOf('google images')<0;
-      if(provider==='yandex')return src.indexOf('yandex images')<0;
-      return true;
-    });
-    var extras=incoming.filter(function(c){
-      var src=String(c.source||'').toLowerCase();
-      return src.indexOf('google images')<0&&src.indexOf('yandex images')<0;
-    });
-    var seen={};
-    _onlineCandidateCache=kept.concat(extras).filter(function(c){var key=String(c.url||'');if(!key||seen[key])return false;seen[key]=true;return true;});
-    var total=_onlineProviderCandidateCache.google.length+_onlineProviderCandidateCache.yandex.length;
-    if(status)status.textContent=total?(total+' provider result(s) · '+_onlineProviderCandidateCache.google.length+' Google · '+_onlineProviderCandidateCache.yandex.length+' Yandex'):statusText('onlineNoResults');
-    renderOnlineProviderCandidates();renderOnlineImageCandidates(_onlineCandidateCache);
-  }).catch(function(){if(status)status.textContent=statusText('onlineFailed');});
-}
-function loadOnlineCandidateForCrop(candidate){
-  if(!candidate||!candidate.url)return;
-  $('onlineSearchStatus').textContent=statusText('loadingPreview');
-  loadCustomUrl(candidate.url,candidate.thumb&&candidate.thumb!==candidate.url?candidate.thumb:null);
-  var editor=$('customCropEditor');if(editor&&editor.scrollIntoView)editor.scrollIntoView({behavior:'smooth',block:'center'});
-}
-function fetchAndApplyOnlineCandidate(candidate,button){
-  if(!candidate||!candidate.url||!button)return;
-  button.disabled=true;button.textContent=onlineTopText('fetching');$('onlineSearchStatus').textContent=onlineTopText('fetching');
-  api('/api/fetch-remote-image',{url:candidate.url}).then(function(res){
-    if(!res||!res.ok||!res.dataUrl||res.dataUrl.indexOf('data:image/')!==0)throw new Error((res&&res.error)||onlineTopText('fetchFailed'));
-    loadDataUrlIntoCustomCanvas(res.dataUrl,function(){applyCustomCover();},function(){
-      button.disabled=false;button.textContent=onlineTopText('fetchApply');$('onlineSearchStatus').textContent=onlineTopText('fetchFailed');
-    });
-  }).catch(function(err){
-    button.disabled=false;button.textContent=onlineTopText('fetchApply');$('onlineSearchStatus').textContent=err&&err.message?err.message:onlineTopText('fetchFailed');
-  });
-}function searchOnlineImageCandidates(provider, silent){
-  if (customSearchKind !== 'program' && !state.iconSearchOnly) return;
-  var it = currentItem();
-  if (!it) return;
-  provider = provider || 'both';
-  var status = $('onlineSearchStatus');
-  if (status) status.textContent = statusText(provider === 'both' ? 'searchingBoth' : (provider === 'google' ? 'searchingGoogle' : 'searchingYandex'));
-  api('/api/search-images', { name: it.name, provider: provider }).then(function(res){
-    if (!res || !res.ok) {
-      if (status) status.textContent = (res && res.error) || statusText('onlineFailed');
-      return;
-    }
-    var incoming = res.candidates || [];
-    var kept = _onlineCandidateCache.filter(function(c){
-      var src = String(c.source || '').toLowerCase();
-      if (provider === 'both') return src.indexOf('google images') < 0 && src.indexOf('yandex images') < 0;
-      if (provider === 'google') return src.indexOf('google images') < 0;
-      if (provider === 'yandex') return src.indexOf('yandex images') < 0;
-      return true;
-    });
-    var merged = kept.concat(incoming), seenUrls = {};
-    _onlineCandidateCache = merged.filter(function(c){ var u=String(c.url||''); if(!u || seenUrls[u]) return false; seenUrls[u]=true; return true; });
-    if (status) status.textContent = incoming.length
-      ? formatStr(statusText('onlineFound'), [incoming.length])
-      : statusText('onlineNoResults');
-    renderOnlineImageCandidates(_onlineCandidateCache);
-  }).catch(function(){
-    if (status) status.textContent = statusText('onlineFailed');
-  });
-}
+// TOP 5 FETCH intentionally removed: external image search stays in the user's browser.
+// The editor provides direct Google/Yandex search buttons plus native drag & drop, paste and local file input.
 
 function clearCustomCanvas(){
   var c=$('customCanvas');if(c){var ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);}
