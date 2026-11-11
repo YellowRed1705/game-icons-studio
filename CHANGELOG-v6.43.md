@@ -17,6 +17,9 @@ The Game Library folder scanner deliberately excluded existing emulator launcher
 ## CI validation follow-up
 - Repair the pre-existing unterminated content-addressed ICO test assertion so the Windows PowerShell parser can reach the new emulator shortcut regression tests.
 
+## Windows test cleanup
+- Replace the duplicated legacy test script with a compact, parser-valid regression suite for emulator app shortcuts, ROM argument separation, launcher conversion, shortcut icon persistence and Undo.
+
 ## Upgrade
 - Full package: Game-Icons-Studio-v6.43.zip.
 - Existing installation: close Game Icons Studio and extract the Upgrade ZIP over the existing application folder.
