@@ -1370,11 +1370,12 @@ function Step-WebApply {
 }
 function Start-WebScanGameFolder {
     <#
-        Recursively scans a selected game-install/library folder for launchable
-        game entries. Existing .lnk files are retained, .url launcher entries
-        are safely converted to standard .lnk files, and eligible EXE/BAT/CMD
-        files receive working companion shortcuts during the normal apply step.
-        Original executable/script files are never changed.
+        Full game-library discovery:
+        - Existing .lnk shortcuts are inspected and updated in place.
+        - .url launcher files are converted to verified .lnk files.
+        - EXE/BAT/CMD and common ROM formats get clean companion .lnk files.
+        - Known emulator .lnk targets are reused to build ROM launch commands.
+        - Original executables, scripts and ROM files are never modified.
     #>
     param(
         [Parameter(Mandatory)]$Session,
@@ -1384,12 +1385,11 @@ function Start-WebScanGameFolder {
     if ([string]::IsNullOrWhiteSpace($Folder) -or -not (Test-Path -LiteralPath $Folder -PathType Container)) {
         return @{ ok = $false; error = 'Please choose an existing game folder.' }
     }
-
     $folderItem = Get-Item -LiteralPath $Folder -ErrorAction SilentlyContinue
     if ($null -eq $folderItem -or -not $folderItem.PSIsContainer) {
         return @{ ok = $false; error = 'The selected path is not a folder.' }
     }
-    $Folder = $folderItem.FullName
+    $Folder = [System.IO.Path]::GetFullPath($folderItem.FullName)
     $Session.Ctx.Folder = $Folder
     $Session.Ctx.Settings.LastFolder = $Folder
     try { Save-Settings -Root $Session.Root -Settings $Session.Ctx.Settings } catch { }
@@ -1400,92 +1400,174 @@ function Start-WebScanGameFolder {
     $seenPaths = @{}
     $existingLinkTargets = @{}
     $existingLinkNames = @{}
+    $existingLinkPaths = @{}
+    $urlSourceByLink = @{}
+    $launchConfigBySource = @{}
     $wsh = Get-WshShell
-    $existingLinks = @()
-    try {
-        $existingLinks = @(Get-ChildItem -LiteralPath $Folder -Filter '*.lnk' -Recurse -File -ErrorAction SilentlyContinue)
-    } catch { }
 
+    $emulatorProfiles = @(
+        @{ Family='cemu'; Pattern='^(?i:cemu)(?:[-_].*)?$'; Extensions=@('.wud','.wux','.wua','.rpx'); Prefix='-g' },
+        @{ Family='ryujinx'; Pattern='^(?i:ryujinx)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
+        @{ Family='eden'; Pattern='^(?i:eden)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
+        @{ Family='yuzu'; Pattern='^(?i:yuzu)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
+        @{ Family='dolphin'; Pattern='^(?i:dolphin)(?:-qt)?$'; Extensions=@('.wbfs','.rvz','.gcm','.gcz'); Prefix='-e' },
+        @{ Family='mgba'; Pattern='^(?i:mgba)$'; Extensions=@('.gba','.gbc','.gb'); Prefix='' },
+        @{ Family='melonds'; Pattern='^(?i:melonds)$'; Extensions=@('.nds','.dsi'); Prefix='' },
+        @{ Family='azahar'; Pattern='^(?i:azahar)$'; Extensions=@('.3ds','.cia','.cxi','.3dsx'); Prefix='' },
+        @{ Family='citra'; Pattern='^(?i:citra)(?:-qt)?$'; Extensions=@('.3ds','.cia','.cxi','.3dsx'); Prefix='' },
+        @{ Family='pcsx2'; Pattern='^(?i:pcsx2)(?:-qt)?$'; Extensions=@('.chd'); Prefix='' }
+    )
+    $emulatorTargets = @{}
+
+    $allFiles = @()
+    try {
+        $allFiles = @(Get-ChildItem -LiteralPath $Folder -Recurse -File -Force -ErrorAction SilentlyContinue)
+    } catch {
+        Write-Log "Could not enumerate game folder '$Folder': $($_.Exception.Message)" 'WARN'
+        return @{ ok = $false; error = "The selected folder could not be read: $($_.Exception.Message)" }
+    }
+    $existingLinks = @($allFiles | Where-Object { $_.Extension -ieq '.lnk' })
+    $existingUrlFiles = @($allFiles | Where-Object { $_.Extension -ieq '.url' })
+
+    # Inspect all existing links first. Their target and argument paths are
+    # used both for duplicate detection and emulator-ROM launch templates.
     foreach ($linkFile in $existingLinks) {
-        $keyPath = ([string]$linkFile.FullName).ToLowerInvariant()
-        if (-not $seenPaths.ContainsKey($keyPath)) {
-            if ($files.Count -lt $maxTargets) {
-                $seenPaths[$keyPath] = $true
-                $files.Add([string]$linkFile.FullName)
-            } else {
-                $truncated++
-            }
-        }
+        $linkPathKey = ([string]$linkFile.FullName).ToLowerInvariant()
+        $existingLinkPaths[$linkPathKey] = $true
         $existingLinkNames[[System.IO.Path]::GetFileNameWithoutExtension($linkFile.Name).ToLowerInvariant()] = $true
         try {
             $link = $wsh.CreateShortcut($linkFile.FullName)
             $target = [string]$link.TargetPath
+            $targetLeaf = ''
             if (-not [string]::IsNullOrWhiteSpace($target)) {
                 try { $target = [System.IO.Path]::GetFullPath($target) } catch { }
                 $existingLinkTargets[$target.ToLowerInvariant()] = $true
+                $targetLeaf = [System.IO.Path]::GetFileNameWithoutExtension($target)
+                foreach ($profile in $emulatorProfiles) {
+                    if ($targetLeaf -match $profile.Pattern -and (Test-Path -LiteralPath $target -PathType Leaf)) {
+                        if (-not $emulatorTargets.ContainsKey($profile.Family)) {
+                            $emulatorTargets[$profile.Family] = [PSCustomObject]@{
+                                TargetPath = $target
+                                WorkingDirectory = [System.IO.Path]::GetDirectoryName($target)
+                                Arguments = [string]$link.Arguments
+                            }
+                        }
+                    }
+                }
             }
             $arguments = [string]$link.Arguments
             if (-not [string]::IsNullOrWhiteSpace($arguments)) {
                 foreach ($candidate in @($arguments -split '"')) {
-                    if (-not [string]::IsNullOrWhiteSpace($candidate) -and (Test-Path -LiteralPath $candidate -PathType Leaf -ErrorAction SilentlyContinue)) {
+                    if (-not [string]::IsNullOrWhiteSpace($candidate) -and
+                        (Test-Path -LiteralPath $candidate -PathType Leaf -ErrorAction SilentlyContinue)) {
                         try { $candidate = [System.IO.Path]::GetFullPath($candidate) } catch { }
                         $existingLinkTargets[$candidate.ToLowerInvariant()] = $true
                     }
                 }
             }
         } catch {
-            Write-Log "Existing shortcut could not be inspected: $($linkFile.FullName)" 'DEBUG'
+            Write-Log "Existing shortcut could not be inspected: $($linkFile.FullName) ($($_.Exception.Message))" 'DEBUG'
         }
     }
 
+    $includedShortcuts = 0
+    $excludedLauncherApps = 0
+    foreach ($linkFile in $existingLinks) {
+        if ($files.Count -ge $maxTargets) { $truncated++; continue }
+        $skipAsEmulatorUtility = $false
+        try {
+            $link = $wsh.CreateShortcut($linkFile.FullName)
+            $target = [string]$link.TargetPath
+            $targetLeaf = [System.IO.Path]::GetFileNameWithoutExtension($target)
+            $arguments = [string]$link.Arguments
+            if ([string]::IsNullOrWhiteSpace($arguments)) {
+                foreach ($profile in $emulatorProfiles) {
+                    if ($targetLeaf -match $profile.Pattern) { $skipAsEmulatorUtility = $true; break }
+                }
+            }
+        } catch { }
+        if ($skipAsEmulatorUtility) {
+            $excludedLauncherApps++
+            continue
+        }
+        $key = ([string]$linkFile.FullName).ToLowerInvariant()
+        if (-not $seenPaths.ContainsKey($key)) {
+            $seenPaths[$key] = $true
+            $files.Add([string]$linkFile.FullName)
+            $includedShortcuts++
+        }
+    }
+
+    # URL game launchers (Steam, Ubisoft Connect, Epic, EA, Battle.net, Xbox,
+    # and registered custom URI handlers). Keep the original until apply has
+    # created a restorable transaction and verified the replacement .lnk.
     $convertedUrls = 0
     $failedUrls = 0
     $urlFallbacks = New-Object System.Collections.Generic.List[string]
     foreach ($internetShortcut in @(Get-InternetShortcuts -Folder $Folder)) {
         if ($files.Count -ge $maxTargets) { $truncated++; continue }
-        $urlStem = ([string]$internetShortcut.Name).ToLowerInvariant()
-        if ($existingLinkNames.ContainsKey($urlStem)) {
-            # A standard shortcut with the same display name already exists.
-            # Do not create a second launcher or remove the original .url.
-            continue
+        $alreadyRepresented = $false
+        foreach ($existingLink in $existingLinks) {
+            try {
+                $existing = $wsh.CreateShortcut($existingLink.FullName)
+                if ([string]$existing.TargetPath -ieq (Join-Path $env:WINDIR 'explorer.exe') -and
+                    ([string]$existing.Arguments).IndexOf([string]$internetShortcut.Url,[System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                    $alreadyRepresented = $true
+                    break
+                }
+                if (([string]$existing.TargetPath).IndexOf([string]$internetShortcut.Url,[System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                    $alreadyRepresented = $true
+                    break
+                }
+            } catch { }
         }
-        $newLink = Convert-InternetShortcut -Shortcut $internetShortcut -RemoveOriginal $true
+        if ($alreadyRepresented) { continue }
+
+        $newLink = Convert-InternetShortcut -Shortcut $internetShortcut -RemoveOriginal:$false
         if (-not [string]::IsNullOrWhiteSpace([string]$newLink) -and (Test-Path -LiteralPath $newLink -PathType Leaf)) {
             $newKey = ([string]$newLink).ToLowerInvariant()
             if (-not $seenPaths.ContainsKey($newKey)) {
                 $seenPaths[$newKey] = $true
                 $files.Add([string]$newLink)
             }
-            $existingLinkNames[$urlStem] = $true
+            $wasAlreadyThere = $existingLinkPaths.ContainsKey($newKey)
+            $urlSourceByLink[$newKey] = [PSCustomObject]@{
+                SourceUrlPath = [string]$internetShortcut.Path
+                CreatedNow = (-not $wasAlreadyThere)
+            }
             $convertedUrls++
         } else {
             $failedUrls++
-            # If conversion fails, leave the .url untouched and let the normal
-            # file-shortcut builder create a companion link as a safe fallback.
+            # Keep source intact. The standard file-association link builder can
+            # still create a launchable companion for the .url file itself.
             $urlFallbacks.Add([string]$internetShortcut.Path)
         }
     }
     foreach ($fallback in $urlFallbacks) {
-        $keyPath = $fallback.ToLowerInvariant()
-        if (-not $seenPaths.ContainsKey($keyPath)) {
-            $seenPaths[$keyPath] = $true
+        $key = $fallback.ToLowerInvariant()
+        if ($files.Count -ge $maxTargets) { $truncated++; continue }
+        if (-not $seenPaths.ContainsKey($key)) {
+            $seenPaths[$key] = $true
             $files.Add($fallback)
         }
     }
 
     $includedExecutables = 0
     $includedScripts = 0
+    $includedRoms = 0
     $excludedHelpers = 0
     $alreadyLinked = 0
     $helperNamePattern = '^(?i:setup|install|unins\d*|uninstall|crashreportclient|unitycrashhandler(?:64)?|eosoverlayrenderer|easyanticheat|battleye|vc_redist.*|dxsetup|ueprereqsetup|reportcrash|werfault|patcher|updater)(?:$|[-_. ])'
     $helperPathPattern = '[\\/](?i:_commonredist|redist|redistributables|directx|easyanticheat|battleye|crashreporter|crashreports)[\\/]'
-    $candidateFiles = @()
-    try {
-        $candidateFiles = @(Get-ChildItem -LiteralPath $Folder -Recurse -File -ErrorAction SilentlyContinue |
-            Where-Object { $_.Extension -in @('.exe','.bat','.cmd') })
-    } catch {
-        Write-Log "Could not enumerate playable files under '$Folder': $($_.Exception.Message)" 'WARN'
-    }
+    $romExtensions = @(
+        '.gb','.gbc','.gba','.nds','.dsi','.3ds','.cia','.cxi','.3dsx',
+        '.n64','.z64','.v64','.nes','.fds','.sfc','.smc','.md','.gen',
+        '.wud','.wux','.wua','.rpx','.nsp','.xci','.nca',
+        '.iso','.chd','.cso','.pbp','.wbfs','.rvz','.gcm','.gcz','.cdi','.gdi','.rom'
+    )
+    $candidateFiles = @($allFiles | Where-Object {
+        $_.Extension -in @('.exe','.bat','.cmd') -or $_.Extension.ToLowerInvariant() -in $romExtensions
+    })
 
     foreach ($candidate in $candidateFiles) {
         $extension = [string]$candidate.Extension.ToLowerInvariant()
@@ -1501,42 +1583,98 @@ function Start-WebScanGameFolder {
             $alreadyLinked++
             continue
         }
-
         $pathKey = $fullPath.ToLowerInvariant()
         if ($seenPaths.ContainsKey($pathKey)) { continue }
         if ($files.Count -ge $maxTargets) { $truncated++; continue }
+
         $seenPaths[$pathKey] = $true
         $files.Add($fullPath)
-        if ($extension -eq '.exe') { $includedExecutables++ } else { $includedScripts++ }
+        if ($extension -eq '.exe') {
+            $includedExecutables++
+        } elseif ($extension -in @('.bat','.cmd')) {
+            $includedScripts++
+        } else {
+            $includedRoms++
+            # If a known emulator launcher already exists in this folder,
+            # use it for ROM links. Otherwise use the Windows file association.
+            $familyOrder = @()
+            switch ($extension) {
+                { $_ -in @('.wud','.wux','.wua','.rpx') } { $familyOrder = @('cemu') }
+                { $_ -in @('.nsp','.xci','.nca') } { $familyOrder = @('ryujinx','eden','yuzu') }
+                { $_ -in @('.wbfs','.rvz','.gcm','.gcz') } { $familyOrder = @('dolphin') }
+                { $_ -in @('.gba','.gbc','.gb') } { $familyOrder = @('mgba') }
+                { $_ -in @('.nds','.dsi') } { $familyOrder = @('melonds') }
+                { $_ -in @('.3ds','.cia','.cxi','.3dsx') } { $familyOrder = @('azahar','citra') }
+                { $_ -eq '.chd' } { $familyOrder = @('pcsx2') }
+            }
+            foreach ($family in $familyOrder) {
+                if ($emulatorTargets.ContainsKey($family)) {
+                    $emulator = $emulatorTargets[$family]
+                    $argument = '"' + $fullPath + '"'
+                    if ($family -eq 'cemu') { $argument = '-g "' + $fullPath + '"' }
+                    elseif ($family -eq 'dolphin') { $argument = '-e "' + $fullPath + '"' }
+                    $launchConfigBySource[$pathKey] = [PSCustomObject]@{
+                        TargetPath = [string]$emulator.TargetPath
+                        Arguments = $argument
+                        WorkingDirectory = [string]$emulator.WorkingDirectory
+                    }
+                    break
+                }
+            }
+        }
     }
 
     if ($truncated -gt 0) {
         Write-Log "Game folder scan capped at $maxTargets entries; $truncated additional entries were left untouched." 'WARN'
     }
-
     if ($files.Count -eq 0) {
         return @{
             ok = $false
-            error = 'No game shortcuts or playable EXE/BAT/CMD files were found in that folder.'
+            error = 'No shortcuts, launcher links, game executables, scripts or supported ROM files were found.'
             convertedUrls = $convertedUrls; failedUrls = $failedUrls
             excludedHelpers = $excludedHelpers; alreadyLinked = $alreadyLinked
         }
     }
 
-    Write-Log "Game folder scan: $($files.Count) entries, $includedExecutables EXE, $includedScripts scripts, $convertedUrls URL converted, $alreadyLinked already linked, $excludedHelpers helper installers skipped." 'INFO'
+    Write-Log "Game library scan: $($files.Count) entries, $includedShortcuts existing shortcuts, $convertedUrls launcher URLs, $includedExecutables EXE, $includedScripts scripts, $includedRoms ROMs, $alreadyLinked already linked, $excludedHelpers helper files skipped." 'INFO'
     $result = Start-WebScanFiles -Session $Session -Files @($files.ToArray()) -IconSearchOnly $false
-    # Start-WebScanFiles normally remembers the parent of the first picked file.
-    # In this folder-wide mode, keep the actual parent folder selected by the user.
+
+    # Start-WebScanFiles remembers the parent of its first item. Restore the
+    # exact user-selected root so later scans, backup UI and folder actions
+    # continue to point at the game library rather than a child directory.
     $Session.Ctx.Folder = $Folder
     $Session.Ctx.Settings.LastFolder = $Folder
     try { Save-Settings -Root $Session.Root -Settings $Session.Ctx.Settings } catch { }
+
     if ($result.ok) {
+        foreach ($shortcut in @($Session.Shortcuts)) {
+            $linkKey = ([string]$shortcut.Path).ToLowerInvariant()
+            if ($urlSourceByLink.ContainsKey($linkKey)) {
+                $urlInfo = $urlSourceByLink[$linkKey]
+                $shortcut | Add-Member -NotePropertyName SourceUrlPath -NotePropertyValue ([string]$urlInfo.SourceUrlPath) -Force
+                $shortcut | Add-Member -NotePropertyName IsNewlyConvertedUrlShortcut -NotePropertyValue ([bool]$urlInfo.CreatedNow) -Force
+                $shortcut.Detail = 'Converted launcher URL; Undo restores the original .url file.'
+            }
+            if ($shortcut.PSObject.Properties.Name -contains 'SourcePath') {
+                $sourceKey = ([string]$shortcut.SourcePath).ToLowerInvariant()
+                if ($launchConfigBySource.ContainsKey($sourceKey)) {
+                    $launch = $launchConfigBySource[$sourceKey]
+                    $shortcut | Add-Member -NotePropertyName LaunchTargetPath -NotePropertyValue ([string]$launch.TargetPath) -Force
+                    $shortcut | Add-Member -NotePropertyName LaunchArguments -NotePropertyValue ([string]$launch.Arguments) -Force
+                    $shortcut | Add-Member -NotePropertyName LaunchWorkingDirectory -NotePropertyValue ([string]$launch.WorkingDirectory) -Force
+                    $shortcut.Detail = 'ROM shortcut will open with the detected emulator.'
+                }
+            }
+        }
         $result.sourceFiles = $files.Count
+        $result.includedShortcuts = $includedShortcuts
         $result.includedExecutables = $includedExecutables
         $result.includedScripts = $includedScripts
+        $result.includedRoms = $includedRoms
         $result.convertedUrls = $convertedUrls
         $result.failedUrls = $failedUrls
         $result.excludedHelpers = $excludedHelpers
+        $result.excludedLauncherApps = $excludedLauncherApps
         $result.alreadyLinked = $alreadyLinked
         $result.truncated = $truncated
     }
