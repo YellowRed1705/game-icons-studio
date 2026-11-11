@@ -8,6 +8,7 @@ if (-not ('GIS.NativeFileDialog' -as [type])) {
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace GIS {
     [Flags]
@@ -109,6 +110,93 @@ namespace GIS {
         [PreserveSig] int EnumItems(out IntPtr enumerator);
     }
 
+    public static class NativeWindowTools {
+        private delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
+
+        [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder text, int maxCount);
+        [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hwnd);
+        [DllImport("user32.dll")] private static extern bool ShowWindowAsync(IntPtr hwnd, int command);
+        [DllImport("user32.dll")] private static extern bool BringWindowToTop(IntPtr hwnd);
+        [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hwnd);
+        [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hwnd, IntPtr insertAfter, int x, int y, int cx, int cy, uint flags);
+        [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+        [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
+        [DllImport("user32.dll")] private static extern bool AttachThreadInput(uint attach, uint attachTo, bool attachState);
+
+        private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+        private static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
+        private const uint SWP_NOSIZE = 0x0001;
+        private const uint SWP_NOMOVE = 0x0002;
+        private const uint SWP_SHOWWINDOW = 0x0040;
+
+        public static IntPtr GetForegroundWindowHandle() {
+            return GetForegroundWindow();
+        }
+
+        public static void ShowMaximizedAndForeground(IntPtr hwnd) {
+            if (hwnd == IntPtr.Zero) return;
+            uint processId;
+            uint targetThread = GetWindowThreadProcessId(hwnd, out processId);
+            uint currentThread = GetCurrentThreadId();
+            IntPtr foreground = GetForegroundWindow();
+            uint foregroundProcess;
+            uint foregroundThread = foreground == IntPtr.Zero ? 0 : GetWindowThreadProcessId(foreground, out foregroundProcess);
+            bool attachedForeground = false;
+            bool attachedTarget = false;
+            try {
+                if (foregroundThread != 0 && foregroundThread != currentThread) {
+                    attachedForeground = AttachThreadInput(currentThread, foregroundThread, true);
+                }
+                if (targetThread != 0 && targetThread != currentThread && targetThread != foregroundThread) {
+                    attachedTarget = AttachThreadInput(currentThread, targetThread, true);
+                }
+                ShowWindowAsync(hwnd, 3); // SW_MAXIMIZE; also restores minimized windows
+                SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+                BringWindowToTop(hwnd);
+                SetForegroundWindow(hwnd);
+                SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+            } finally {
+                if (attachedTarget) AttachThreadInput(currentThread, targetThread, false);
+                if (attachedForeground) AttachThreadInput(currentThread, foregroundThread, false);
+            }
+        }
+
+        public static IDisposable WatchAndMaximizeDialog(string title, IntPtr owner) {
+            int attempts = 0;
+            Timer timer = null;
+            timer = new Timer(delegate(object state) {
+                try {
+                    if (owner != IntPtr.Zero) {
+                        uint ownerProcess;
+                        if (GetWindowThreadProcessId(owner, out ownerProcess) != 0) {
+                            ShowWindowAsync(owner, 9); // SW_RESTORE if the browser was minimized
+                        }
+                    }
+                    bool found = false;
+                    EnumWindows(delegate(IntPtr hwnd, IntPtr unused) {
+                        if (!IsWindowVisible(hwnd)) return true;
+                        System.Text.StringBuilder text = new System.Text.StringBuilder(512);
+                        GetWindowText(hwnd, text, text.Capacity);
+                        if (String.Equals(text.ToString(), title, StringComparison.OrdinalIgnoreCase)) {
+                            ShowMaximizedAndForeground(hwnd);
+                            found = true;
+                            return false;
+                        }
+                        return true;
+                    }, IntPtr.Zero);
+                    attempts++;
+                    if (found || attempts >= 80) timer.Dispose();
+                } catch {
+                    attempts++;
+                    if (attempts >= 80) timer.Dispose();
+                }
+            }, null, 150, 100);
+            return timer;
+        }
+    }
+
     public static class NativeFileDialog {
         private static readonly Guid FileOpenDialogClass = new Guid("DC1C5A9C-E88A-4DDE-A5A1-60F82A20AEF7");
         private const int ErrorCancelled = unchecked((int)0x800704C7);
@@ -159,10 +247,15 @@ namespace GIS {
                     FileOpenOptions.NoChangeDirectory |
                     FileOpenOptions.DontAddToRecent;
                 dialog.SetOptions(options);
-                dialog.SetTitle(String.IsNullOrWhiteSpace(title) ? "Choose a folder" : title);
+                string dialogTitle = String.IsNullOrWhiteSpace(title) ? "Choose a folder" : title;
+                dialog.SetTitle(dialogTitle);
                 dialog.SetOkButtonLabel("Select Folder");
                 SetInitialFolder(dialog, initialFolder);
-                int hr = dialog.Show(owner);
+                IntPtr activeOwner = owner != IntPtr.Zero ? owner : NativeWindowTools.GetForegroundWindowHandle();
+                IDisposable focusWatch = NativeWindowTools.WatchAndMaximizeDialog(dialogTitle, activeOwner);
+                int hr;
+                try { hr = dialog.Show(activeOwner); }
+                finally { focusWatch.Dispose(); }
                 if (hr == ErrorCancelled) return null;
                 if (hr < 0) Marshal.ThrowExceptionForHR(hr);
                 IShellItem result = null;
@@ -190,9 +283,14 @@ namespace GIS {
                     FileOpenOptions.NoChangeDirectory |
                     FileOpenOptions.DontAddToRecent;
                 dialog.SetOptions(options);
-                dialog.SetTitle(String.IsNullOrWhiteSpace(title) ? "Select files" : title);
+                string dialogTitle = String.IsNullOrWhiteSpace(title) ? "Select files" : title;
+                dialog.SetTitle(dialogTitle);
                 SetInitialFolder(dialog, initialFolder);
-                int hr = dialog.Show(owner);
+                IntPtr activeOwner = owner != IntPtr.Zero ? owner : NativeWindowTools.GetForegroundWindowHandle();
+                IDisposable focusWatch = NativeWindowTools.WatchAndMaximizeDialog(dialogTitle, activeOwner);
+                int hr;
+                try { hr = dialog.Show(activeOwner); }
+                finally { focusWatch.Dispose(); }
                 if (hr == ErrorCancelled) return new string[0];
                 if (hr < 0) Marshal.ThrowExceptionForHR(hr);
                 IShellItemArray results = null;
