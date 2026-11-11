@@ -37,7 +37,7 @@ if ($webAppText -notmatch "var currentLang = 'en';" -or
     $webAppText -match "localStorage\.getItem\('gis-lang'\)") {
     throw 'Fresh installs must default to English and use the new language preference key.'
 }
-foreach ($requiredUiToken in @('function setLang(lang)','function applyScreenLanguage(screen)','flag-')) {
+foreach ($requiredUiToken in @('function setLang(lang)','function applyScreenLanguage(screen)','lang-flag')) {
     if ($webAppText -notmatch [regex]::Escape($requiredUiToken)) {
         throw "Language UI is missing required wiring: $requiredUiToken"
     }
