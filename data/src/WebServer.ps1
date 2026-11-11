@@ -1887,7 +1887,7 @@ function Open-FolderLargeIcons {
         }
 
         # Fallback in case Explorer has not exposed its shell window yet.
-        Start-Process -FilePath 'explorer.exe' -ArgumentList @('/n', $targetFolder) -ErrorAction Stop | Out-Null
+        Start-Process -FilePath 'explorer.exe' -ArgumentList ('/n "' + $targetFolder + '"') -ErrorAction Stop | Out-Null
         Start-Sleep -Milliseconds 350
         foreach ($window in @($shell.Windows())) {
             try {
@@ -1901,7 +1901,7 @@ function Open-FolderLargeIcons {
         }
     } catch {
         Write-Log "Could not maximize the Explorer folder window: $($_.Exception.Message)" 'WARN'
-        try { Start-Process -FilePath 'explorer.exe' -ArgumentList @('/n', $targetFolder) -ErrorAction SilentlyContinue | Out-Null } catch { }
+        try { Start-Process -FilePath 'explorer.exe' -ArgumentList ('/n "' + $targetFolder + '"') -ErrorAction SilentlyContinue | Out-Null } catch { }
     } finally {
         if ($null -ne $shell -and [System.Runtime.InteropServices.Marshal]::IsComObject($shell)) {
             try { [System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) | Out-Null } catch { }
