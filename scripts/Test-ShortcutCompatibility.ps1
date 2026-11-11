@@ -68,11 +68,14 @@ $imageSearchText = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\sr
 foreach ($token in @('$googleTop = @($ranked', '$yandexTop = @($ranked', 'Select-Object -First 5', 'if ($Provider -eq ''both'') {')) {
     if (-not $imageSearchText.Contains($token)) { throw "Provider-balanced Top 5 image search is missing: $token" }
 }
-foreach ($token in @('googleTop5 = $googleTop5','yandexTop5 = $yandexTop5','-MaxResults 80')) {
-    if (-not $webServerText.Contains($token)) { throw "Image search API is missing provider Top 5 data: $token" }
+if ($webServerText.Contains("'/api/search-images'")) {
+    throw 'The retired manual Top 5 image-fetch endpoint must not be exposed.'
 }
-foreach ($token in @('googleImageResultsGrid','yandexImageResultsGrid','function fetchAndApplyOnlineCandidate','function loadOnlineCandidateForCrop','Fetch & Apply','Crop first','function onCustomCropPointerDown','function zoomCustomCrop','customSourceCanvas','customCropState.crop')) {
-    if (-not $webAppText.Contains($token)) { throw "Automatic image selection or crop UI is missing: $token" }
+foreach ($token in @('id="googleImagesBtn"','id="yandexImagesBtn"','function openGoogleSearch()','function openYandexSearch()','function prepareCustomDropTarget','drop-ready','id="customDropZone"','function onCustomCropPointerDown','function zoomCustomCrop','customSourceCanvas','customCropState.crop')) {
+    if (-not $webAppText.Contains($token)) { throw "Google/Yandex search and drag-drop workflow is missing: $token" }
+}
+foreach ($token in @('onlineAutoTop5Btn','googleImageResultsGrid','yandexImageResultsGrid','function searchOnlineImageCandidates','Fetch Top 5 from each','function fetchAndApplyOnlineCandidate')) {
+    if ($webAppText.Contains($token)) { throw "Retired manual Top 5 UI is still present: $token" }
 }
 $iconToolsText = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\src\IconTools.ps1') -Raw
 foreach ($token in @('function New-StyledBitmap','function ConvertTo-Ico','New-RoundedRectPath','CornerRadiusPercent','BorderWidthPercent','ShadowEnabled')) {
