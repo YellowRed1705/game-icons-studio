@@ -1,0 +1,43 @@
+Game Icons Studio v6.39 — Upgrade Instructions
+
+This is the overlay-upgrade package for an existing installation.
+
+1. Close Game Icons Studio completely. Use Quit in the browser and allow the CMD/PowerShell console window to exit.
+2. Extract the contents of Game-Icons-Studio-v6.39-Upgrade.zip directly into your existing Game Icons Studio program folder.
+3. Approve overwrite/replace prompts for application files.
+4. Launch Game Icons Studio.bat again.
+
+Primary workflow: Game Library Folder
+
+1. Open Game Icons Studio and choose Game Library Folder on the home screen.
+2. Select the folder that contains your game shortcuts, launcher links, installations, or ROMs. The picker uses the native Windows Explorer-style dialog.
+3. The app scans existing .lnk shortcuts, recognized .url launcher links, EXE files, BAT/CMD scripts, and supported ROM formats.
+4. Existing shortcuts are reused. Recognized .url links are converted to standard .lnk launchers. For ROM files, a supported emulator shortcut already present in the selected folder is used as a launch profile when detected.
+5. Game names are matched through the existing SteamGridDB flow. Review the selected artwork, then apply the icons.
+
+Launcher and ROM behavior
+
+- Steam, Epic Games, Ubisoft Connect, Battle.net, EA and other registered URI protocols are supported when Windows has an associated protocol handler.
+- Cemu, Ryujinx/Eden/Yuzu, Dolphin, mGBA, melonDS, Azahar/Citra and PCSX2 launch profiles are detected from matching emulator shortcuts inside the selected folder.
+- When no matching emulator shortcut is found, a ROM .lnk uses its registered Windows file association. Add an emulator shortcut to the selected folder if you want the app to reuse its launch command.
+- Existing .lnk launch targets, arguments and working directories are preserved when only their icons are changed.
+- Source .exe, .bat, .cmd and ROM files remain untouched. Companion Windows .lnk shortcuts are created as needed.
+
+One-click Undo
+
+Use Undo Last Change on the home screen to restore the latest unused restore point. Converted .url launchers are included in the transaction: Undo removes the new .lnk and restores the original .url source. The full restore-point browser remains available under Undo / Restore.
+
+Repair Broken Icons
+
+1. Choose Repair Broken Icons from the home screen.
+2. Select the folder containing the white or broken shortcut icons.
+3. The repair module checks shortcut ICO paths, reconnects valid ICO files in the persistent Icons folder, and rebuilds icons from matching local artwork in Cache when possible.
+4. Windows Explorer's icon cache is refreshed after the repair pass.
+
+Repair is local-cache based: if both the ICO and the matching source artwork are missing, the app cannot recreate the original artwork automatically. Run Game Library Folder again to download/match artwork for those entries.
+
+Safety limits and data
+
+- Common setup programs, uninstallers, crash reporters, anti-cheat helpers and launcher utility applications are excluded from game matching where recognized.
+- One folder scan is capped at 1,000 launchable entries; additional entries are left untouched.
+- The Upgrade ZIP contains runtime code and version documentation. It excludes personal settings, API keys, ICO artwork, raw caches, history, logs, restore-point backups and other user data. Extract it over the existing application folder to preserve those files.
