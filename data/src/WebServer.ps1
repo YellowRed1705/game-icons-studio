@@ -1393,6 +1393,8 @@ function Start-WebScanGameFolder {
     $Session.Ctx.Settings.LastFolder = $Folder
     try { Save-Settings -Root $Session.Root -Settings $Session.Ctx.Settings } catch { }
 
+    $maxTargets = 1000
+    $truncated = 0
     $files = New-Object System.Collections.Generic.List[string]
     $seenPaths = @{}
     $existingLinkTargets = @{}
@@ -1406,8 +1408,12 @@ function Start-WebScanGameFolder {
     foreach ($linkFile in $existingLinks) {
         $keyPath = ([string]$linkFile.FullName).ToLowerInvariant()
         if (-not $seenPaths.ContainsKey($keyPath)) {
-            $seenPaths[$keyPath] = $true
-            $files.Add([string]$linkFile.FullName)
+            if ($files.Count -lt $maxTargets) {
+                $seenPaths[$keyPath] = $true
+                $files.Add([string]$linkFile.FullName)
+            } else {
+                $truncated++
+            }
         }
         $existingLinkNames[[System.IO.Path]::GetFileNameWithoutExtension($linkFile.Name).ToLowerInvariant()] = $true
         try {
@@ -1435,6 +1441,7 @@ function Start-WebScanGameFolder {
     $failedUrls = 0
     $urlFallbacks = New-Object System.Collections.Generic.List[string]
     foreach ($internetShortcut in @(Get-InternetShortcuts -Folder $Folder)) {
+        if ($files.Count -ge $maxTargets) { $truncated++; continue }
         $urlStem = ([string]$internetShortcut.Name).ToLowerInvariant()
         if ($existingLinkNames.ContainsKey($urlStem)) {
             # A standard shortcut with the same display name already exists.
@@ -1496,17 +1503,14 @@ function Start-WebScanGameFolder {
 
         $pathKey = $fullPath.ToLowerInvariant()
         if ($seenPaths.ContainsKey($pathKey)) { continue }
+        if ($files.Count -ge $maxTargets) { $truncated++; continue }
         $seenPaths[$pathKey] = $true
         $files.Add($fullPath)
         if ($extension -eq '.exe') { $includedExecutables++ } else { $includedScripts++ }
     }
 
-    $maxTargets = 1000
-    $truncated = 0
-    if ($files.Count -gt $maxTargets) {
-        $truncated = $files.Count - $maxTargets
-        $files.RemoveRange($maxTargets, $files.Count - $maxTargets)
-        Write-Log "Game folder scan limited to $maxTargets entries; $truncated additional entries were left untouched." 'WARN'
+    if ($truncated -gt 0) {
+        Write-Log "Game folder scan capped at $maxTargets entries; $truncated additional entries were left untouched." 'WARN'
     }
 
     if ($files.Count -eq 0) {
