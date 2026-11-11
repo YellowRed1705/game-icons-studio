@@ -717,6 +717,12 @@ function Invoke-WebRoute {
         return
     }
 
+    if ($path -eq '/api/backup-restore-latest' -and $method -eq 'POST') {
+        $result = Restore-LatestIconBackupTransaction -Root $Session.Root
+        Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe $result)
+        return
+    }
+
     if ($path -like '/cache/*' -and $method -eq 'GET') {
         $rawName = [uri]::UnescapeDataString(($req.Url.AbsolutePath -replace '^/cache/', ''))
         $name = [System.IO.Path]::GetFileName($rawName)
