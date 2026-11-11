@@ -1189,7 +1189,7 @@ var i18n = {
     folderTitle: "Oyun klasörünü seç",
     folderSub: "Game Shortcut'larının (.lnk) bulunduğu klasörü seç veya klasör yolunu yapıştır.",
     scanBtn: "Bu klasörü tara →",
-    backBtn: "← Back",
+    backBtn: "← Geri",
     stepFolder: "Folder",
     stepMatch: "Match & Artwork",
     stepReview: "Review",
@@ -1572,7 +1572,7 @@ function applyLang() {
   }
 
   document.querySelectorAll('.back-btn').forEach(function(b) {
-    if (b.textContent.includes('Back') || b.textContent.includes('رجوع')) {
+    if (b.textContent.includes('Back') || b.textContent.includes('Geri') || b.textContent.includes('رجوع')) {
       b.textContent = t.backBtn;
     }
   });
@@ -1871,7 +1871,8 @@ function toggleFullscreen(){
   else { document.exitFullscreen().catch(function(){}); }
 }
 document.addEventListener('fullscreenchange', function(){
-  $('fsBtn').innerHTML = document.fullscreenElement ? '&#9974; Exit Fullscreen' : '&#9974; Fullscreen';
+  var screen = screenI18n[currentLang] || screenI18n.en;
+  $('fsBtn').textContent = document.fullscreenElement ? screen.exitFullscreen : screen.fullScreen;
 });
 
 function api(path, body){
@@ -3779,9 +3780,10 @@ try { state.gallery = (localStorage.getItem('gis-gallery') === '1'); } catch(e){
 applyZoom();
 loadSavedTheme();
 try {
-  var savedLang = localStorage.getItem('gis-lang');
-  if (savedLang === 'ar' || savedLang === 'en') { currentLang = savedLang; }
-} catch(e){}
+  var savedLang = localStorage.getItem('gis-lang-v2');
+  if (savedLang === 'ar' || savedLang === 'en' || savedLang === 'tr') { currentLang = savedLang; }
+  else { currentLang = 'en'; }
+} catch(e){ currentLang = 'en'; }
 applyLang();
 checkKey();
 '@
