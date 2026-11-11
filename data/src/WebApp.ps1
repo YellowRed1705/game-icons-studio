@@ -392,6 +392,27 @@ function Get-WebAppHtml {
     background:repeating-conic-gradient(#1a1e27 0% 25%, #141821 0% 50%) 50% / 16px 16px;
   }
   .url-row { display:flex; gap:8px; width:100%; max-width:680px; justify-content:center; flex-wrap:wrap; }
+  .lang-switch {
+    display:inline-flex; align-items:center; gap:3px; padding:4px;
+    border:1px solid var(--line); border-radius:14px;
+    background:var(--panel); box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+    flex:0 0 auto;
+  }
+  .lang-option {
+    display:inline-flex; align-items:center; justify-content:center; gap:5px;
+    min-width:48px; padding:7px 9px; border:0; border-radius:10px;
+    background:transparent; color:var(--muted); font:inherit;
+    font-size:.76rem; font-weight:800; letter-spacing:.02em; cursor:pointer;
+    transition:background .16s ease,color .16s ease,transform .16s ease;
+  }
+  .lang-option:hover { background:var(--line); color:var(--text); }
+  .lang-option:focus-visible { outline:2px solid var(--accent2); outline-offset:2px; }
+  .lang-option.active { background:var(--accent2); color:#fff; box-shadow:0 2px 8px rgba(0,0,0,.16); }
+  .lang-flag { font-size:1.08rem; line-height:1; }
+  @media(max-width:760px) {
+    .lang-option { min-width:38px; padding:7px 6px; gap:3px; }
+    .lang-flag { font-size:1rem; }
+  }
   .hidden { display:none !important; }
   html[dir="rtl"] { direction: rtl; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
   html[dir="rtl"] .iconbtn, html[dir="rtl"] .theme-btn, html[dir="rtl"] .ghost { margin-left: 0; margin-right: 8px; }
@@ -409,7 +430,11 @@ function Get-WebAppHtml {
     <p>Game and app icons, with safe restore history.</p>
   </div>
   <div class="spacer"></div>
-  <button class="iconbtn" id="langBtn" onclick="toggleLang()" title="Change Language">🌐 عربي</button>
+  <div class="lang-switch" id="languageSwitcher" role="group" aria-label="Language">
+    <button type="button" class="lang-option" data-lang="en" onclick="setLang('en')" title="English"><span class="lang-flag">🇬🇧</span><span>EN</span></button>
+    <button type="button" class="lang-option" data-lang="tr" onclick="setLang('tr')" title="Türkçe"><span class="lang-flag">🇹🇷</span><span>TR</span></button>
+    <button type="button" class="lang-option" data-lang="ar" onclick="setLang('ar')" title="العربية"><span class="lang-flag">🇸🇦</span><span>AR</span></button>
+  </div>
   <button class="iconbtn" id="homeBtn" onclick="goHome()" title="Home">&#8962; Home</button>
   <button class="iconbtn" id="aboutBtn" onclick="showAbout()" title="What is GIS?">&#10067; What is GIS</button>
   <button class="iconbtn" id="summaryBtn" onclick="returnToSummary()" title="Back to your results summary" style="display:none;">&#8617; Summary</button>
@@ -1115,6 +1140,122 @@ var i18n = {
     nounFolder: "folder", nounFolders: "folders",
     nounShortcut: "shortcut", nounShortcuts: "shortcuts",
     btnHomeNav: "Home"
+  },
+  tr: {
+    langBtn: "Dil",
+    homeSubtitle: "Game cover ve app icon'larını bul. Shortcut'larını modernleştir.",
+    btnShortcuts: "Game Library Folder",
+    descShortcuts: "Önerilen. Klasördeki .lnk ve .url dosyalarını, Steam/Epic/Ubisoft linklerini, EXE dosyalarını ve emulator ROM'larını tara. Çalışan Windows Shortcut'ları oluştur ve uygun Game Artwork eşleştir.",
+    btnShortcutsOnly: "Shortcuts Only",
+    descShortcutsOnly: "Eski mod. Yalnızca klasördeki mevcut standart Windows .lnk Shortcut'larını tara.",
+    btnAllFolders: "All Sub-Folders",
+    descAllFolders: "Ana klasörün içindeki tüm oyun klasörlerini tara ve Folder Icon'larını ayarla.",
+    btnSingleFolder: "Specific Folder",
+    descSingleFolder: "Icon'unu özelleştirmek istediğin tek bir oyun klasörünü seç.",
+    btnSpecific: "Specific Shortcuts",
+    descSpecific: "Yalnızca yeniden düzenlemek istediğin Shortcut'ları seç ve yeni Cover'lar belirle.",
+    btnRepair: "Repair Broken Icons",
+    descRepair: "Oyun klasörünü tara, kayıtlı Artwork üzerinden eksik .ico referanslarını onar ve Windows Icon Cache'i yenile.",
+    btnUndoLast: "↶ Undo Last Change",
+    btnProgramIcons: "Program & App Icons",
+    descProgramIcons: "Uygulama Icon'ları için Google Images veya Yandex Images'ta ara ve Shortcut'lara uygula.",
+    btnAnyFiles: "Any Files & Scripts",
+    descAnyFiles: ".exe, .bat, .cmd, .ps1 ve diğer dosyaları seç. Normal dosyaların yanına özel Icon içeren Shortcut oluşturulur.",
+    btnGameFiles: "Game Library Folder",
+    descGameFiles: "Oyun klasöründeki çalıştırılabilir EXE dosyalarını ve Launcher'ları tara. Uygun Game Icon'larıyla çalışan Windows Shortcut'ları oluştur.",
+    programFolderTitle: "Program Shortcut klasörünü seç",
+    programFolderSub: "Program ve uygulama Shortcut'larının bulunduğu klasörü seç veya yolunu yapıştır.",
+    programScanBtn: "Shortcut'ları tara ve Icon seç →",
+    yandexSearchBtn: "Yandex Images Search'ü aç 🔍",
+    customTitle: "Custom Icon Studio",
+    kindGame: "Game Cover",
+    kindProgram: "Program / App Icon",
+    customSearchHint: "Yüksek çözünürlüklü bir sonuç ara. Görseli sürükleyerek Drop alanına veya Icon Preview üzerine bırak. Görsele sağ tıklayıp Copy image seçebilir ve Ctrl+V kullanabilirsin.",
+    customApplyBtn: "Bu Icon'u uygula",
+    customSkipBtn: "Bu uygulamayı atla",
+    chooseLocalImage: "Local Image seç",
+    btnQuick: "↻ Quick re-apply",
+    btnHistory: "🕒 History",
+    btnUndo: "↶ Undo / Restore",
+    backupTitle: "Icon'ları Undo / Restore et",
+    backupSubtitle: "Kaydedilmiş Restore Point'lerden önceki Icon durumlarını geri yükle. Değişiklikler uygulanmadan önce otomatik Restore Point oluşturulur.",
+    backupRetentionLabel: "Saklanacak Restore Point sayısı:",
+    backupEmpty: "Henüz Restore Point yok. İlk Backup sürümünü oluşturmak için bir kez Icon uygula.",
+    backupRestore: "Bu sürümü Restore et",
+    backupRestoreConfirm: "{0} öğe önceki durumuna döndürülecek. Bu işlem daha yeni değişikliklerin üzerine yazabilir. Devam edilsin mi?",
+    backupRestoreDone: "Restore tamamlandı.",
+    backupRestoreError: "Restore Point geri yüklenemedi.",
+    backupSaved: "Restore History ayarı kaydedildi.",
+    folderTitle: "Oyun klasörünü seç",
+    folderSub: "Game Shortcut'larının (.lnk) bulunduğu klasörü seç veya klasör yolunu yapıştır.",
+    scanBtn: "Bu klasörü tara →",
+    backBtn: "← Back",
+    stepFolder: "Folder",
+    stepMatch: "Match & Artwork",
+    stepReview: "Review",
+    stepDone: "Done",
+    confirmTitle: "Bu Icon uygun mu?",
+    confirmAutoTitle: "Bu eşleşmeden tam emin değilim. Sence uygun mu?",
+    shortcutProgress: "Öğe {0} / {1}: {2}",
+    releasedYear: "Çıkış yılı: {0}",
+    highestConfidence: "Mevcut en iyi Grid Cover ile en yüksek güvenli eşleşme.",
+    whichGame: '“{0}” hangi oyun?',
+    btnLooksGood: "✓ Uygun",
+    btnDiffCover: "Farklı Cover seç",
+    btnWrongGame: "Eşleşen oyun yanlış",
+    btnAutoAll: "⚡ Tüm oyun ve Cover'ları otomatik seç",
+    btnReturnGrid: "⮩ Grid'e dön",
+    titleMatches: "Doğru oyunu seç",
+    titleArtwork: "Bir Cover seç",
+    titleReview: "Beğenmediğin Icon'ları seç ve değiştir",
+    subReview: "Memnun olmadığın Icon'lara tıkla (seçildiğinde soluklaşırlar), sonra 'Change these icons' düğmesine bas. Hepsi uygunsa Finish'e basman yeterli.",
+    btnChangeSel: "Seçili Icon'ları değiştir",
+    btnFinishApply: "BİTİR! (Tüm değişiklikleri uygula)",
+    btnStartOver: "Baştan başla",
+    reportTitle: "Tamamlandı",
+    reportSub: "Bu işlemin özeti burada. Bitirebilir veya Grid'e dönerek Icon'ları yeniden inceleyip değiştirebilirsin.",
+    statUpdated: "Güncellendi",
+    statMatched: "Eşleşti",
+    statPlaceholder: "Placeholder",
+    statSkipped: "Atlandı",
+    statFailed: "Başarısız",
+    runAtGlance: "İŞLEMİN KISA ÖZETİ",
+    miniProcessed: "İşlenen öğe",
+    miniUpdated: "Güncellenen Icon",
+    miniSuccess: "Başarı oranı",
+    miniPlaceholders: "Oluşturulan Placeholder",
+    btnFinishOpen: "Bitir ve klasörümü aç ✓",
+    btnReturnReview: "Grid'e dön (incele ve değiştir) ⮹",
+    searchReview: "...Oyunlarında ara 🔍",
+    googleSearchBtn: "Google Images Search'ü aç 🔍",
+    dragDropText: "Görseli buraya sürükle ve bırak veya Ctrl+V'ye bas",
+    autoBannerText: "⚡ Auto Mode açık. Bu eşleşmeden emin olamadım; lütfen onayla.",
+    urlPlaceholder: "veya doğrudan Image URL / Google linkini yapıştırıp Enter'a bas...",
+    btnBackHome: "Ana sayfaya dön",
+    ftMainAll: "Ana oyun klasörünü seç",
+    fsMainAll: "Tüm oyun alt klasörlerini içeren ana klasörü seç veya yolunu yapıştır.",
+    btnScanAll: "Tüm alt klasörleri tara →",
+    ftSingle: "Belirli bir oyun klasörü seç",
+    fsSingle: "Icon'unu özelleştirmek istediğin tek oyun klasörünü seç veya yolunu yapıştır.",
+    btnScanSingle: "Bu klasörü tara →",
+    applyTitle: "Uygulamaya hazır",
+    applyMsg: "Seçtiğin Icon'lar {0} {1} öğeyi güncelleyecek.",
+    applyDups: "Dikkat: Bazı öğeler aynı oyuna işaret ediyor; bu nedenle aynı Icon'u alacaklar: {0}.",
+    applySub: "Seçtiğin yeni Icon'lar öğelere atanacak. Kısayolların eskisi gibi çalışmaya devam edecek.",
+    btnYesApply: "Evet, şimdi uygula",
+    btnGoBack: "Geri dön",
+    memoryTitle: "Tekrar hoş geldin!",
+    memoryCountMsg: "Önceki işlemlerinden {0} kayıtlı {1} bulundu.",
+    memorySub: "Daha önce seçtiğin oyunları ve Cover'ları hatırlıyorum. Aynı seçimleri yeniden kullanmak mı, yoksa sıfırdan başlamak mı istersin?",
+    btnUseMemory: "Önceki seçimlerimi kullan ✓",
+    btnStartOverMemory: "Sıfırdan başla",
+    choiceSingular: "seçim",
+    choicePlural: "seçim",
+    nounFolder: "klasör",
+    nounFolders: "klasör",
+    nounShortcut: "Shortcut",
+    nounShortcuts: "Shortcut",
+    btnHomeNav: "Ana Sayfa"
   }
 };
 var currentLang = 'en';
