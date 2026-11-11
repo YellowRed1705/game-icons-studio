@@ -10,6 +10,19 @@ if (-not (Test-ModernFileDialogAvailable)) {
     throw 'Modern Windows file/folder picker type did not compile.'
 }
 
+$nativeWindowTools = 'GIS.NativeWindowTools' -as [type]
+if (-not $nativeWindowTools) {
+    throw 'Native foreground/maximize helper did not compile.'
+}
+foreach ($methodName in @('GetForegroundWindowHandle','ShowMaximizedAndForeground','WatchAndMaximizeDialog')) {
+    if (-not $nativeWindowTools.GetMethod($methodName)) {
+        throw "Native window helper is missing method $methodName."
+    }
+}
+# The helper must be safe to query from an unattended CI desktop session.
+[void][GIS.NativeWindowTools]::GetForegroundWindowHandle()
+
+
 function Write-Log {
     param([string]$Message,[string]$Level='INFO',[bool]$Show=$false)
 }
