@@ -2571,18 +2571,18 @@ function scanGameFilesFolder(folder){
       return;
     }
     var details = [];
-    details.push((res.sourceFiles||0) + ' launchable entries found');
-    details.push((res.includedExecutables||0) + ' EXE');
-    if (res.includedScripts) details.push(res.includedScripts + ' BAT/CMD');
-    if (res.includedShortcuts) details.push(res.includedShortcuts + ' existing shortcuts');
-    if (res.convertedUrls) details.push(res.convertedUrls + ' launcher URLs prepared as .lnk');
-    if (res.includedRoms) details.push(res.includedRoms + ' emulator ROMs');
-    if (res.alreadyLinked) details.push(res.alreadyLinked + ' already had a working shortcut');
-    if (res.excludedLauncherApps) details.push(res.excludedLauncherApps + ' emulator utility shortcuts left alone');
-    if (res.excludedHelpers) details.push(res.excludedHelpers + ' installer/helper files skipped');
-    if (res.failedUrls) details.push(res.failedUrls + ' URL conversion(s) kept as source files');
-    if (res.truncated) details.push('safety limit: ' + res.truncated + ' extra entries left untouched');
-    state.gameFilesSummary = details.join(' · ') + '. Original EXE/BAT/CMD files remain untouched.';
+    details.push(formatStr(statusText('launchableEntries'), [res.sourceFiles||0]));
+    details.push(formatStr(statusText('exeCount'), [res.includedExecutables||0]));
+    if (res.includedScripts) details.push(formatStr(statusText('scriptCount'), [res.includedScripts]));
+    if (res.includedShortcuts) details.push(formatStr(statusText('existingShortcutCount'), [res.includedShortcuts]));
+    if (res.convertedUrls) details.push(formatStr(statusText('preparedLauncherCount'), [res.convertedUrls]));
+    if (res.includedRoms) details.push(formatStr(statusText('romCount'), [res.includedRoms]));
+    if (res.alreadyLinked) details.push(formatStr(statusText('linkedCount'), [res.alreadyLinked]));
+    if (res.excludedLauncherApps) details.push(formatStr(statusText('launcherUtilityCount'), [res.excludedLauncherApps]));
+    if (res.excludedHelpers) details.push(formatStr(statusText('helperSkippedCount'), [res.excludedHelpers]));
+    if (res.failedUrls) details.push(formatStr(statusText('failedUrlCount'), [res.failedUrls]));
+    if (res.truncated) details.push(formatStr(statusText('safetyLimitCount'), [res.truncated]));
+    state.gameFilesSummary = details.join(' · ') + '. ' + statusText('originalsUntouched');
     beginScanLoop(res.total);
   }).catch(function(error){
     show('step-folder');
@@ -2598,9 +2598,9 @@ function startScan(){
   api('/api/folder-health', { folder: state.folder }).then(function(h){
     var row = $('healthRow'); row.innerHTML = '';
     var cards = [
-      ['Standard shortcuts', h.lnk||0, 'var(--good)'],
-      ['Launcher shortcuts (.url)', h.url||0, 'var(--warn)'],
-      ['Broken / missing target', h.broken||0, (h.broken>0?'var(--bad)':'var(--muted)')]
+      [statusText('standardShortcuts'), h.lnk||0, 'var(--good)'],
+      [statusText('launcherShortcuts'), h.url||0, 'var(--warn)'],
+      [statusText('brokenTargetLabel'), h.broken||0, (h.broken>0?'var(--bad)':'var(--muted)')]
     ];
     cards.forEach(function(c){
       var d=document.createElement('div'); d.className='health-card';
@@ -2608,9 +2608,9 @@ function startScan(){
       row.appendChild(d);
     });
     var notes=[];
-    if ((h.url||0)>0){ notes.push('Launcher shortcuts will be offered for conversion so their icons can be customized.'); }
-    if ((h.broken||0)>0){ notes.push('Some shortcuts point to a missing file; those will be skipped safely.'); }
-    if (!notes.length){ notes.push('Everything looks good!'); }
+    if ((h.url||0)>0){ notes.push(statusText('healthLauncherNote')); }
+    if ((h.broken||0)>0){ notes.push(statusText('healthBrokenNote')); }
+    if (!notes.length){ notes.push(statusText('everythingGood')); }
     $('healthNote').textContent = notes.join(' ');
     show('step-health');
   }).catch(function(){ afterHealth(); });
@@ -2636,8 +2636,8 @@ function doConvert(){
 }
 function showConvertSuccess(n){
   $('convertOkCount').textContent = n
-    ? ('Converted ' + n + ' shortcut' + (n===1?'':'s') + ' to standard .lnk format.')
-    : 'Your shortcuts are ready.';
+    ? formatStr(statusText('convertedCount'), [n])
+    : statusText('shortcutsReady');
   show('step-convert-ok');
 }
 function skipConvert(){ runScan(); }
@@ -2645,7 +2645,7 @@ function runScan(){
   // Offer to reuse remembered choices (only for full-folder mode, once).
   if (state.mode === 'full' && !state.memoryAsked && !state.iconSearchOnly){
     state.memoryAsked = true;
-    setLoading('Checking your saved choices...', '', 0);
+    setLoading(statusText('checkingSavedChoices'), '', 0);
     api('/api/saved-status', {}).then(function(res){
       if (res && res.ok && res.count > 0){
         var tm = i18n[currentLang];
@@ -2662,14 +2662,14 @@ function runScan(){
 function memoryLoad(){ state.useMemory = true; doScan(); }
 function memoryReset(){
   state.useMemory = false;
-  setLoading('Starting fresh...', 'Clearing your previous choices...', 0);
+  setLoading(statusText('startingFresh'), statusText('clearingChoices'), 0);
   api('/api/reset-choices', {}).then(function(){ doScan(); }).catch(function(){ doScan(); });
 }
 function doScan(){
   setProgress(0);
   var folderMode = isFolderMode();
-  var msg = state.iconSearchOnly ? 'Preparing your program shortcuts...' : (folderMode ? 'Scanning SteamGridDB for your game folders...' : 'Scanning SteamGridDB for your games...');
-  var detail = state.iconSearchOnly ? 'Reading application shortcuts...' : (folderMode ? 'Reading your folders...' : 'Reading your folder...');
+  var msg = state.iconSearchOnly ? statusText('scanPreparingPrograms') : (folderMode ? statusText('scanSteamFolders') : statusText('scanSteamGames'));
+  var detail = state.iconSearchOnly ? statusText('readingAppShortcuts') : (folderMode ? statusText('readingFolders') : statusText('readingFolder'));
   setLoading(msg, detail, 0);
   var payload = { folder: state.folder };
   if (state.iconSearchOnly) payload.iconSearchOnly = true;
@@ -2727,7 +2727,7 @@ function startChangeIcons(anyFiles){
 function beginScanLoop(total){
   state.items = []; state.pos = 0; state.picks = {}; state.history = []; state.reviewSelected = {};
   state.total = total || 0;
-  if (state.total === 0){ alert(state.iconSearchOnly ? 'No supported files or program shortcuts were found.' : 'No matchable games were found.'); goHome(); return; }
+  if (state.total === 0){ alert(state.iconSearchOnly ? statusText('noSupportedFiles') : statusText('noGamesMatched')); goHome(); return; }
   // Program mode queries external image engines per item, so show a realistic estimate.
   var est = estimateSeconds(state.total, state.iconSearchOnly ? 13 : 0.6);
   var noun = state.iconSearchOnly ? 'program/file icon' : 'game';
@@ -3697,7 +3697,7 @@ function searchOnlineImageCandidates(provider, silent){
   if (!it) return;
   provider = provider || 'both';
   var status = $('onlineSearchStatus');
-  if (status) status.textContent = 'Searching ' + (provider === 'both' ? 'Google Images, Yandex Images and brand-icon catalog' : (provider === 'google' ? 'Google Images and brand icons' : 'Yandex Images and brand icons')) + ' for square, high-resolution app icons...';
+  if (status) status.textContent = statusText(provider === 'both' ? 'searchingBoth' : (provider === 'google' ? 'searchingGoogle' : 'searchingYandex'));
   api('/api/search-images', { name: it.name, provider: provider }).then(function(res){
     if (!res || !res.ok) {
       if (status) status.textContent = (res && res.error) || 'Search could not retrieve online results. Use the search tabs or drag/drop a result.';
@@ -3714,8 +3714,8 @@ function searchOnlineImageCandidates(provider, silent){
     var merged = kept.concat(incoming), seenUrls = {};
     _onlineCandidateCache = merged.filter(function(c){ var u=String(c.url||''); if(!u || seenUrls[u]) return false; seenUrls[u]=true; return true; });
     if (status) status.textContent = incoming.length
-      ? ('Found ' + incoming.length + ' candidate(s). Brand-relevant results are ranked first; resolution and square shape are tie-breakers. Choose one to preview it, then Apply this icon.')
-      : 'No direct result images could be extracted. Google/Yandex tabs and drag-and-drop remain available; the provider may block automated previews.';
+      ? formatStr(statusText('onlineFound'), [incoming.length])
+      : statusText('onlineNoResults');
     renderOnlineImageCandidates(_onlineCandidateCache);
   }).catch(function(){
     if (status) status.textContent = statusText('onlineFailed');
@@ -3761,9 +3761,9 @@ function renderCustomCanvas(){
     ctx.drawImage(customImageObj, sx, sy, side, side, 0, 0, W, H);
   }
   $('customApplyBtn').disabled = false;
-  var qualityHint = (iw < 256 || ih < 256) ? ' Low resolution may look soft at larger icon sizes.' : ' High enough for crisp Windows icons.';
-  $('customStatusMsg').textContent = 'Image ready (' + iw + ' × ' + ih + ').' + qualityHint + ' Preview the crop, then apply.';
-  if ($('onlineSearchStatus') && customSearchKind === 'program') $('onlineSearchStatus').textContent = 'Image loaded (' + iw + ' × ' + ih + '). Click Apply this icon to use it.';
+  var qualityHint = (iw < 256 || ih < 256) ? statusText('imageQualityLow') : statusText('imageQualityHigh');
+  $('customStatusMsg').textContent = formatStr(statusText('imageReady'), [iw,ih,qualityHint]);
+  if ($('onlineSearchStatus') && customSearchKind === 'program') $('onlineSearchStatus').textContent = formatStr(statusText('imageLoaded'), [iw,ih]);
 }
 
 function loadDataUrlIntoCustomCanvas(dataUrl){
@@ -3773,7 +3773,7 @@ function loadDataUrlIntoCustomCanvas(dataUrl){
     renderCustomCanvas();
   };
   img.onerror = function(){
-    $('customStatusMsg').textContent = 'Could not decode that image. Try another image or save it locally first.';
+    $('customStatusMsg').textContent = statusText('imageDecodeError');
   };
   img.src = dataUrl;
 }
@@ -3781,13 +3781,13 @@ function loadDataUrlIntoCustomCanvas(dataUrl){
 function readBlobIntoCustomCanvas(blob){
   if (!blob) return;
   if (blob.type && blob.type.indexOf('image/') !== 0){
-    $('customStatusMsg').textContent = 'That item is not an image. Drop the image itself, or copy the image and press Ctrl+V.';
+    $('customStatusMsg').textContent = statusText('notImage');
     return;
   }
-  $('customStatusMsg').textContent = 'Reading image...';
+  $('customStatusMsg').textContent = statusText('readingImage');
   var reader = new FileReader();
   reader.onload = function(e){ loadDataUrlIntoCustomCanvas(e.target.result); };
-  reader.onerror = function(){ $('customStatusMsg').textContent = 'Failed to read file.'; };
+  reader.onerror = function(){ $('customStatusMsg').textContent = statusText('fileReadError'); };
   reader.readAsDataURL(blob);
 }
 
@@ -3828,7 +3828,7 @@ function loadCustomCandidates(candidates, index){
     candidate = extractGoogleImgUrl(candidate);
     if (!/^https?:\/\//i.test(candidate)) continue;
     $('customUrlInput').value = candidate;
-    $('customStatusMsg').textContent = 'Trying image source ' + index + ' of ' + candidates.length + '...';
+    $('customStatusMsg').textContent = formatStr(statusText('tryingImageSource'), [index,candidates.length]);
     (function(url, nextIndex){
       api('/api/fetch-remote-image', { url: url }).then(function(res){
         if (res && res.ok && res.dataUrl && res.dataUrl.indexOf('data:image/') === 0){
@@ -3839,12 +3839,12 @@ function loadCustomCandidates(candidates, index){
         }
       }).catch(function(){
         if (nextIndex < candidates.length) loadCustomCandidates(candidates, nextIndex);
-        else $('customStatusMsg').textContent = 'Could not fetch this image. Try dragging the image itself or using Copy image → Ctrl+V.';
+        else $('customStatusMsg').textContent = statusText('imageFetchError');
       });
     })(candidate, index);
     return;
   }
-  $('customStatusMsg').textContent = 'No usable image URL found. Try copying the image itself or save the image and choose it from your PC.';
+  $('customStatusMsg').textContent = statusText('noImageUrl');
 }
 
 function loadCustomUrl(rawUrl, fallbackUrl){
@@ -3861,7 +3861,7 @@ function applyCustomCover(){
   var c = $('customCanvas');
   if (!it || !c || !customImageObj) return;
   $('customApplyBtn').disabled = true;
-  $('customStatusMsg').textContent = 'Saving custom icon...';
+  $('customStatusMsg').textContent = statusText('savingCustomIcon');
   var pngDataUrl = c.toDataURL('image/png');
   api('/api/custom-cover', { name: it.name, dataUrl: pngDataUrl }).then(function(res){
     if (res && res.ok && res.url){
@@ -3880,7 +3880,7 @@ function applyCustomCover(){
     }
   }).catch(function(){
     $('customApplyBtn').disabled = false;
-    $('customStatusMsg').textContent = 'Error communicating with local server.';
+    $('customStatusMsg').textContent = statusText('localServerError');
   });
 }
 
@@ -3956,10 +3956,10 @@ function cancelCustomIcon(){
     uriText.split(/\r?\n/).forEach(function(line){ if (line && line.charAt(0) !== '#') addCandidate(line); });
     plainText.split(/\r?\n/).forEach(function(line){ addCandidate(line); });
     if (candidates.length){
-      $('customStatusMsg').textContent = 'Reading the dropped image...';
+      $('customStatusMsg').textContent = statusText('readingDroppedImage');
       loadCustomCandidates(candidates, 0);
     } else {
-      $('customStatusMsg').textContent = 'Could not read that drop. Drag the image itself, use Copy image → Ctrl+V, or save it and browse for the file.';
+      $('customStatusMsg').textContent = statusText('dropReadError');
     }
   }
 
