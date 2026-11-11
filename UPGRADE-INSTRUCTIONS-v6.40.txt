@@ -1,0 +1,43 @@
+Game Icons Studio v6.40 — Upgrade Instructions
+
+This is an overlay upgrade for an existing Game Icons Studio installation.
+
+1. Close Game Icons Studio completely. Use Quit in the browser and allow the CMD/PowerShell console window to exit.
+2. Download Game-Icons-Studio-v6.40-Upgrade.zip from the v6.40 GitHub Release.
+3. Extract the ZIP contents directly into your existing Game Icons Studio program folder.
+4. Approve overwrite/replace prompts for application files.
+5. Start Game Icons Studio.bat again.
+
+Modern Windows picker windows
+
+- When Browse for Folder, Choose Files or Repair Broken Icons opens a native Windows picker, the owning browser window is restored if minimized. The picker is brought to the foreground and maximized.
+- Choose the folder/files and confirm normally. When the picker closes, the browser workflow continues.
+- Windows can restrict foreground activation in some desktop/session configurations. If another app still remains in front, use Alt+Tab once to select the picker; the app will continue to request foreground activation.
+
+After applying icons
+
+1. On the Summary screen, choose Finish & open my folder.
+2. Explorer opens the processed folder in Large Icons view, maximized and focused in front.
+3. Your original game files remain unchanged; the shortcut icons are the items being updated.
+
+Language selector
+
+- 🇬🇧 EN — English
+- 🇹🇷 TR — Türkçe
+- 🇸🇦 AR — العربية
+
+English is the default for a fresh installation and for an existing browser profile that only has the old two-language preference. Select one of the three flag buttons in the header; the choice is remembered for the next launch.
+
+In the Turkish interface, established technical terms intentionally remain in English, for example Shortcut, Icon, ROM, Launcher, Preview, Grid, Apply, Restore Point, Cache, History and Review.
+
+What is preserved
+
+The overlay ZIP contains runtime files and version documentation. It excludes user-specific data so extracting it over the existing folder preserves:
+
+- settings and the SteamGridDB API key
+- persistent Icons and downloaded artwork
+- Cache and local image data
+- Logs and History
+- Restore Point files and backup transactions
+
+Do not delete those folders/files as part of the upgrade. Keep the old installation folder as your backup until you have opened the new version and confirmed your workflow.
