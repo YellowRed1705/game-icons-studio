@@ -1,0 +1,27 @@
+Game Icons Studio v6.47 — Upgrade Instructions
+
+1. Close Game Icons Studio completely.
+2. Download Game-Icons-Studio-v6.47-Upgrade.zip from GitHub Releases.
+3. Extract the ZIP contents over the existing application folder and approve replacement.
+4. Start Game Icons Studio.bat.
+
+Google Images and Yandex Images
+- Open the custom icon editor for the shortcut you want to change.
+- Use the separate Google Images or Yandex Images button at the top of the editor.
+- The selected search engine opens in a new browser tab. The app's drop area is highlighted and ready.
+- Drag the actual image from the search tab into the highlighted drop area. You do not need to scroll down to reach it.
+- If browser drag-and-drop is unavailable for a result, right-click the image, choose Copy image, then return to Game Icons Studio and press Ctrl+V.
+- You can also choose an image from your PC or load a direct image URL.
+
+Preview and crop
+- The empty crop editor stays hidden until an image is loaded, keeping the drop area visible.
+- After loading an image, the crop editor appears automatically.
+- Drag outside the current square to draw a new selection; drag inside the square to move it.
+- Use + / − or the mouse wheel to zoom. Reset restores the centered selection.
+- Crop 1:1, Fit and Stretch remain available.
+- The final ICO uses the existing CornerRadius, Border and Shadow styling.
+
+What changed
+- The unreliable automated Top 5 fetch workflow and background Google/Yandex scraping have been removed.
+- Program scans no longer fetch web images automatically; the embedded application icon remains the safe fallback until you choose another image.
+- No Google, Yandex or SteamGridDB API key is needed for manual image search and custom image selection.
