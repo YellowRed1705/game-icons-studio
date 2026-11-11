@@ -1397,7 +1397,7 @@ var statusI18n = {
   en: {
     gettingReady:"Getting ready to re-apply…", loadingSavedChoices:"Loading your last folder and saved choices.", checkingSavedBackups:"Checking saved Icon Backups.", restoringPreviousState:"Restoring the previous Icon state…", reversingLatest:"Reversing the latest saved Icon transaction.",     chooseRepairFolder:"Choose a folder to repair…", repairFolderDetail:"Select the game library or Shortcuts folder whose Icons appear blank or white.", repairingIcons:"Repairing Shortcut Icons…", repairingDetail:"Checking persistent ICO files, rebuilding available Icons from cached Artwork, and refreshing Windows Explorer.", selectFilesDetail:"A Windows window will appear in front. Ctrl+click the Shortcuts you want to update, then click Open.", findingProgramIcons:"Finding the best Program Icons…", scanningGames:"Scanning your games…", waitingForApply:"Waiting for live progress from the actual download, build, Backup and apply steps.", stopped:"Stopped", noSupportedFiles:"No supported files or Program Shortcuts were found.", noGamesMatched:"No matchable games were found.",     programFilesScanning:"Finding Program and file Icons…", readingFiles:"Reading the files you selected…",
     applyPreparing:"Preparing your Icon update…", applyStarting:"Starting the apply pipeline…", applyComplete:"All reported operations have finished.", applyFinishedDetail:"The operation has finished. Review the results below for failed or skipped items.", progressConnectionLost:"The browser lost the live progress connection. Check the CMD log before retrying, to avoid repeating an operation that may have completed.",
-        noPreviousFolder:"There is no previous folder to re-apply yet. Scan a folder first.",
+        invalidKey:"That API Key did not work. Check it and try again.", fileScanError:"Could not read the files you selected.", applyFailed:"Apply failed.", standardShortcuts:"Standard Shortcuts", launcherShortcuts:"Launcher Shortcuts (.url)", brokenTargetLabel:"Broken / missing target", launcherConversionNote:"Launcher Shortcuts can be converted so their Icons can be customized.", brokenTargetNote:"Some Shortcuts point to missing files; those items will be skipped safely.",     noPreviousFolder:"There is no previous folder to re-apply yet. Scan a folder first.",
     noSavedChoices:"You have no saved choices to re-apply yet.",
     noUnusedRestore:"There is no unused Restore Point yet. Apply an Icon change first to create a Backup.",
     undoConfirm:"Undo the latest Icon change from {0}? This will restore {1} item(s) and remove Shortcuts created by that change.",
@@ -1463,7 +1463,7 @@ var statusI18n = {
   tr: {
     gettingReady:"Quick re-apply hazırlanıyor…", loadingSavedChoices:"Son klasörün ve kayıtlı seçimlerin yükleniyor.", checkingSavedBackups:"Kayıtlı Icon Backup'ları kontrol ediliyor.", restoringPreviousState:"Önceki Icon durumu geri yükleniyor…", reversingLatest:"En son kaydedilen Icon işlemi geri alınıyor.",     chooseRepairFolder:"Onarılacak klasörü seç…", repairFolderDetail:"Icon'ları beyaz veya bozuk görünen Game Library ya da Shortcut klasörünü seç.", repairingIcons:"Shortcut Icon'ları onarılıyor…", repairingDetail:"Kalıcı ICO dosyaları kontrol ediliyor, Cache içindeki Artwork ile yeniden oluşturulabilenler hazırlanıyor ve Windows Explorer yenileniyor.", selectFilesDetail:"Önde bir Windows penceresi açılacak. Güncellemek istediğin Shortcut'ları Ctrl+tıklayarak seç, ardından Open'a bas.", findingProgramIcons:"En uygun Program Icon'ları aranıyor…", scanningGames:"Oyunların taranıyor…", waitingForApply:"Gerçek indirme, Icon oluşturma, Backup ve uygulama işlemlerinden canlı ilerleme bekleniyor.", stopped:"Durduruldu", noSupportedFiles:"Desteklenen dosya veya Program Shortcut bulunamadı.", noGamesMatched:"Eşleştirilebilen oyun bulunamadı.",     programFilesScanning:"Program ve dosya Icon'ları bulunuyor…", readingFiles:"Seçtiğin dosyalar okunuyor…",
     applyPreparing:"Icon güncellemesi hazırlanıyor…", applyStarting:"Apply işlemi başlatılıyor…", applyComplete:"Bildirilen tüm işlemler tamamlandı.", applyFinishedDetail:"İşlem tamamlandı. Başarısız veya atlanan öğeleri aşağıdaki sonuçlardan incele.", progressConnectionLost:"Tarayıcı ile canlı ilerleme bağlantısı kesildi. Tamamlanmış olabilecek bir işlemi tekrarlamamak için yeniden denemeden önce CMD log'unu kontrol et.",
-        noPreviousFolder:"Quick re-apply için kullanılabilecek önceki bir klasör yok. Önce bir klasör tara.",
+        invalidKey:"Bu API Key çalışmadı. Kontrol edip tekrar dene.", fileScanError:"Seçtiğin dosyalar okunamadı.", applyFailed:"Apply başarısız oldu.", standardShortcuts:"Standart Shortcut'lar", launcherShortcuts:"Launcher Shortcut'ları (.url)", brokenTargetLabel:"Bozuk / eksik hedef", launcherConversionNote:"Icon'ları özelleştirebilmek için Launcher Shortcut'ları dönüştürülebilir.", brokenTargetNote:"Bazı Shortcut'lar eksik dosyalara işaret ediyor; bu öğeler güvenli şekilde atlanacak.",     noPreviousFolder:"Quick re-apply için kullanılabilecek önceki bir klasör yok. Önce bir klasör tara.",
     noSavedChoices:"Yeniden uygulanabilecek kayıtlı seçim bulunamadı.",
     noUnusedRestore:"Henüz kullanılmamış Restore Point yok. Önce bir Icon değişikliği uygula.",
     undoConfirm:"{0} tarihli son Icon değişikliğini geri alalım mı? {1} öğeyi geri yükleyecek ve bu işlemde oluşturulan Shortcut'ları kaldıracak.",
@@ -1529,7 +1529,7 @@ var statusI18n = {
   ar: {
     gettingReady:"جارٍ التحضير لإعادة التطبيق…", loadingSavedChoices:"جارٍ تحميل المجلد السابق والاختيارات المحفوظة.", checkingSavedBackups:"جارٍ فحص نسخ الأيقونات الاحتياطية المحفوظة.", restoringPreviousState:"جارٍ استعادة حالة الأيقونات السابقة…", reversingLatest:"جارٍ التراجع عن أحدث عملية أيقونات محفوظة.",     chooseRepairFolder:"اختر مجلداً لإصلاحه…", repairFolderDetail:"اختر Game Library أو مجلد Shortcuts الذي تظهر أيقوناته بيضاء أو تالفة.", repairingIcons:"جارٍ إصلاح أيقونات الاختصارات…", repairingDetail:"جارٍ فحص ملفات ICO الدائمة وإعادة إنشاء الأيقونات من Artwork المخزّنة عند توفرها ثم تحديث Windows Explorer.", selectFilesDetail:"ستظهر نافذة Windows في المقدمة. حدّد الاختصارات المطلوبة باستخدام Ctrl ثم اضغط Open.", findingProgramIcons:"جارٍ العثور على أفضل أيقونات البرامج…", scanningGames:"جارٍ فحص الألعاب…", waitingForApply:"بانتظار تقدم مباشر من عمليات التنزيل وإنشاء الأيقونات والنسخ الاحتياطي والتطبيق الفعلية.", stopped:"متوقف", noSupportedFiles:"لم يتم العثور على ملفات مدعومة أو اختصارات برامج.", noGamesMatched:"لم يتم العثور على ألعاب قابلة للمطابقة.",     programFilesScanning:"جارٍ العثور على أيقونات البرامج والملفات…", readingFiles:"جارٍ قراءة الملفات التي اخترتها…",
     applyPreparing:"جارٍ تجهيز تحديث الأيقونات…", applyStarting:"جارٍ بدء عملية التطبيق…", applyComplete:"اكتملت جميع العمليات المبلغ عنها.", applyFinishedDetail:"اكتملت العملية. راجع النتائج أدناه للعناصر التي فشلت أو تم تخطيها.", progressConnectionLost:"انقطع الاتصال المباشر بين المتصفح والتقدم. تحقق من سجل CMD قبل إعادة المحاولة لتجنب تكرار عملية ربما اكتملت بالفعل.",
-        noPreviousFolder:"لا يوجد مجلد سابق لإعادة التطبيق عليه. افحص مجلداً أولاً.",
+        invalidKey:"لم يعمل API Key هذا. تحقق منه وحاول مرة أخرى.", fileScanError:"تعذرت قراءة الملفات التي اخترتها.", applyFailed:"فشل Apply.", standardShortcuts:"الاختصارات القياسية", launcherShortcuts:"اختصارات Launcher (.url)", brokenTargetLabel:"هدف تالف / مفقود", launcherConversionNote:"يمكن تحويل اختصارات Launcher لتتمكن من تخصيص أيقوناتها.", brokenTargetNote:"تشير بعض الاختصارات إلى ملفات مفقودة؛ سيتم تخطي هذه العناصر بأمان.",     noPreviousFolder:"لا يوجد مجلد سابق لإعادة التطبيق عليه. افحص مجلداً أولاً.",
     noSavedChoices:"لا توجد اختيارات محفوظة لإعادة تطبيقها.",
     noUnusedRestore:"لا توجد Restore Point غير مستخدمة. طبّق تغييراً للأيقونات أولاً لإنشاء Backup.",
     undoConfirm:"هل تريد التراجع عن أحدث تغيير للأيقونات بتاريخ {0}؟ سيستعيد {1} عنصراً ويحذف الاختصارات التي أنشأها هذا التغيير.",
@@ -2132,9 +2132,9 @@ function pasteKey(){
     navigator.clipboard.readText().then(function(t){
       $('keyInput').value = (t||'').trim();
       saveKey();
-    }).catch(function(){ $('keyMsg').textContent = 'Could not read the clipboard. Paste with Ctrl+V, then Continue.'; });
+    }).catch(function(){ $('keyMsg').textContent = statusText('clipboardError'); });
   } else {
-    $('keyMsg').textContent = 'Paste with Ctrl+V into the box, then press Continue.';
+    $('keyMsg').textContent = statusText('pasteKeyHint');
   }
 }
 function continueWithoutKey(){
@@ -2144,11 +2144,11 @@ function continueWithoutKey(){
 }
 function saveKey(){
   var key = $('keyInput').value.trim();
-  if (!key){ $('keyMsg').textContent = 'Please paste your API key first.'; return; }
-  $('keyMsg').textContent = 'Checking your key...';
+  if (!key){ $('keyMsg').textContent = statusText('needKey'); return; }
+  $('keyMsg').textContent = statusText('checkingKey');
   api('/api/save-key', { key: key }).then(function(res){
     if (res.ok){ $('keyMsg').textContent = ''; goHome(); }
-    else { $('keyMsg').textContent = res.error || 'That key did not work.'; }
+    else { $('keyMsg').textContent = res.error || statusText('invalidKey'); }
   });
 }
 
@@ -2503,8 +2503,7 @@ function folderReady(folder){
   // choice; otherwise go straight into scanning.
   api('/api/new-games-count', { folder: folder, targetMode: state.targetMode }).then(function(res){
     if (res && res.ok && res.knownFolder && res.newCount > 0){
-      $('newGamesCount').textContent = 'You have ' + res.newCount + ' new game' + (res.newCount===1?'':'s') +
-        ' in this folder since your last visit.';
+      $('newGamesCount').textContent = formatStr(statusText('newGamesCount'), [res.newCount]);
       show('step-newgames');
     } else {
       startScan();
@@ -2559,7 +2558,7 @@ function scanGameFilesFolder(folder){
   api('/api/scan-game-folder-begin', { folder: folder }).then(function(res){
     if (!res || !res.ok){
       show('step-folder');
-      $('folderPath').textContent = (res && res.error) ? res.error : 'Could not scan this game folder.';
+      $('folderPath').textContent = (res && res.error) ? res.error : statusText('gameFolderScanError');
       return;
     }
     var details = [];
@@ -2578,7 +2577,7 @@ function scanGameFilesFolder(folder){
     beginScanLoop(res.total);
   }).catch(function(error){
     show('step-folder');
-    $('folderPath').textContent = (error && error.message) ? error.message : 'The game folder could not be scanned.';
+    $('folderPath').textContent = (error && error.message) ? error.message : statusText('gameFolderScanFailed');
   });
 }
 
@@ -2612,8 +2611,7 @@ function afterHealth(){
   setLoading(statusText('checkingFolder'), statusText('checkingShortcuts'), 0);
   api('/api/check-url-shortcuts', { folder: state.folder }).then(function(chk){
     if (chk && chk.ok && chk.urlCount > 0){
-      $('convertCount').textContent = 'Found ' + chk.urlCount + ' launcher shortcut' + (chk.urlCount===1?'':'s') +
-        (chk.lnkCount>0 ? (' and ' + chk.lnkCount + ' standard shortcut' + (chk.lnkCount===1?'':'s') + '.') : '.');
+      $('convertCount').textContent = formatStr(statusText('launcherCount'), [chk.urlCount, chk.lnkCount>0 ? formatStr(statusText('andShortcutCount'), [chk.lnkCount]) : '']);
       show('step-convert');
     } else {
       runScan();
@@ -2669,7 +2667,7 @@ function doScan(){
   if (state.onlyNew){ payload.onlyNew = true; }
   if (state.targetMode){ payload.targetMode = state.targetMode; }
   api('/api/scan-begin', payload).then(function(res){
-    if (!res.ok){ show('step-folder'); $('folderPath').textContent = res.error || 'Scan failed.'; return; }
+    if (!res.ok){ show('step-folder'); $('folderPath').textContent = res.error || statusText('scanFailed'); return; }
     beginScanLoop(res.total);
   });
 }
@@ -2679,8 +2677,7 @@ function maybeOfferNewGames(){
   if (!state.folder) return;
   api('/api/new-games-count', { folder: state.folder }).then(function(res){
     if (res && res.ok && res.knownFolder && res.newCount > 0){
-      $('newGamesCount').textContent = 'You have ' + res.newCount + ' new game' + (res.newCount===1?'':'s') +
-        ' in this folder since your last visit.';
+      $('newGamesCount').textContent = formatStr(statusText('newGamesCount'), [res.newCount]);
       show('step-newgames');
     }
   }).catch(function(){});
@@ -2828,7 +2825,7 @@ function rankProgramCandidatesInBrowser(it){
 }
 function scanStep(i){
   api('/api/scan-step', { i: i }).then(function(res){
-    if (!res.ok){ alert(res.error || 'Scan failed.'); goHome(); return; }
+    if (!res.ok){ alert(res.error || statusText('scanFailed')); goHome(); return; }
     if (res.item){
       state.items.push(res.item); preloadItem(res.item);
       if (state.iconSearchOnly){
@@ -2943,7 +2940,7 @@ function chooseAllAuto(){
 function updateAutoBanner(name){
   var pct = state.items.length ? Math.round((state.pos+1)/state.items.length*100) : 0;
   $('loadFill').style.width = pct + '%';
-  $('loadDetail').textContent = 'Matched ' + (state.pos+1) + ' of ' + state.items.length;
+  $('loadDetail').textContent = formatStr(statusText('matchingProgress'), [state.pos+1,state.items.length]);
   var feed = $('autoFeed');
   var line = document.createElement('div');
   line.innerHTML = '<b>&#10003;</b> ' + name;
@@ -3357,7 +3354,7 @@ function applyAll(){
     };
   });
   api('/api/apply-begin', { picks: picks }).then(function(res){
-    if (!res.ok){ goReview(); alert(res.error || 'Apply failed.'); return null; }
+    if (!res.ok){ goReview(); alert(res.error || statusText('applyFailed')); return null; }
     $('loadDetail').textContent = statusText('progressLive');
     return applyStepWithProgress({ i:0 });
   }).then(function(result){
