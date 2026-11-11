@@ -52,6 +52,13 @@ if (-not $webAppText.Contains('onclick="toggleLang()"') -or
     -not $webAppText.Contains('.lang-option:not(.active) { display:none !important; }')) {
     throw 'Language selection must use one visible flag button that cycles languages.'
 }
+foreach ($token in @('grid-template-columns:repeat(4,minmax(0,1fr))','height:clamp(124px,17vh,146px)','#step-home { padding:15px 22px; gap:9px; max-height:none; overflow:visible; }','-webkit-line-clamp:3')) {
+    if (-not $webAppText.Contains($token)) { throw "Compact, no-scroll home dashboard rule is missing: $token" }
+}
+if (-not $webAppText.Contains('@media (max-width:780px)') -or
+    -not $webAppText.Contains('grid-template-columns:repeat(2,minmax(0,1fr))')) {
+    throw 'Compact home dashboard must remain responsive on small screens.'
+}
 if (-not $webAppText.Contains("api('/api/custom-cover', { name: it.name, dataUrl: pngDataUrl })") -or
     -not $webAppText.Contains('gameName: chosenArtworkName + customSuffix')) {
     throw 'Custom game titles must not replace the original Shortcut name.'
