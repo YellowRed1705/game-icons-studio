@@ -340,7 +340,15 @@ function Invoke-WebRoute {
 
     if ($path -eq '/api/browse-folder' -and $method -eq 'POST') {
         # Non-blocking: start the picker on its own thread and return.
-        Start-AsyncDialog -Dialog $Session.Dialog -Kind 'folder' -InitialFolder ([string]$Session.Ctx.Settings.LastFolder)
+        $request = $null
+        try { $request = (Read-RequestBody -Context $Context) | ConvertFrom-Json } catch { }
+        $language = if ($request) { [string]$request.lang } else { 'en' }
+        $pickerTitle = switch ($language) {
+            'tr' { 'Oyun veya Shortcut klasörünü seç' }
+            'ar' { 'اختر مجلد الألعاب أو الاختصارات' }
+            default { 'Select your game library or shortcuts folder' }
+        }
+        Start-AsyncDialog -Dialog $Session.Dialog -Kind 'folder' -InitialFolder ([string]$Session.Ctx.Settings.LastFolder) -Title $pickerTitle
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; started = $true })
         return
     }
@@ -364,7 +372,15 @@ function Invoke-WebRoute {
 
     if ($path -eq '/api/change-files' -and $method -eq 'POST') {
         # Non-blocking: start the multi-file picker on its own thread.
-        Start-AsyncDialog -Dialog $Session.Dialog -Kind 'files' -InitialFolder ([string]$Session.Ctx.Settings.LastFolder)
+        $request = $null
+        try { $request = (Read-RequestBody -Context $Context) | ConvertFrom-Json } catch { }
+        $language = if ($request) { [string]$request.lang } else { 'en' }
+        $pickerTitle = switch ($language) {
+            'tr' { 'Güncellenecek Shortcut, Launcher, oyun dosyası veya ROM seç' }
+            'ar' { 'اختر الاختصارات وروابط Launcher وملفات الألعاب أو ROM' }
+            default { 'Choose shortcuts, launchers, game files, or ROMs' }
+        }
+        Start-AsyncDialog -Dialog $Session.Dialog -Kind 'files' -InitialFolder ([string]$Session.Ctx.Settings.LastFolder) -Title $pickerTitle
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; started = $true })
         return
     }
@@ -1776,7 +1792,8 @@ function Start-AsyncDialog {
     param(
         [Parameter(Mandatory)]$Dialog,
         [Parameter(Mandatory)][ValidateSet('folder','files')][string]$Kind,
-        [string]$InitialFolder = ''
+        [string]$InitialFolder = '',
+        [string]$Title = ''
     )
 
     if ($Dialog.status -eq 'running') {
@@ -1799,15 +1816,19 @@ function Start-AsyncDialog {
     $Dialog.error  = ''
 
     $worker = {
-        param($Dialog, $Kind, $InitialFolder)
+        param($Dialog, $Kind, $InitialFolder, $Title)
 
         try {
             # Native IFileOpenDialog: the modern Windows 10/11 Explorer picker.
             # The picker is hosted on this STA runspace so it never blocks HTTP.
+            $dialogTitle = [string]$Title
+            if ([string]::IsNullOrWhiteSpace($dialogTitle)) {
+                $dialogTitle = if ($Kind -eq 'folder') { 'Select your game library or shortcuts folder' } else { 'Choose shortcuts, launchers, game files, or ROMs' }
+            }
             if ($Kind -eq 'folder') {
                 $selectedFolder = [GIS.NativeFileDialog]::PickFolder(
                     [IntPtr]::Zero,
-                    'Select your game library or shortcuts folder',
+                    $dialogTitle,
                     [string]$InitialFolder
                 )
                 if (-not [string]::IsNullOrWhiteSpace([string]$selectedFolder)) {
@@ -1816,7 +1837,7 @@ function Start-AsyncDialog {
             } else {
                 $selectedFiles = [GIS.NativeFileDialog]::PickFiles(
                     [IntPtr]::Zero,
-                    'Choose shortcuts, launchers, game files, or ROMs',
+                    $dialogTitle,
                     [string]$InitialFolder
                 )
                 $Dialog.files = @($selectedFiles | ForEach-Object { [string]$_ })
@@ -1835,7 +1856,7 @@ function Start-AsyncDialog {
     $rs.ThreadOptions = 'ReuseThread'
     $rs.Open()
     $ps.Runspace = $rs
-    [void]$ps.AddScript($worker).AddArgument($Dialog).AddArgument($Kind).AddArgument($InitialFolder)
+    [void]$ps.AddScript($worker).AddArgument($Dialog).AddArgument($Kind).AddArgument($InitialFolder).AddArgument($Title)
     $Dialog.handle = $ps.BeginInvoke()
     $Dialog.ps = $ps
 }
