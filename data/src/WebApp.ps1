@@ -1395,7 +1395,7 @@ var screenI18n = {
 
 var statusI18n = {
   en: {
-    noPreviousFolder:"There is no previous folder to re-apply yet. Scan a folder first.",
+    gettingReady:"Getting ready to re-apply…", loadingSavedChoices:"Loading your last folder and saved choices.", checkingSavedBackups:"Checking saved Icon Backups.", restoringPreviousState:"Restoring the previous Icon state…", reversingLatest:"Reversing the latest saved Icon transaction.",     noPreviousFolder:"There is no previous folder to re-apply yet. Scan a folder first.",
     noSavedChoices:"You have no saved choices to re-apply yet.",
     noUnusedRestore:"There is no unused Restore Point yet. Apply an Icon change first to create a Backup.",
     undoConfirm:"Undo the latest Icon change from {0}? This will restore {1} item(s) and remove Shortcuts created by that change.",
@@ -1459,7 +1459,7 @@ var statusI18n = {
     notSquare:"not square"
   },
   tr: {
-    noPreviousFolder:"Quick re-apply için kullanılabilecek önceki bir klasör yok. Önce bir klasör tara.",
+    gettingReady:"Quick re-apply hazırlanıyor…", loadingSavedChoices:"Son klasörün ve kayıtlı seçimlerin yükleniyor.", checkingSavedBackups:"Kayıtlı Icon Backup'ları kontrol ediliyor.", restoringPreviousState:"Önceki Icon durumu geri yükleniyor…", reversingLatest:"En son kaydedilen Icon işlemi geri alınıyor.",     noPreviousFolder:"Quick re-apply için kullanılabilecek önceki bir klasör yok. Önce bir klasör tara.",
     noSavedChoices:"Yeniden uygulanabilecek kayıtlı seçim bulunamadı.",
     noUnusedRestore:"Henüz kullanılmamış Restore Point yok. Önce bir Icon değişikliği uygula.",
     undoConfirm:"{0} tarihli son Icon değişikliğini geri alalım mı? {1} öğeyi geri yükleyecek ve bu işlemde oluşturulan Shortcut'ları kaldıracak.",
@@ -1523,7 +1523,7 @@ var statusI18n = {
     notSquare:"kare değil"
   },
   ar: {
-    noPreviousFolder:"لا يوجد مجلد سابق لإعادة التطبيق عليه. افحص مجلداً أولاً.",
+    gettingReady:"جارٍ التحضير لإعادة التطبيق…", loadingSavedChoices:"جارٍ تحميل المجلد السابق والاختيارات المحفوظة.", checkingSavedBackups:"جارٍ فحص نسخ الأيقونات الاحتياطية المحفوظة.", restoringPreviousState:"جارٍ استعادة حالة الأيقونات السابقة…", reversingLatest:"جارٍ التراجع عن أحدث عملية أيقونات محفوظة.",     noPreviousFolder:"لا يوجد مجلد سابق لإعادة التطبيق عليه. افحص مجلداً أولاً.",
     noSavedChoices:"لا توجد اختيارات محفوظة لإعادة تطبيقها.",
     noUnusedRestore:"لا توجد Restore Point غير مستخدمة. طبّق تغييراً للأيقونات أولاً لإنشاء Backup.",
     undoConfirm:"هل تريد التراجع عن أحدث تغيير للأيقونات بتاريخ {0}؟ سيستعيد {1} عنصراً ويحذف الاختصارات التي أنشأها هذا التغيير.",
@@ -2172,16 +2172,16 @@ function focusHome(){
 
 // ---- Quick re-apply (#10) ----
 function quickReapply(){
-  setLoading('Getting ready to re-apply...', 'Loading your last folder and saved choices.', 0);
+  setLoading(statusText('gettingReady'), statusText('loadingSavedChoices'), 0);
   api('/api/last-folder', {}).then(function(res){
     if (!(res.ok && res.folder)){
-      $('restoreResultMsg').textContent = 'There is no previous folder to re-apply yet. Scan a folder first.';
+      $('restoreResultMsg').textContent = statusText('noPreviousFolder');
       show('step-restore-ok');
       return;
     }
     api('/api/saved-status', {}).then(function(st){
       if (!st || !st.ok || st.count === 0){
-        $('restoreResultMsg').textContent = 'You have no saved choices to re-apply yet.';
+        $('restoreResultMsg').textContent = statusText('noSavedChoices');
         show('step-restore-ok');
         return;
       }
@@ -2202,21 +2202,20 @@ function quickReapply(){
 }
 
 function undoLastIconChange(){
-  setLoading('Finding your latest restore point…', 'Checking saved icon backups.', 10);
+  setLoading(statusText('checkingSavedBackups'), statusText('readingBackups'), 10);
   api('/api/backup-list', {}).then(function(result){
     var backups = Array.isArray(result && result.backups) ? result.backups : [];
     backups = backups.filter(function(item){ return !item.RestoredAt; });
     backups.sort(function(a,b){ return new Date(b.CreatedAt||0).getTime() - new Date(a.CreatedAt||0).getTime(); });
     if (!backups.length){
-      $('restoreResultMsg').textContent = 'There is no unused restore point yet. Apply an icon change first to create a backup.';
+      $('restoreResultMsg').textContent = statusText('noUnusedRestore');
       show('step-restore-ok');
       return;
     }
     var latest = backups[0];
-    var message = 'Undo the latest icon change from ' + (latest.CreatedAt||latest.Id) +
-      '? This will restore ' + (latest.ItemCount||0) + ' item(s) and remove shortcuts created by that change.';
+    var message = formatStr(statusText('undoConfirm'), [latest.CreatedAt||latest.Id, latest.ItemCount||0]);
     if (!window.confirm(message)){ goHome(); return; }
-    setLoading('Restoring the previous icon state…', 'Reversing the latest saved icon transaction.', 35);
+    setLoading(statusText('restoringPreviousState'), statusText('reversingLatest'), 35);
     api('/api/backup-restore-latest', {}).then(function(res){
       var failures = (res && res.failures && res.failures.length) ? '\\n\\n' + res.failures.slice(0,8).join('\\n') : '';
       $('restoreResultMsg').textContent = (res && res.message) ? res.message + failures : (res && res.error) || 'The latest restore point could not be restored.';
@@ -2242,7 +2241,7 @@ function aboutDone(){
 
 // ---- History (#15) ----
 function openHistory(){
-  setLoading('Loading your history...', '', 0);
+  setLoading(statusText('loadingHistory'), '', 0);
   api('/api/history', {}).then(function(res){
     var list = (res && res.entries) ? res.entries : [];
     state._history = list;
@@ -2253,7 +2252,7 @@ function openHistory(){
 function renderHistory(list){
   var wrap = $('historyList'); wrap.innerHTML = '';
   if (!list.length){
-    wrap.innerHTML = '<div class="sub" style="text-align:center;padding:24px;">No history yet. Once you apply icons, your changes show up here.</div>';
+    wrap.textContent = statusText('historyEmpty');
     return;
   }
   list.forEach(function(h){
@@ -2279,7 +2278,7 @@ function filterHistory(){
 function openBackups(){
   $('backupList').innerHTML = '';
   $('backupSettingStatus').textContent = '';
-  setLoading('Loading restore points...', 'Reading saved icon versions.', 15);
+  setLoading(statusText('loadingBackups'), statusText('readingBackups'), 15);
   Promise.all([
     api('/api/backup-list', {}),
     api('/api/backup-settings', {})
@@ -2290,7 +2289,7 @@ function openBackups(){
     renderBackupList(Array.isArray(listRes.backups) ? listRes.backups : []);
     show('step-backups');
   }).catch(function(){
-    $('backupList').textContent = 'Could not read restore points. Check the local app log.';
+    $('backupList').textContent = statusText('backupListError');
     show('step-backups');
   });
 }
@@ -2331,12 +2330,12 @@ function saveBackupRetention(){
   if (!Number.isFinite(value) || value < 0) value = 50;
   api('/api/backup-settings', { retention: value }).then(function(res){
     $('backupSettingStatus').textContent = (res && res.ok) ? (i18n[currentLang].backupSaved) : ((res && res.error) || 'Could not save setting.');
-  }).catch(function(){ $('backupSettingStatus').textContent = 'Could not save setting.'; });
+  }).catch(function(){ $('backupSettingStatus').textContent = statusText('backupSaveError'); });
 }
 function restoreBackup(id, count){
   var t = i18n[currentLang] || i18n.en;
   if (!window.confirm(formatStr(t.backupRestoreConfirm, [count, id]))) return;
-  setLoading('Restoring previous icons...', 'Restoring saved shortcut and folder state.', 55);
+  setLoading(statusText('restoringIcons'), statusText('restoringDetail'), 55);
   api('/api/backup-restore', { id: id }).then(function(res){
     var failures = (res && res.failures && res.failures.length) ? '\n\n' + res.failures.slice(0,8).join('\n') : '';
     $('restoreResultMsg').textContent = (res && res.message) ? res.message + failures : (res && res.error) || t.backupRestoreError;
@@ -2348,12 +2347,12 @@ function restoreBackup(id, count){
 }
 
 function repairIconCache(){
-  setLoading('Choose a folder to repair…', 'Select the game library or shortcuts folder whose icons appear blank or white.', null);
+  setLoading(statusText('repairError'), statusText('pickerError'), null);
   api('/api/browse-folder', {}).then(function(){
     pollDialog(function(dialogResult){
       if (!dialogResult.ok || !dialogResult.folder){ goHome(); return; }
       state.folder = dialogResult.folder;
-      setLoading('Repairing shortcut icons…', 'Checking persistent ICO files, rebuilding available icons from artwork cache, and refreshing Windows Explorer.', 0);
+      setLoading(statusText('repairingIcons'), statusText('repairingDetail'), 0);
       api('/api/repair-shortcut-icons', { folder: dialogResult.folder }).then(function(res){
         if (!res || (!res.ok && !res.cacheRefreshed)) {
           $('restoreResultMsg').textContent = (res && res.error) || 'The icon repair could not be completed.';
@@ -2403,7 +2402,7 @@ function startFullScan(iconSearchOnly){
     if (res.ok && res.folder){
       state.folder = res.folder;
       $('folderInput').value = res.folder;
-      $('folderPath').textContent = 'Last used folder ready. Press Scan, or browse/paste another.';
+      $('folderPath').textContent = statusText('lastFolderReady');
       $('scanBtn').classList.remove('hidden');
       if (!state.iconSearchOnly) maybeOfferNewGames();
     }
@@ -2478,7 +2477,7 @@ function browseFolder(){
         folderReady(res.folder);
       } else {
         show('step-folder');
-        $('folderPath').textContent = 'No folder chosen. Try again, or paste a path above.';
+        $('folderPath').textContent = statusText('noFolderChosen');
       }
     });
   });
@@ -2488,7 +2487,7 @@ function browseFolder(){
 function folderReady(folder){
   show('step-folder');
   $('folderInput').value = folder;
-  $('folderPath').textContent = 'Folder ready. Starting...';
+  $('folderPath').textContent = statusText('folderReady');
   $('scanBtn').classList.remove('hidden');
   if (state.targetMode === 'game_files'){ scanGameFilesFolder(folder); return; }
   // Folder modes skip the shortcut-only new-game detection.
@@ -2537,7 +2536,7 @@ function tryTypedFolder(){
       state.folder = res.folder;
       folderReady(res.folder);
     } else {
-      $('folderPath').textContent = 'That path does not exist. Check it and try again.';
+      $('folderPath').textContent = statusText('invalidFolderPath');
     }
   });
 }
@@ -2550,7 +2549,7 @@ function scanGameFilesFolder(folder){
   state.onlyNew = false;
   state.memoryAsked = true;
   state.gameFilesSummary = '';
-  setLoading('Finding games and launchers…', 'Scanning this folder for existing shortcuts and playable game files.', 0);
+  setLoading(statusText('findingGames'), statusText('scanningFolder'), 0);
   api('/api/scan-game-folder-begin', { folder: folder }).then(function(res){
     if (!res || !res.ok){
       show('step-folder');
@@ -2581,7 +2580,7 @@ function startScan(){
   setProgress(0);
   // Folder modes have no .lnk health check or .url conversion step.
   if (isFolderMode()){ runScan(); return; }
-  setLoading('Checking your folder...', 'Taking a quick look...', 0);
+  setLoading(statusText('checkingFolder'), statusText('checkingShortcuts'), 0);
   api('/api/folder-health', { folder: state.folder }).then(function(h){
     var row = $('healthRow'); row.innerHTML = '';
     var cards = [
@@ -2604,7 +2603,7 @@ function startScan(){
 }
 function healthContinue(){ afterHealth(); }
 function afterHealth(){
-  setLoading('Checking your folder...', 'Looking at your shortcuts...', 0);
+  setLoading(statusText('checkingFolder'), statusText('checkingShortcuts'), 0);
   api('/api/check-url-shortcuts', { folder: state.folder }).then(function(chk){
     if (chk && chk.ok && chk.urlCount > 0){
       $('convertCount').textContent = 'Found ' + chk.urlCount + ' launcher shortcut' + (chk.urlCount===1?'':'s') +
@@ -2616,7 +2615,7 @@ function afterHealth(){
   }).catch(function(){ runScan(); });
 }
 function doConvert(){
-  setLoading('Converting your shortcuts...', 'This keeps them working and lets them show new icons.', 30);
+  setLoading(statusText('convertingShortcuts'), statusText('convertingDetail'), 30);
   api('/api/convert-shortcuts', { folder: state.folder }).then(function(res){
     var n = (res && res.converted) ? res.converted : 0;
     showConvertSuccess(n);
@@ -2699,7 +2698,7 @@ function startChangeIcons(anyFiles){
   state.iconSearchOnly = !!anyFiles;
   state.targetMode = 'shortcuts';
   setProgress(0);
-  setLoading('Opening the file window...', 'A Windows window will appear in front. Ctrl+click the shortcuts you want to redo, then click Open.', null);
+  setLoading(statusText('openingFolder'), statusText('selectFilesDetail'), null);
   api('/api/change-files', {}).then(function(){
     pollDialog(function(res){
       if (!res.ok || !res.files || !res.files.length){ goHome(); return; }
@@ -2723,7 +2722,7 @@ function beginScanLoop(total){
   var detail = 'About ' + est + ' for ' + state.total + ' ' + noun + (state.total===1?'':'s') + '.';
   if (state.iconSearchOnly) detail += ' Checking Google Images, Yandex Images and a structured brand-icon catalog; semantic relevance is prioritized over dimensions.';
   if (state.gameFilesSummary) detail = state.gameFilesSummary + ' ' + detail;
-  setLoading(state.iconSearchOnly ? 'Finding the best program icons...' : 'Scanning your games...', detail, 0);
+  setLoading(state.iconSearchOnly ? statusText('findingProgramIcons') : statusText('scanningGames'), detail, 0);
   scanStep(0);
 }
 function estimateSeconds(count, perItem){
@@ -2929,8 +2928,8 @@ function chooseAllAuto(){
   state.autoAll = true;
   // Show the auto progress screen with a clear banner, then run through.
   show('step-loading');
-  $('loadingMsg').textContent = 'Choosing your games and covers automatically';
-  $('loadDetail').textContent = 'I will only stop to ask if I am really not sure about a game.';
+  $('loadingMsg').textContent = statusText('autoLoading');
+  $('loadDetail').textContent = statusText('autoDetail');
   $('loadFill').style.width = '0%';
   $('autoFeed').innerHTML = '';
   setTimeout(function(){ enterItem(state.pos); }, 300);
@@ -3338,7 +3337,7 @@ function applyAll(){
   setProgress(2);
   state._applyProgressPhase = '';
   setLoading('Preparing your icon update…', 'Starting the apply pipeline…', 0);
-  $('loadDetail').textContent = 'Waiting for live progress from the actual download, build, backup, and apply steps.';
+  $('loadDetail').textContent = statusText('waitingForApply');
   $('autoFeed').innerHTML = '';
   var picks = state.items.map(function(it){
     var pick = state.picks[it.index] || { game:1, cover:1 };
@@ -3353,14 +3352,14 @@ function applyAll(){
   });
   api('/api/apply-begin', { picks: picks }).then(function(res){
     if (!res.ok){ goReview(); alert(res.error || 'Apply failed.'); return null; }
-    $('loadDetail').textContent = 'Live progress is based on completed operations, not a timer.';
+    $('loadDetail').textContent = statusText('progressLive');
     return applyStepWithProgress({ i:0 });
   }).then(function(result){
     if (!result) return;
     if (!result.ok){
-      $('loadingMsg').textContent = 'The update could not be completed.';
+      $('loadingMsg').textContent = statusText('updateFailed');
       $('loadDetail').textContent = result.error || 'Check the application log and try again.';
-      $('loadCounter').textContent = 'Stopped';
+      $('loadCounter').textContent = statusText('stopped');
       return;
     }
     var report = result.report || {};
@@ -3370,24 +3369,24 @@ function applyAll(){
     var lastProgress = state._lastApplyProgress || {};
     var stoppedForSafety = lastProgress.phase === 'backup' && lastProgress.status === 'failed';
     if (stoppedForSafety){
-      $('loadingMsg').textContent = 'Update stopped safely';
-      $('loadCounter').textContent = 'No icons changed';
-      $('loadDetail').textContent = 'The restore point could not be created, so the app stopped before changing any shortcuts.';
+      $('loadingMsg').textContent = statusText('updateStopped');
+      $('loadCounter').textContent = statusText('noIconsChanged');
+      $('loadDetail').textContent = statusText('restorePointFailed');
     } else {
       $('loadFill').style.width = '100%';
       $('loadPercent').textContent = '100%';
       $('loadBar').setAttribute('aria-valuenow', '100');
       $('loadCounter').textContent = failedResult > 0 ? (updatedResult + ' / ' + totalResult + ' updated · ' + failedResult + ' failed') : 'Complete';
-      $('loadingMsg').textContent = failedResult > 0 ? 'Finished with some issues' : 'Done! Your game shelf is ready.';
+      $('loadingMsg').textContent = failedResult > 0 ? statusText('finishedIssues') : statusText('shelfReady');
       $('loadDetail').textContent = failedResult > 0
         ? 'The real operation has finished. Review the results below for failed or skipped items.'
         : 'All reported operations have finished.';
     }
     setTimeout(function(){ renderReport(result.report); }, 500);
   }).catch(function(error){
-    $('loadingMsg').textContent = 'Progress stream interrupted';
+    $('loadingMsg').textContent = statusText('progressInterrupted');
     $('loadDetail').textContent = (error && error.message) ? error.message : 'The server did not return progress data. Check the application log.';
-    $('loadCounter').textContent = 'Check status';
+    $('loadCounter').textContent = statusText('checkStatus');
     alert('The browser lost the live progress connection. Please check the CMD log before retrying, to avoid repeating an operation that may have completed.');
   });
 }
@@ -3570,7 +3569,7 @@ function openGoogleCustom(autoOpenSearch){
     _onlineCandidateCache = existing.slice();
     renderOnlineImageCandidates(existing);
     if (!existing.length) {
-      $('onlineSearchStatus').textContent = 'No automatic candidates yet. Searching Google Images and Yandex Images...';
+      $('onlineSearchStatus').textContent = statusText('onlineLoading');
     }
     // Search is user-triggered by entering the editor, never during the scan's
     // step loop, so the batch scan stays responsive and can keep the embedded icon fallback.
@@ -3628,7 +3627,7 @@ function renderOnlineImageCandidates(candidates){
   // dimensions, aspect ratio hints and image-type hints from the server.
   list.sort(function(a,b){ return (+b.score||0) - (+a.score||0); });
   if (!list.length){
-    grid.innerHTML = '<div class="sub" style="grid-column:1/-1;padding:12px;">No embedded online candidates yet. Use Find more from both, open a search tab, or drag/copy an image into the preview.</div>';
+    grid.textContent = statusText('noArtCandidates');
     return;
   }
   list.forEach(function(candidate,index){
@@ -3670,11 +3669,11 @@ function renderOnlineImageCandidates(candidates){
     var use = document.createElement('button');
     use.className = 'online-candidate-use';
     use.type = 'button';
-    use.textContent = 'Use this image';
+    use.textContent = statusText('useImage');
     use.onclick = function(e){
       if (e) { e.preventDefault(); e.stopPropagation(); }
       if (!candidate.url) return;
-      $('onlineSearchStatus').textContent = 'Loading selected image into the 1:1 preview...';
+      $('onlineSearchStatus').textContent = statusText('loadingPreview');
       loadCustomUrl(candidate.url, candidate.thumb && candidate.thumb !== candidate.url ? candidate.thumb : null);
     };
     tile.appendChild(img); tile.appendChild(title); tile.appendChild(meta); tile.appendChild(quality); tile.appendChild(use);
@@ -3709,7 +3708,7 @@ function searchOnlineImageCandidates(provider, silent){
       : 'No direct result images could be extracted. Google/Yandex tabs and drag-and-drop remain available; the provider may block automated previews.';
     renderOnlineImageCandidates(_onlineCandidateCache);
   }).catch(function(){
-    if (status) status.textContent = 'Online result retrieval failed. Open Google/Yandex in a tab or drag/drop an image into the preview.';
+    if (status) status.textContent = statusText('onlineFailed');
   });
 }
 
