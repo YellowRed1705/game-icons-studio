@@ -1505,7 +1505,7 @@ function Start-WebScanGameFolder {
     $truncated = 0
     if ($files.Count -gt $maxTargets) {
         $truncated = $files.Count - $maxTargets
-        $files = New-Object System.Collections.Generic.List[string] (,$files.GetRange(0, $maxTargets))
+        $files.RemoveRange($maxTargets, $files.Count - $maxTargets)
         Write-Log "Game folder scan limited to $maxTargets entries; $truncated additional entries were left untouched." 'WARN'
     }
 
@@ -1521,14 +1521,14 @@ function Start-WebScanGameFolder {
     Write-Log "Game folder scan: $($files.Count) entries, $includedExecutables EXE, $includedScripts scripts, $convertedUrls URL converted, $alreadyLinked already linked, $excludedHelpers helper installers skipped." 'INFO'
     $result = Start-WebScanFiles -Session $Session -Files @($files.ToArray()) -IconSearchOnly $false
     if ($result.ok) {
-        $result | Add-Member -NotePropertyName sourceFiles -NotePropertyValue $files.Count -Force
-        $result | Add-Member -NotePropertyName includedExecutables -NotePropertyValue $includedExecutables -Force
-        $result | Add-Member -NotePropertyName includedScripts -NotePropertyValue $includedScripts -Force
-        $result | Add-Member -NotePropertyName convertedUrls -NotePropertyValue $convertedUrls -Force
-        $result | Add-Member -NotePropertyName failedUrls -NotePropertyValue $failedUrls -Force
-        $result | Add-Member -NotePropertyName excludedHelpers -NotePropertyValue $excludedHelpers -Force
-        $result | Add-Member -NotePropertyName alreadyLinked -NotePropertyValue $alreadyLinked -Force
-        $result | Add-Member -NotePropertyName truncated -NotePropertyValue $truncated -Force
+        $result.sourceFiles = $files.Count
+        $result.includedExecutables = $includedExecutables
+        $result.includedScripts = $includedScripts
+        $result.convertedUrls = $convertedUrls
+        $result.failedUrls = $failedUrls
+        $result.excludedHelpers = $excludedHelpers
+        $result.alreadyLinked = $alreadyLinked
+        $result.truncated = $truncated
     }
     return $result
 }
