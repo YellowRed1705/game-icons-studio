@@ -64,9 +64,12 @@ if (-not $webAppText.Contains("api('/api/custom-cover', { name: it.name, dataUrl
     throw 'Custom game titles must not replace the original Shortcut name.'
 }
 
-$imageSearchText = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\src\ImageSearch.ps1') -Raw
-foreach ($token in @('$googleTop = @($ranked', '$yandexTop = @($ranked', 'Select-Object -First 5', 'if ($Provider -eq ''both'') {')) {
-    if (-not $imageSearchText.Contains($token)) { throw "Provider-balanced Top 5 image search is missing: $token" }
+if ($webServerText.Contains('Get-OnlineProgramIconCandidates') -or
+    $webServerText.Contains("'/api/search-images'")) {
+    throw 'Automatic Google/Yandex image fetching must stay removed.'
+}
+if ($webAppText.Contains('/api/search-images') -or $webAppText.Contains('onlineAutoTop5Btn')) {
+    throw 'The retired online Top 5 fetch workflow is still referenced by the browser UI.'
 }
 if ($webServerText.Contains("'/api/search-images'")) {
     throw 'The retired manual Top 5 image-fetch endpoint must not be exposed.'
