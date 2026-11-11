@@ -1258,6 +1258,141 @@ var i18n = {
     btnHomeNav: "Ana Sayfa"
   }
 };
+var screenI18n = {
+  en: {
+    keyTitle:"Let's get you set up",
+    keyIntro:"Game Icons Studio finds game covers through SteamGridDB. A free API key is needed for automatic game matching, but not for Program & App Icons.",
+    keyNew:"New here?", keyExisting:"Already have an account?",
+    keySteps:["Open SteamGridDB and click Login (top right).","Sign in with Steam — this creates your free account instantly.","Come back and use the other button to get your key.","Open your API settings with the button below.","Click Create API Key, then Copy it.","Paste it here and you're ready to go."],
+    keyCreate:"Create a SteamGridDB account", keyGet:"Get my API key", keyPlaceholder:"Paste your API key here",
+    keyPaste:"📋 Paste & continue", keyContinue:"Continue", keyNoKey:"Continue with Program & App Icons (no API key)",
+    noArtTitle:"No cover art for this one",
+    noArtDescription:"SteamGridDB doesn't have artwork for this game yet. Game Icons Studio can create a clean placeholder Icon with the game's name, matching your other Icons.",
+    historyTitle:"Your Icon History", historySubtitle:"The most recent Icon changes you have made.", historyPlaceholder:"🔍 Search History...",
+    historyEmpty:"No History yet. Once you apply Icons, your changes will appear here.", historyBack:"⌂ Back to Home",
+    aboutTitle:"What is GIS? (Game Icons Studio)", aboutSubtitle:"A quick tour, so you know what this app does and how to use it.",
+    aboutHeadings:["🎮 What it is","🔌 Where the Artwork comes from","⚡ How it works (3 steps)","🧩 What each button does","📊 The Summary screen","💾 Safe and non-destructive"],
+    aboutBodies:[
+      "Game Icons Studio turns generic game and program Shortcut Icons into polished Icons. Match game covers through SteamGridDB, or find app Icons through Google Images and Yandex Images. Preview and apply them locally.",
+      "Game covers are matched through SteamGridDB. For regular applications, use Program & App Icons to search Google Images or Yandex Images. Drag and drop or copy/paste an image; processing happens locally. The SteamGridDB API key is only required for game matching.",
+      "1. Choose a folder of game Shortcuts (.lnk). The app scans them and matches each to a game. 2. Review the selected covers and change any you don't like. 3. Apply. The app backs up the old Icons, sets the new ones and refreshes Windows.",
+      "Game Library Folder — scan game links and files. Program & App Icons — find application Icons. Specific Shortcuts — choose selected links to update. Repair Broken Icons — fix missing Icon references. Quick re-apply — reuse your saved choices. History — review past changes.",
+      "After applying, review how many Icons were updated, matched, created as placeholders, skipped or failed. Finish, or return to the Grid to review and change Icons.",
+      "Game Icons Studio changes Shortcut Icons, not the installed game files. Your original game files remain untouched. Restore Points let you reverse supported changes."
+    ],
+    aboutHome:"⌂ Go to Home",
+    convertSuccessTitle:"Conversion successful!", convertSuccessBody:"Your launcher links are now standard .lnk files, so their Icons can be customized properly. The links keep working as before.", convertContinue:"Continue →",
+    doneTitle:"Done", doneHome:"⌂ Back to Home",
+    healthTitle:"Here's what I found", healthSubtitle:"A quick look at your folder before we start.", healthContinue:"Continue →", cancel:"Cancel",
+    newGamesTitle:"New games found", newGamesPrompt:"Would you like to set Icons only for the new games, or scan the entire folder?",
+    newGamesOnly:"Just the new games", newGamesAll:"Scan everything",
+    convertTitle:"We found some launcher Shortcuts",
+    convertBody1:"Some items are Internet Shortcuts (.url), not standard Windows Shortcuts (.lnk). Windows does not let us assign custom Icons to .url files directly.",
+    convertBody2:"Game Icons Studio can convert them automatically. Your links keep working the same way; they become standard Shortcuts that can display your new Icons.",
+    convertProceed:"Convert & continue", convertSkip:"Skip; scan .lnk files only",
+    folderBrowse:"📁 Browse for Folder…", folderPlaceholder:"…or paste a folder path here and press Enter",
+    loadingWorking:"Working…", loadingWait:"Waiting for live progress…",
+    grid:"▦ Grid", gallery:"▤ Gallery", onlineTitle:"Smart online Icon candidates",
+    onlineDesc:"Google and Yandex results ranked by square shape, resolution and likely Icon relevance.",
+    onlineBoth:"Find more from both", onlineGoogle:"Google only", onlineYandex:"Yandex only",
+    onlineStatus:"Showing candidates discovered during the automatic scan.",
+    dropHelp:"Drag an image from Google Images or Yandex Images here. You can also right-click it and choose Copy image, then press Ctrl+V, or click to browse your PC.",
+    previewTitle:"ICON PREVIEW (1:1)", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"Load URL", cancelSkip:"← Cancel / Skip",
+    homeHeader:"⌂ Home", aboutHeader:"❔ What is GIS?", summaryHeader:"↶ Summary",
+    fullScreen:"⛶ Fullscreen", exitFullscreen:"⛶ Exit Fullscreen", quit:"Quit",
+    gameFilesTitle:"Find games inside a folder", gameFilesDesc:"Scan launcher links, game files and ROMs recursively. Existing Shortcuts are kept; original files stay untouched.", gameFilesButton:"Scan game library",
+    repairSummary:"Icon repair results"
+  },
+  tr: {
+    keyTitle:"Kuruluma başlayalım",
+    keyIntro:"Game Icons Studio, oyun Cover'larını SteamGridDB üzerinden bulur. Otomatik game eşleştirmesi için ücretsiz API Key gerekir; Program & App Icons modu için gerekmez.",
+    keyNew:"Yeni misin?", keyExisting:"Zaten hesabın var mı?",
+    keySteps:["SteamGridDB'yi aç ve sağ üstten Login'e tıkla.","Steam ile Sign in yap; ücretsiz hesabın hemen oluşturulur.","Geri dön ve API Key almak için diğer düğmeyi kullan.","Aşağıdaki düğmeyle API ayarlarını aç.","Create API Key'e, ardından Copy'ye tıkla.","Key'i buraya yapıştır; hazırsın."],
+    keyCreate:"SteamGridDB hesabı oluştur", keyGet:"API Key'imi al", keyPlaceholder:"API Key'ini buraya yapıştır",
+    keyPaste:"📋 Yapıştır ve devam et", keyContinue:"Devam et", keyNoKey:"Program & App Icons ile devam et (API Key gerekmez)",
+    noArtTitle:"Bu oyun için Cover bulunamadı",
+    noArtDescription:"SteamGridDB'de bu oyun için henüz Artwork yok. Game Icons Studio, diğer Icon'larınla uyumlu, oyunun adını taşıyan sade bir Placeholder Icon oluşturabilir.",
+    historyTitle:"Icon History", historySubtitle:"Şimdiye kadar yaptığın en son Icon değişiklikleri.", historyPlaceholder:"🔍 History içinde ara...",
+    historyEmpty:"Henüz History yok. Icon uyguladığında değişikliklerin burada görünecek.", historyBack:"⌂ Ana Sayfaya Dön",
+    aboutTitle:"GIS nedir? (Game Icons Studio)", aboutSubtitle:"Uygulamanın ne yaptığını ve nasıl kullanıldığını anlatan kısa bir tur.",
+    aboutHeadings:["🎮 Ne işe yarar?","🔌 Artwork nereden gelir?","⚡ Nasıl çalışır? (3 adım)","🧩 Düğmeler ne işe yarar?","📊 Summary ekranı","💾 Güvenli ve geri alınabilir"],
+    aboutBodies:[
+      "Game Icons Studio, oyun ve program Shortcut'larının sıradan Icon'larını daha şık Icon'lara dönüştürür. Oyun Cover'larını SteamGridDB ile eşleştirir; uygulama Icon'larını Google Images veya Yandex Images üzerinden bulmana yardımcı olur. Sonuçları yerel olarak Preview eder ve uygular.",
+      "Oyun Cover'ları SteamGridDB üzerinden eşleştirilir. Diğer uygulamalar için Program & App Icons bölümünden Google Images veya Yandex Images'ta ara. Görseli sürükleyip bırakabilir veya kopyalayıp yapıştırabilirsin; işlem bilgisayarında yapılır. SteamGridDB API Key yalnızca oyun eşleştirmesi için gerekir.",
+      "1. Game Shortcut'larının (.lnk) bulunduğu klasörü seç. Uygulama onları tarar ve oyunlarla eşleştirir. 2. Seçilen Cover'ları Review et, beğenmediklerini değiştir. 3. Apply. Uygulama eski Icon'ları yedekler, yenilerini atar ve Windows'u yeniler.",
+      "Game Library Folder — oyun linklerini ve dosyalarını tara. Program & App Icons — uygulama Icon'larını bul. Specific Shortcuts — seçtiğin linkleri güncelle. Repair Broken Icons — kayıp Icon referanslarını onar. Quick re-apply — kayıtlı seçimlerini tekrar kullan. History — önceki işlemleri incele.",
+      "Apply işleminden sonra güncellenen, eşleşen, Placeholder olarak oluşturulan, atlanan veya başarısız olan Icon sayılarını görürsün. Finish ile tamamla veya Grid'e dönüp Icon'ları yeniden incele.",
+      "Game Icons Studio, kurulu oyun dosyalarını değil Shortcut Icon'larını değiştirir. Orijinal oyun dosyaların olduğu gibi kalır. Restore Point, desteklenen değişiklikleri geri almanı sağlar."
+    ],
+    aboutHome:"⌂ Ana Sayfaya Git",
+    convertSuccessTitle:"Dönüştürme başarılı!", convertSuccessBody:"Launcher linklerin artık standart .lnk dosyaları. Böylece Icon'ları özelleştirilebilir. Kısayolların eskisi gibi çalışmaya devam eder.", convertContinue:"Devam et →",
+    doneTitle:"Tamamlandı", doneHome:"⌂ Ana Sayfaya Dön",
+    healthTitle:"Klasöründe bunları buldum", healthSubtitle:"Başlamadan önce klasörüne hızlı bir göz atalım.", healthContinue:"Devam et →", cancel:"İptal",
+    newGamesTitle:"Yeni oyunlar bulundu", newGamesPrompt:"Yalnızca yeni oyunlara Icon atamak mı, yoksa tüm klasörü yeniden taramak mı istersin?",
+    newGamesOnly:"Yalnızca yeni oyunlar", newGamesAll:"Her şeyi tara",
+    convertTitle:"Bazı Launcher Shortcut'ları bulduk",
+    convertBody1:"Bazı öğelerin standart Windows Shortcut'ı (.lnk) yerine Internet Shortcut (.url). Windows, .url dosyalarına doğrudan özel Icon atamamıza izin vermiyor.",
+    convertBody2:"Game Icons Studio bunları otomatik dönüştürebilir. Linklerin aynı şekilde çalışır; yalnızca yeni Icon gösterebilen standart Shortcut'lara dönüşür.",
+    convertProceed:"Dönüştür ve devam et", convertSkip:"Atla; yalnızca .lnk dosyalarını tara",
+    folderBrowse:"📁 Klasör seç…", folderPlaceholder:"…veya klasör yolunu buraya yapıştırıp Enter'a bas",
+    loadingWorking:"İşleniyor…", loadingWait:"Canlı işlem bilgisi bekleniyor…",
+    grid:"▦ Grid", gallery:"▤ Gallery", onlineTitle:"Akıllı Online Icon adayları",
+    onlineDesc:"Google ve Yandex sonuçları kare oranı, çözünürlük ve Icon uygunluğuna göre sıralanır.",
+    onlineBoth:"İki kaynaktan da daha fazla bul", onlineGoogle:"Yalnızca Google", onlineYandex:"Yalnızca Yandex",
+    onlineStatus:"Otomatik taramada bulunan adaylar gösteriliyor.",
+    dropHelp:"Google Images veya Yandex Images'tan görseli buraya sürükle. Sağ tıklayıp Copy image seçerek Ctrl+V yapabilir ya da bilgisayarından seçmek için tıklayabilirsin.",
+    previewTitle:"ICON PREVIEW (1:1)", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"URL yükle", cancelSkip:"← İptal / Atla",
+    homeHeader:"⌂ Ana Sayfa", aboutHeader:"❔ GIS nedir?", summaryHeader:"↶ Summary",
+    fullScreen:"⛶ Tam Ekran", exitFullscreen:"⛶ Tam Ekrandan Çık", quit:"Çıkış",
+    gameFilesTitle:"Klasördeki oyunları bul", gameFilesDesc:"Alt klasörler dâhil Launcher linklerini, oyun dosyalarını ve ROM'ları tara. Mevcut Shortcut'lar korunur; orijinal dosyalara dokunulmaz.", gameFilesButton:"Game Library'yi tara",
+    repairSummary:"Icon onarım sonuçları"
+  },
+  ar: {
+    keyTitle:"لنبدأ إعداد التطبيق",
+    keyIntro:"يعثر Game Icons Studio على أغلفة الألعاب عبر SteamGridDB. يلزم API Key مجاني للمطابقة التلقائية للألعاب، ولا يلزم ذلك لميزة Program & App Icons.",
+    keyNew:"هل أنت جديد هنا؟", keyExisting:"هل لديك حساب بالفعل؟",
+    keySteps:["افتح SteamGridDB واضغط Login في أعلى اليمين.","سجّل الدخول باستخدام Steam لإنشاء حسابك المجاني فوراً.","ارجع إلى هنا واستخدم الزر الآخر للحصول على المفتاح.","افتح إعدادات API باستخدام الزر أدناه.","اضغط Create API Key ثم Copy.","الصق المفتاح هنا وأنت جاهز."],
+    keyCreate:"إنشاء حساب SteamGridDB", keyGet:"الحصول على API Key", keyPlaceholder:"الصق API Key هنا",
+    keyPaste:"📋 لصق ومتابعة", keyContinue:"متابعة", keyNoKey:"المتابعة باستخدام Program & App Icons (من دون API Key)",
+    noArtTitle:"لا يوجد غلاف لهذه اللعبة",
+    noArtDescription:"لا تتوفر Artwork لهذه اللعبة في SteamGridDB بعد. يمكن لـ Game Icons Studio إنشاء Placeholder Icon بسيط باسم اللعبة ليتناسق مع بقية الأيقونات.",
+    historyTitle:"سجل الأيقونات", historySubtitle:"أحدث تغييرات الأيقونات التي أجريتها.", historyPlaceholder:"🔍 البحث في السجل...",
+    historyEmpty:"لا يوجد سجل بعد. ستظهر تغييراتك هنا بعد تطبيق الأيقونات.", historyBack:"⌂ العودة إلى الرئيسية",
+    aboutTitle:"ما هو GIS؟ (Game Icons Studio)", aboutSubtitle:"جولة سريعة للتعرّف على التطبيق وطريقة استخدامه.",
+    aboutHeadings:["🎮 ما وظيفة التطبيق؟","🔌 من أين تأتي الصور؟","⚡ كيف يعمل؟ (3 خطوات)","🧩 وظيفة الأزرار","📊 شاشة الملخص","💾 آمن وغير إتلافي"],
+    aboutBodies:[
+      "يحوّل Game Icons Studio الأيقونات العامة لاختصارات الألعاب والبرامج إلى أيقونات أنيقة. يطابق أغلفة الألعاب عبر SteamGridDB، ويساعدك في العثور على أيقونات التطبيقات عبر Google Images أو Yandex Images، ثم يعرضها ويطبقها محلياً.",
+      "تتم مطابقة أغلفة الألعاب عبر SteamGridDB. للتطبيقات العادية استخدم Program & App Icons للبحث في Google Images أو Yandex Images. اسحب الصورة أو انسخها والصقها؛ تتم المعالجة محلياً. لا تحتاج إلى SteamGridDB API Key إلا لمطابقة الألعاب.",
+      "1. اختر مجلداً يحتوي على اختصارات الألعاب (.lnk). يفحصها التطبيق ويطابق كل اختصار مع لعبة. 2. راجع الأغلفة المختارة وغيّر ما لا يعجبك. 3. طبّق التغييرات؛ سيحفظ التطبيق نسخة من الأيقونات القديمة ثم يحدّث Windows.",
+      "Game Library Folder — فحص روابط وملفات الألعاب. Program & App Icons — العثور على أيقونات التطبيقات. Specific Shortcuts — اختيار روابط محددة للتحديث. Repair Broken Icons — إصلاح مراجع الأيقونات المفقودة. Quick re-apply — استخدام اختياراتك المحفوظة. History — مراجعة التغييرات السابقة.",
+      "بعد التطبيق، راجع عدد الأيقونات التي تم تحديثها أو مطابقتها أو إنشاؤها كـ Placeholder أو تخطيها أو فشلها. اضغط Finish أو ارجع إلى Grid لمراجعتها وتغييرها.",
+      "يغيّر Game Icons Studio أيقونات الاختصارات فقط، ولا يغيّر ملفات الألعاب المثبتة. تبقى ملفاتك الأصلية كما هي. تساعدك Restore Points على التراجع عن التغييرات المدعومة."
+    ],
+    aboutHome:"⌂ الانتقال إلى الرئيسية",
+    convertSuccessTitle:"تم التحويل بنجاح!", convertSuccessBody:"أصبحت روابط Launcher ملفات .lnk قياسية، ويمكن الآن تخصيص أيقوناتها. ستستمر الروابط في العمل كما كانت.", convertContinue:"متابعة →",
+    doneTitle:"تم", doneHome:"⌂ العودة إلى الرئيسية",
+    healthTitle:"هذه هي العناصر التي وجدتها", healthSubtitle:"نظرة سريعة على المجلد قبل البدء.", healthContinue:"متابعة →", cancel:"إلغاء",
+    newGamesTitle:"تم العثور على ألعاب جديدة", newGamesPrompt:"هل تريد تعيين الأيقونات للألعاب الجديدة فقط أم فحص المجلد بالكامل؟",
+    newGamesOnly:"الألعاب الجديدة فقط", newGamesAll:"فحص الكل",
+    convertTitle:"وجدنا بعض اختصارات Launcher",
+    convertBody1:"بعض العناصر هي Internet Shortcuts (.url) وليست Windows Shortcuts قياسية (.lnk). لا يسمح Windows بتعيين أيقونات مخصصة لملفات .url مباشرة.",
+    convertBody2:"يمكن لـ Game Icons Studio تحويلها تلقائياً. ستعمل الروابط بالطريقة نفسها، لكنها ستصبح اختصارات قياسية تعرض الأيقونات الجديدة.",
+    convertProceed:"تحويل ومتابعة", convertSkip:"تخطي؛ فحص ملفات .lnk فقط",
+    folderBrowse:"📁 استعراض المجلد…", folderPlaceholder:"…أو الصق مسار المجلد هنا واضغط Enter",
+    loadingWorking:"جارٍ العمل…", loadingWait:"بانتظار تقدم العملية المباشر…",
+    grid:"▦ Grid", gallery:"▤ Gallery", onlineTitle:"اقتراحات ذكية للأيقونات عبر الإنترنت",
+    onlineDesc:"ترتيب نتائج Google وYandex حسب الشكل المربع والدقة ومدى ملاءمتها كأيقونة.",
+    onlineBoth:"المزيد من المصدرين", onlineGoogle:"Google فقط", onlineYandex:"Yandex فقط",
+    onlineStatus:"تظهر النتائج المكتشفة أثناء الفحص التلقائي.",
+    dropHelp:"اسحب صورة من Google Images أو Yandex Images إلى هنا. يمكنك أيضاً النقر بزر الفأرة الأيمن واختيار Copy image ثم الضغط على Ctrl+V، أو النقر لاختيار صورة من جهازك.",
+    previewTitle:"معاينة الأيقونة (1:1)", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"تحميل URL", cancelSkip:"← إلغاء / تخطي",
+    homeHeader:"⌂ الرئيسية", aboutHeader:"❔ ما هو GIS؟", summaryHeader:"↶ الملخص",
+    fullScreen:"⛶ ملء الشاشة", exitFullscreen:"⛶ الخروج من ملء الشاشة", quit:"خروج",
+    gameFilesTitle:"العثور على الألعاب داخل مجلد", gameFilesDesc:"افحص روابط Launcher وملفات الألعاب وROM داخل المجلدات الفرعية. تبقى الاختصارات والملفات الأصلية دون تغيير.", gameFilesButton:"فحص مكتبة الألعاب",
+    repairSummary:"نتائج إصلاح الأيقونات"
+  }
+};
+
 var currentLang = 'en';
 
 function formatStr(str, args) {
@@ -1277,20 +1412,31 @@ function itemNounCap(plural){
   return noun.charAt(0).toUpperCase() + noun.slice(1);
 }
 
-function toggleLang() {
-  currentLang = currentLang === 'en' ? 'ar' : 'en';
-  try { localStorage.setItem('gis-lang', currentLang); } catch(e){}
+function setLang(lang) {
+  if (['en','tr','ar'].indexOf(lang) < 0) return;
+  currentLang = lang;
+  try { localStorage.setItem('gis-lang-v2', currentLang); } catch(e){}
   applyLang();
+}
+
+function toggleLang() {
+  // Kept as a keyboard/accessibility fallback; the visible control is the 3-language flag switcher.
+  setLang(currentLang === 'en' ? 'tr' : (currentLang === 'tr' ? 'ar' : 'en'));
 }
 
 function applyLang() {
   document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
   document.documentElement.setAttribute('lang', currentLang);
 
-  var t = i18n[currentLang];
+  var t = i18n[currentLang] || i18n.en;
+  var screen = screenI18n[currentLang] || screenI18n.en;
   var el = function(id) { return document.getElementById(id); };
 
-  if(el('langBtn')) el('langBtn').innerHTML = t.langBtn;
+  document.querySelectorAll('.lang-option').forEach(function(button) {
+    var active = button.getAttribute('data-lang') === currentLang;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
 
   var homeHeroP = document.querySelector('.home-hero p');
   if(homeHeroP) homeHeroP.textContent = t.homeSubtitle;
@@ -1319,10 +1465,6 @@ function applyLang() {
       homeBtns[7].querySelector('.t').textContent = t.btnShortcutsOnly || i18n.en.btnShortcutsOnly;
       homeBtns[7].querySelector('.d').textContent = t.descShortcutsOnly || i18n.en.descShortcutsOnly;
     }
-    if (homeBtns.length >= 8) {
-      homeBtns[7].querySelector('.t').textContent = t.btnShortcutsOnly || i18n.en.btnShortcutsOnly;
-      homeBtns[7].querySelector('.d').textContent = t.descShortcutsOnly || i18n.en.descShortcutsOnly;
-    }
   }
 
   var toolBtns = document.querySelectorAll('.tool-btn');
@@ -1336,7 +1478,7 @@ function applyLang() {
   if (el('backupTitle')) el('backupTitle').textContent = t.backupTitle;
   if (el('backupSubtitle')) el('backupSubtitle').textContent = t.backupSubtitle;
   if (el('backupRetentionLabel')) el('backupRetentionLabel').textContent = t.backupRetentionLabel;
-  if (el('backupRefreshBtn')) el('backupRefreshBtn').textContent = (currentLang === 'ar' ? 'تحديث' : 'Refresh');
+  if (el('backupRefreshBtn')) el('backupRefreshBtn').textContent = screen.refresh || 'Refresh';
 
   if (typeof updateFolderScreenLabels === 'function') updateFolderScreenLabels();
 
