@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.38
+# Game Icons Studio v6.39
 
 ### From generic icons to a game shelf.
 
@@ -43,21 +43,35 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 ## Features
 
 - 🎮 **Game artwork matching** — finds candidate game artwork through SteamGridDB and lets you review results before applying.
-- 🗂️ **Game Files Folder scan** — recursively find existing `.lnk` shortcuts, `.url` launchers, playable `.exe` files, and `.bat`/`.cmd` game launchers. Create working custom-icon `.lnk` shortcuts for supported files that do not already have one; original executable/script files stay untouched.
+- 🗂️ **Game Library scan** — recursively inspect `.lnk`, registered `.url` launcher links, `.exe`, `.bat`, `.cmd`, and common emulator ROM formats. Create normal Windows `.lnk` shortcuts, reuse existing launchers, and keep original game files untouched.
 - 🧩 **Program & app icons** — search brand/software icon candidates and discover images for application shortcuts.
 - 🔎 **Image search shortcuts** — open Google Images or Yandex Images for additional options.
 - 🖼️ **Use your own artwork** — select an image from disk, drag and drop it, paste it with Ctrl+V, or load it from an image URL.
 - ✨ **High-quality Windows icons** — convert artwork into multi-size `.ico` files.
 - 📁 **Folder icons** — customize folder icons through Windows `desktop.ini`.
-- ↩️ **Restore points** — save supported shortcut/folder icon states before applying changes and restore them later.
+- ↩️ **One-click Undo** — restore the latest saved icon transaction, including restoring converted `.url` sources and removing newly generated shortcut links.
+- 🛠️ **Broken-icon repair** — inspect shortcut ICO references, relink valid saved ICOs, rebuild from cached artwork when possible, and refresh the Windows icon cache.
 - 🗂️ **Quick re-apply and history** — revisit previous work and quickly re-apply supported changes.
 - 🧰 **Icon-cache repair** — help refresh blank or stale icons displayed by Windows.
 - 🎨 **Multiple themes** — Aurora Glass is the default theme, with other themes available.
 
-## What's new in v6.30–v6.38
+## What's new in v6.30–v6.39
 
 These release notes are an addition to the original introduction above. The logo, demo, before-and-after image, and original page structure are retained.
 
+<details>
+<summary><strong>v6.39 — Game Library, launcher conversion, modern dialogs and repair</strong></summary>
+
+- Makes **Game Library Folder** the primary home-screen workflow so a selected library folder is scanned for existing .lnk shortcuts, .url Internet Shortcuts, .exe, .bat, .cmd, and common emulator ROM file types.
+- Converts recognized Steam, Epic Games, Ubisoft Connect, Battle.net, EA and other registered protocol .url launchers into verified, standard Windows .lnk files. The original .url is retained until the replacement has an icon and the restore transaction is safely recorded.
+- Detects emulator executable shortcuts already present inside the selected folder and uses known profiles for Cemu, Ryujinx/Eden/Yuzu, Dolphin, mGBA, melonDS, Azahar/Citra and PCSX2 when building ROM launch links. If a matching emulator is not found, the ROM shortcut uses its registered Windows file association.
+- Reuses existing shortcuts and detects executable targets already represented by a shortcut to avoid duplicates. Filters common installers, uninstallers, crash reporters and launcher utility applications from game matching. Each scan is capped at 1,000 launchable entries.
+- Replaces legacy folder/file dialogs with the native Windows Explorer-style Common Item Dialog.
+- Adds **Undo Last Change** and makes converted launcher links reversible: the backup restores the original .url and removes newly created .lnk files.
+- Adds **Repair Broken Icons**, which checks .lnk ICO references, relinks valid icons from the persistent Icons folder, rebuilds missing icons from cached artwork when available, and refreshes Windows Explorer.
+- Keeps the legacy **Shortcuts Only** mode available as a separate option.
+
+</details>
 <details>
 <summary><strong>v6.38 — Restore Game Files Folder workflow</strong></summary>
 
@@ -135,7 +149,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.38.md](CHANGELOG-v6.38.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.39.md](CHANGELOG-v6.39.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 
@@ -164,7 +178,7 @@ Game Icons Studio is open source, so you can inspect the code.
 - For normal shortcuts, it changes the shortcut icon rather than the installed application itself.
 - For file types that cannot have their Explorer icon changed directly, it can create a companion `(Custom Icon).lnk` shortcut; the original file is not modified.
 - Folder icon customization uses Windows folder icon configuration files. Check the target before applying changes.
-- Restore points can help revert supported changes when a saved restore point exists.
+- A restore point is created before changes are applied. Undo Last Change can reverse the latest saved transaction, including supported newly created file shortcuts and converted launcher links.
 - The local interface uses internet access for the artwork/search providers when those features are used. Review results before applying them.
 
 Only download release ZIPs from this repository.
@@ -173,7 +187,7 @@ Only download release ZIPs from this repository.
 
 **Does this work with Steam, Epic Games, GOG, and other launchers?**
 
-It works with Windows shortcuts (`.lnk`) from any launcher. The artwork available depends on the shortcut details and the sources that can be reached.
+The Game Library scan can convert recognized .url protocol links, reuse standard .lnk files, and create custom-icon shortcuts for supported EXE, BAT, CMD and ROM entries. ROM launch commands are auto-configured when a supported emulator shortcut is found in the selected folder; otherwise Windows uses the registered file association.
 
 **Does it change my actual games or installed programs?**
 
