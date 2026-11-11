@@ -41,6 +41,21 @@ if ($webServerText -notmatch 'ShowMaximizedAndForeground\(\$hwnd\)' -or
 foreach ($token in @('ProgramIconNames','IsProgramIcon','Get-EmulatorLauncherFamily','ryujinx|ryubing')) {
     if ($webServerText -notmatch [regex]::Escape($token)) { throw "Game Library emulator-app routing is missing: $token" }
 }
+if (-not $webServerText.Contains("$path -eq '/api/search-games'") -or
+    -not $webServerText.Contains('Get-SgdbGameCandidates -ApiKey')) {
+    throw 'Manual SteamGridDB game search endpoint is missing.'
+}
+foreach ($token in @('function searchGameCandidates()','function useCustomGameTitle()','customGameReturnToMatches','customGameName','review-change-game','manualGameI18n')) {
+    if (-not $webAppText.Contains($token)) { throw "Manual game selection UI is missing: $token" }
+}
+if (-not $webAppText.Contains('onclick="toggleLang()"') -or
+    -not $webAppText.Contains('.lang-option:not(.active) { display:none !important; }')) {
+    throw 'Language selection must use one visible flag button that cycles languages.'
+}
+if (-not $webAppText.Contains("api('/api/custom-cover', { name: it.name, dataUrl: pngDataUrl })") -or
+    -not $webAppText.Contains('gameName: chosenArtworkName + customSuffix')) {
+    throw 'Custom game titles must not replace the original Shortcut name.'
+}
 $modernDialogText = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\src\ModernDialogs.ps1') -Raw
 if ($modernDialogText -notmatch 'WatchAndMaximizeDialog\(dialogTitle, activeOwner\)' -or
     $modernDialogText -notmatch 'dialog\.Show\(activeOwner\)') {
