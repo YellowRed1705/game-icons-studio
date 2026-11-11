@@ -261,12 +261,16 @@ function Resolve-Shortcuts {
         $name = [string]$nameRaw
         $idx++
         $safe = Get-SafeFileName -Name $name
-        $icoPath = Join-Path $Ctx.IconsDir "$safe.ico"
+        # Only immutable, content-addressed ICOs are trusted as a cache hit.
+        # Legacy <safe>.ico files are left untouched and rebuilt once after
+        # upgrading so Explorer no longer depends on an overwritten path.
+        $cachedIcoPath = Get-ContentAddressedIconCachePath -IconsDir $Ctx.IconsDir -SafeName $safe
+        $icoPath = Join-Path $Ctx.IconsDir "$safe.ico" # legacy backup/compatibility path
         $tag = "[$idx/$($uniqueNames.Count)]"
 
-        if (-not $Force -and (Test-Path $icoPath)) {
-            $resolutions[$name] = @{ IcoPath = $icoPath; Cached = $true; Failed = $false; GameName = $name; Score = 1.0 }
-            Write-Log "$tag '$name' -> cached icon reused." 'DEBUG'
+        if (-not $Force -and -not [string]::IsNullOrWhiteSpace([string]$cachedIcoPath)) {
+            $resolutions[$name] = @{ IcoPath = $cachedIcoPath; Cached = $true; Failed = $false; GameName = $name; Score = 1.0 }
+            Write-Log "$tag '$name' -> immutable cached icon reused: $cachedIcoPath" 'DEBUG'
             continue
         }
 
@@ -637,31 +641,47 @@ function Invoke-ApplyPipeline {
         Show-InlineProgress -Current $buildDone -Total $buildKeys.Count -Label 'Building' -Item $name
         Send-ApplyProgress -Callback $ProgressCallback -Phase 'build' -Current $buildDone -Total $buildKeys.Count -Label 'Building Windows icons' -Item $name -Status 'running'
 
+        $stagingIcoPath = Join-Path $Ctx.CacheDir ('.ico-stage-' + [guid]::NewGuid().ToString('N') + '.tmp')
         try {
             $contain = ($r.Kind -eq 'logo')
             if ($r.Placeholder) {
                 $safe = Get-SafeFileName -Name $name
-                $pngPath = Join-Path $Ctx.CacheDir "$safe`_placeholder.png"
+                $pngPath = Join-Path $Ctx.CacheDir ($safe + '_placeholder.png')
                 $null = New-PlaceholderCover -GameName $r.GameName -OutputPath $pngPath
-                $null = ConvertTo-Ico -SourcePath $pngPath -OutputPath $r.IcoPath `
-                    -CornerRadiusPercent $style.CornerRadiusPercent `
-                    -BorderWidthPercent $style.BorderWidthPercent `
-                    -BorderColor $style.BorderColor `
-                    -ShadowEnabled $style.ShadowEnabled
-                Write-Log "Placeholder cover built: $([System.IO.Path]::GetFileName($r.IcoPath))" 'DEBUG' $true
+                $convertParams = @{
+                    SourcePath = $pngPath
+                    OutputPath = $stagingIcoPath
+                    CornerRadiusPercent = $style.CornerRadiusPercent
+                    BorderWidthPercent = $style.BorderWidthPercent
+                    BorderColor = $style.BorderColor
+                    ShadowEnabled = $style.ShadowEnabled
+                }
+                $null = ConvertTo-Ico @convertParams
             } else {
-                $null = ConvertTo-Ico -SourcePath $r.RawPath -OutputPath $r.IcoPath `
-                    -CornerRadiusPercent $style.CornerRadiusPercent `
-                    -BorderWidthPercent $style.BorderWidthPercent `
-                    -BorderColor $style.BorderColor `
-                    -ShadowEnabled $style.ShadowEnabled `
-                    -Contain $contain
-                Write-Log "ICO ready: $([System.IO.Path]::GetFileName($r.IcoPath))" 'DEBUG' $true
+                $convertParams = @{
+                    SourcePath = $r.RawPath
+                    OutputPath = $stagingIcoPath
+                    CornerRadiusPercent = $style.CornerRadiusPercent
+                    BorderWidthPercent = $style.BorderWidthPercent
+                    BorderColor = $style.BorderColor
+                    ShadowEnabled = $style.ShadowEnabled
+                    Contain = $contain
+                }
+                $null = ConvertTo-Ico @convertParams
             }
+
+            # Publish only after the complete ICO has been written and validated.
+            # The destination is immutable and derived from the actual output
+            # bytes, not merely the shortcut name or source URL.
+            $safeForIcon = Get-SafeFileName -Name $name
+            $publishedIcoPath = Publish-ContentAddressedIco -StagingPath $stagingIcoPath -IconsDir $Ctx.IconsDir -SafeName $safeForIcon
+            $r.IcoPath = $publishedIcoPath
+            Write-Log "Content-addressed ICO ready: $([System.IO.Path]::GetFileName($publishedIcoPath))" 'DEBUG' $true
         } catch {
+            try { if (Test-Path -LiteralPath $stagingIcoPath -PathType Leaf) { Remove-Item -LiteralPath $stagingIcoPath -Force -ErrorAction SilentlyContinue } } catch { }
             $r.Failed = $true
-            $r.Reason = "ICO conversion failed: $($_.Exception.Message)"
-            Write-Log "ICO conversion failed for '$name': $($_.Exception.Message)" 'ERROR' $true
+            $r.Reason = "ICO conversion or publish failed: $($_.Exception.Message)"
+            Write-Log "ICO conversion/publish failed for '$name': $($_.Exception.Message)" 'ERROR' $true
         }
     }
     Complete-InlineProgress
