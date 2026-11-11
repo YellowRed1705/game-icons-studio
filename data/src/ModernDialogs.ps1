@@ -117,6 +117,7 @@ namespace GIS {
         [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hwnd, System.Text.StringBuilder text, int maxCount);
         [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hwnd);
+        [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hwnd);
         [DllImport("user32.dll")] private static extern bool ShowWindowAsync(IntPtr hwnd, int command);
         [DllImport("user32.dll")] private static extern bool BringWindowToTop(IntPtr hwnd);
         [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hwnd);
@@ -170,8 +171,8 @@ namespace GIS {
                 try {
                     if (owner != IntPtr.Zero) {
                         uint ownerProcess;
-                        if (GetWindowThreadProcessId(owner, out ownerProcess) != 0) {
-                            ShowWindowAsync(owner, 9); // SW_RESTORE if the browser was minimized
+                        if (GetWindowThreadProcessId(owner, out ownerProcess) != 0 && IsIconic(owner)) {
+                            ShowWindowAsync(owner, 9); // SW_RESTORE only when the browser is minimized
                         }
                     }
                     bool found = false;
