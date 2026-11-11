@@ -1512,6 +1512,7 @@ function Start-WebScanGameFolder {
                 if (-not $skipAsEmulatorUtility -and $launcherClientNames -contains $targetLeaf.ToLowerInvariant()) {
                     $skipAsEmulatorUtility = $true
                 }
+            }
         } catch { }
         if ($skipAsEmulatorUtility) {
             $excludedLauncherApps++
