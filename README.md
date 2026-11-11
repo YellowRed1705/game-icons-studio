@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.37
+# Game Icons Studio v6.38
 
 ### From generic icons to a game shelf.
 
@@ -43,6 +43,7 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 ## Features
 
 - 🎮 **Game artwork matching** — finds candidate game artwork through SteamGridDB and lets you review results before applying.
+- 🗂️ **Game Files Folder scan** — recursively find existing `.lnk` shortcuts, `.url` launchers, playable `.exe` files, and `.bat`/`.cmd` game launchers. Create working custom-icon `.lnk` shortcuts for supported files that do not already have one; original executable/script files stay untouched.
 - 🧩 **Program & app icons** — search brand/software icon candidates and discover images for application shortcuts.
 - 🔎 **Image search shortcuts** — open Google Images or Yandex Images for additional options.
 - 🖼️ **Use your own artwork** — select an image from disk, drag and drop it, paste it with Ctrl+V, or load it from an image URL.
@@ -53,9 +54,22 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 - 🧰 **Icon-cache repair** — help refresh blank or stale icons displayed by Windows.
 - 🎨 **Multiple themes** — Aurora Glass is the default theme, with other themes available.
 
-## What's new in v6.30–v6.37
+## What's new in v6.30–v6.38
 
 These release notes are an addition to the original introduction above. The logo, demo, before-and-after image, and original page structure are retained.
+
+<details>
+<summary><strong>v6.38 — Restore Game Files Folder workflow</strong></summary>
+
+- Adds a dedicated **Game Files Folder** action to the home screen.
+- Recursively finds existing `.lnk` shortcuts, `.url` launcher links, `.exe` files, and `.bat`/`.cmd` launchers in a selected game folder.
+- Reuses an existing shortcut when it already targets the executable, avoiding duplicate links.
+- Converts `.url` launcher entries to standard `.lnk` shortcuts only after a new link has been created successfully; failed conversions keep the original `.url`.
+- Creates companion custom-icon `.lnk` shortcuts beside eligible executable and script files. Original `.exe`, `.bat`, and `.cmd` files are never modified.
+- Skips common installers, uninstallers, crash reporters, and redistributable helpers, and limits one scan to 1,000 launchable entries as a safety cap.
+- Automatically matches games through the existing SteamGridDB review/apply flow and keeps the full results reviewable before applying icons.
+
+</details>
 
 <details>
 <summary><strong>v6.37 — Real-time operation progress</strong></summary>
@@ -121,7 +135,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.37.md](CHANGELOG-v6.37.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.38.md](CHANGELOG-v6.38.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 
