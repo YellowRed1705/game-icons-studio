@@ -58,31 +58,31 @@ namespace GIS {
 
     [ComImport, Guid("D57C7288-D4AD-4768-BE02-9D969532D960"),
      InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    internal interface IFileOpenDialog : IFileDialog {
-        [PreserveSig] new int Show(IntPtr owner);
-        [PreserveSig] new int SetFileTypes(uint count, IntPtr filters);
-        [PreserveSig] new int SetFileTypeIndex(uint index);
-        [PreserveSig] new int GetFileTypeIndex(out uint index);
-        [PreserveSig] new int Advise(IntPtr events, out uint cookie);
-        [PreserveSig] new int Unadvise(uint cookie);
-        [PreserveSig] new int SetOptions(FileOpenOptions options);
-        [PreserveSig] new int GetOptions(out FileOpenOptions options);
-        [PreserveSig] new int SetDefaultFolder(IShellItem folder);
-        [PreserveSig] new int SetFolder(IShellItem folder);
-        [PreserveSig] new int GetFolder(out IShellItem folder);
-        [PreserveSig] new int GetCurrentSelection(out IShellItem item);
-        [PreserveSig] new int SetFileName([MarshalAs(UnmanagedType.LPWStr)] string name);
-        [PreserveSig] new int GetFileName(out IntPtr name);
-        [PreserveSig] new int SetTitle([MarshalAs(UnmanagedType.LPWStr)] string title);
-        [PreserveSig] new int SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string text);
-        [PreserveSig] new int SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string label);
-        [PreserveSig] new int GetResult(out IShellItem item);
-        [PreserveSig] new int AddPlace(IShellItem item, int alignment);
-        [PreserveSig] new int SetDefaultExtension([MarshalAs(UnmanagedType.LPWStr)] string extension);
-        [PreserveSig] new int Close(int result);
-        [PreserveSig] new int SetClientGuid(ref Guid guid);
-        [PreserveSig] new int ClearClientData();
-        [PreserveSig] new int SetFilter(IntPtr filter);
+    internal interface IFileOpenDialog {
+        [PreserveSig] int Show(IntPtr owner);
+        [PreserveSig] int SetFileTypes(uint count, IntPtr filters);
+        [PreserveSig] int SetFileTypeIndex(uint index);
+        [PreserveSig] int GetFileTypeIndex(out uint index);
+        [PreserveSig] int Advise(IntPtr events, out uint cookie);
+        [PreserveSig] int Unadvise(uint cookie);
+        [PreserveSig] int SetOptions(FileOpenOptions options);
+        [PreserveSig] int GetOptions(out FileOpenOptions options);
+        [PreserveSig] int SetDefaultFolder(IShellItem folder);
+        [PreserveSig] int SetFolder(IShellItem folder);
+        [PreserveSig] int GetFolder(out IShellItem folder);
+        [PreserveSig] int GetCurrentSelection(out IShellItem item);
+        [PreserveSig] int SetFileName([MarshalAs(UnmanagedType.LPWStr)] string name);
+        [PreserveSig] int GetFileName(out IntPtr name);
+        [PreserveSig] int SetTitle([MarshalAs(UnmanagedType.LPWStr)] string title);
+        [PreserveSig] int SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string text);
+        [PreserveSig] int SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string label);
+        [PreserveSig] int GetResult(out IShellItem item);
+        [PreserveSig] int AddPlace(IShellItem item, int alignment);
+        [PreserveSig] int SetDefaultExtension([MarshalAs(UnmanagedType.LPWStr)] string extension);
+        [PreserveSig] int Close(int result);
+        [PreserveSig] int SetClientGuid(ref Guid guid);
+        [PreserveSig] int ClearClientData();
+        [PreserveSig] int SetFilter(IntPtr filter);
         [PreserveSig] int GetResults(out IShellItemArray results);
         [PreserveSig] int GetSelectedItems(out IShellItemArray items);
     }
