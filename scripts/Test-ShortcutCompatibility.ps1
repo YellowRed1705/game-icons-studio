@@ -96,7 +96,7 @@ try {
     $stageOne = Join-Path $testRoot 'stage-one.tmp'
     [System.IO.File]::WriteAllBytes($stageOne,$icoBytes)
     $publishedOne = Publish-ContentAddressedIco -StagingPath $stageOne -IconsDir $iconCacheDir -SafeName 'Same Logical Name'
-    if (-not (Test-ValidIcoFile -Path $publishedOne) -or [System.IO.Path]::GetFileName($publishedOne) -notmatch '--[a-f0-9]{20}\.ico
+    if (-not (Test-ValidIcoFile -Path $publishedOne) -or [System.IO.Path]::GetFileName($publishedOne) -notmatch '--[a-f0-9]{20}\.ico$') { throw 'Content-addressed ICO filename did not include its expected SHA-256 suffix.' }
 
     foreach ($uri in @(
         'steam://rungameid/123456',
