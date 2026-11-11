@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.43
+# Game Icons Studio v6.42
 
 ### From generic icons to a game shelf.
 
@@ -58,21 +58,10 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 - 🧰 **Icon-cache repair** — help refresh blank or stale icons displayed by Windows.
 - 🎨 **Multiple themes** — Aurora Glass is the default theme, with other themes available.
 
-## What's new in v6.30–v6.43
+## What's new in v6.30–v6.42
 
 These release notes are an addition to the original introduction above. The logo, demo, before-and-after image, and original page structure are retained.
 
-<details>
-<summary><strong>v6.43 — emulator app icons included in Game Library scans</strong></summary>
-
-- Fixes the Game Library filter that excluded emulator launcher shortcuts such as Cemu, Eden and Ryujinx when they had no command-line arguments. These shortcuts now enter the review/apply pipeline as Program & App Icons items instead of being left with their original small embedded executable icons.
-- Keeps emulator executable discovery intact: Cemu, Eden, Ryujinx and Ryubing shortcuts remain available as ROM launch profiles, so generated ROM shortcuts continue to use the detected emulator and arguments.
-- Adds Ryubing as a Ryujinx-family emulator alias.
-- Uses item-level icon mode in mixed scans. Game shortcuts continue to use SteamGridDB game artwork; emulator launcher shortcuts use Google/Yandex candidates, software-icon catalogue results and embedded-icon fallback. Their apply type and saved-choice kind stay independent.
-- Shows how many emulator/application shortcuts were routed to Program & App Icons in the Game Library scan summary.
-- Adds regression checks for emulator inclusion, mixed per-item review mode and the Ryubing profile alias.
-
-</details>
 <details>
 <summary><strong>v6.42 — per-browser API keys and matching-flow repair</strong></summary>
 
@@ -199,7 +188,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.43.md](CHANGELOG-v6.43.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.42.md](CHANGELOG-v6.42.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 

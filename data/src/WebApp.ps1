@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.43) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.42) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio v6.43</title>
+<title>Game Icons Studio v6.42</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {
@@ -1474,7 +1474,6 @@ var statusI18n = {
     launchableEntries:"launchable entries found", exeFiles:"EXE", scriptFiles:"BAT/CMD", existingLinks:"existing Shortcuts", urlPrepared:"Launcher URLs prepared as .lnk", romFiles:"emulator ROMs", alreadyLinked:"already had a working Shortcut", launcherUtilities:"Launcher utility Shortcuts left alone", installerHelpers:"installer/helper files skipped", urlsKept:"URL conversion(s) kept as source files", safetyLimit:"safety limit", extraEntries:"extra entries left untouched", originalsUntouched:"Original EXE/BAT/CMD files remain untouched.", everythingGood:"Everything looks good!", convertedCount:"Converted {0} Shortcut(s) to standard .lnk format.", shortcutsReady:"Your Shortcuts are ready.", checkingSavedChoices:"Checking your saved choices…", startingFresh:"Starting fresh…", clearingChoices:"Clearing your previous choices…", searchingBoth:"Searching Google Images, Yandex Images and the brand-icon catalog for square, high-resolution app Icons…", searchingGoogle:"Searching Google Images and brand Icons for square, high-resolution app Icons…", searchingYandex:"Searching Yandex Images and brand Icons for square, high-resolution app Icons…", onlineFound:"Found {0} candidate(s). Brand-relevant results are ranked first; resolution and square shape are tie-breakers. Choose one to Preview it, then Apply this Icon.", imageReady:"Image ready ({0} × {1}).{2} Preview the crop, then Apply.", imageQualityLow:" Low resolution may look soft at larger Icon sizes.", imageQualityHigh:" High enough for crisp Windows Icons.", imageLoaded:"Image loaded ({0} × {1}). Click Apply this Icon to use it.", imageDecodeError:"Could not decode that image. Try another image or save it locally first.", notImage:"That item is not an image. Drop the image itself, or copy the image and press Ctrl+V.", readingImage:"Reading image…", fileReadError:"Failed to read file.", tryingImageSource:"Trying image source {0} of {1}…", imageFetchError:"Could not fetch this image. Try dragging the image itself or using Copy image → Ctrl+V.", noImageUrl:"No usable image URL found. Copy the image itself or save it and choose it from your PC.", savingCustomIcon:"Saving custom Icon…", localServerError:"Error communicating with the local server.", readingDroppedImage:"Reading the dropped image…", dropReadError:"Could not read that drop. Drag the image itself, use Copy image → Ctrl+V, or save it and browse for the file."
   ,
     exeCount:"{0} EXE", scriptCount:"{0} BAT/CMD", existingShortcutCount:"{0} existing Shortcut(s)", preparedLauncherCount:"{0} Launcher URL(s) prepared as .lnk", romCount:"{0} emulator ROM(s)", linkedCount:"{0} already linked", launcherUtilityCount:"{0} Launcher utility Shortcut(s) left alone", helperSkippedCount:"{0} installer/helper file(s) skipped", failedUrlCount:"{0} URL conversion(s) kept as source files", safetyLimitCount:"safety limit: {0} extra entries left untouched", healthLauncherNote:"Launcher Shortcuts can be converted so their Icons can be customized.", healthBrokenNote:"Some Shortcuts point to a missing file; those items will be skipped safely.", scanPreparingPrograms:"Preparing your program Shortcuts…", scanSteamFolders:"Scanning SteamGridDB for your game folders…", scanSteamGames:"Scanning SteamGridDB for your games…", readingAppShortcuts:"Reading application Shortcuts…", readingFolders:"Reading your folders…", readingFolder:"Reading your folder…", backupItemCount:"{0} item(s) · {1}", backupPreviouslyRestored:"Previously restored: {0} · Can restore again", backupOriginalSaved:"Original Shortcut/Folder Icon state saved", repairScanned:"Shortcuts scanned: {0}", repairRepaired:"References repaired: {0}", repairRebuilt:"ICO files rebuilt from cache: {0}", repairAlreadyValid:"Already valid: {0}", repairUnresolved:"Unresolved: {0}", repairFailed:"Failed: {0}", repairCacheRefreshed:"Windows Icon Cache refreshed and Explorer restarted.", repairMissingArtwork:"Some Icons could not be rebuilt because matching Artwork is no longer in the local Cache.",
-    programIconShortcutCount:"{0} emulator/app Shortcut(s) queued for Program & App Icons",
     previewUnavailable:"Preview unavailable from this host; try another result.", sizeUnknown:"size unknown", scanProgress:"Found {0} of {1}: {2}", scannedCounter:"{0} / {1} scanned", aboutSeconds:"about {0} second(s)", aboutMinutes:"about {0} minute(s)", scanEstimate:"{0} for {1} {2}.", programFileIconNoun:"program/file icon", gameSingular:"game", gamesPlural:"games", programSearchDetail:"Checking Google Images, Yandex Images and a structured brand-icon catalog; semantic relevance is prioritized over dimensions.", notAutoMatched:"no automatic match; left unchanged", savedSuffix:"saved", placeholderSuffix:"placeholder", placeholderLabel:"placeholder",
     loadingCover:"Loading…"
   },
@@ -1546,7 +1545,6 @@ var statusI18n = {
     launchableEntries:"çalıştırılabilir öğe bulundu", exeFiles:"EXE", scriptFiles:"BAT/CMD", existingLinks:"mevcut Shortcut", urlPrepared:".lnk olarak hazırlanan Launcher URL", romFiles:"emulator ROM", alreadyLinked:"zaten çalışan Shortcut'a sahip", launcherUtilities:"olduğu gibi bırakılan Launcher yardımcı Shortcut'ı", installerHelpers:"atlanan kurulum/yardımcı dosya", urlsKept:"kaynak olarak bırakılan URL dönüşümü", safetyLimit:"güvenlik sınırı", extraEntries:"dokunulmadan bırakılan ek öğe", originalsUntouched:"Orijinal EXE/BAT/CMD dosyalarına dokunulmadı.", everythingGood:"Her şey yolunda görünüyor!", convertedCount:"{0} Shortcut standart .lnk formatına dönüştürüldü.", shortcutsReady:"Shortcut'ların hazır.", checkingSavedChoices:"Kayıtlı seçimlerin kontrol ediliyor…", startingFresh:"Sıfırdan başlanıyor…", clearingChoices:"Önceki seçimlerin temizleniyor…", searchingBoth:"Kare ve yüksek çözünürlüklü app Icon'ları için Google Images, Yandex Images ve brand-icon kataloğu aranıyor…", searchingGoogle:"Kare ve yüksek çözünürlüklü app Icon'ları için Google Images ve brand Icon'ları aranıyor…", searchingYandex:"Kare ve yüksek çözünürlüklü app Icon'ları için Yandex Images ve brand Icon'ları aranıyor…", onlineFound:"{0} aday bulundu. Önce brand ile alakalı sonuçlar sıralanır; çözünürlük ve kare oranı sonraki ölçütlerdir. Birini Preview edip Apply edebilirsin.", imageReady:"Görsel hazır ({0} × {1}).{2} Crop'u Preview edip Apply edebilirsin.", imageQualityLow:" Büyük Icon boyutlarında düşük çözünürlük bulanık görünebilir.", imageQualityHigh:" Net Windows Icon'ları için yeterli çözünürlük.", imageLoaded:"Görsel yüklendi ({0} × {1}). Kullanmak için Apply this Icon'a bas.", imageDecodeError:"Görsel çözümlenemedi. Başka bir görsel dene veya önce bilgisayarına kaydet.", notImage:"Bu öğe bir görsel değil. Görselin kendisini bırak veya Copy image ile kopyalayıp Ctrl+V yap.", readingImage:"Görsel okunuyor…", fileReadError:"Dosya okunamadı.", tryingImageSource:"Görsel kaynağı deneniyor: {0} / {1}…", imageFetchError:"Bu görsel alınamadı. Görselin kendisini sürükle veya Copy image → Ctrl+V kullan.", noImageUrl:"Kullanılabilir bir Image URL bulunamadı. Görseli kopyala veya bilgisayarına kaydedip seç.", savingCustomIcon:"Custom Icon kaydediliyor…", localServerError:"Yerel sunucuyla iletişim kurulamadı.", readingDroppedImage:"Bırakılan görsel okunuyor…", dropReadError:"Bırakılan görsel okunamadı. Görselin kendisini sürükle, Copy image → Ctrl+V kullan veya dosyayı kaydedip seç."
   ,
     exeCount:"{0} EXE", scriptCount:"{0} BAT/CMD", existingShortcutCount:"{0} mevcut Shortcut", preparedLauncherCount:"{0} Launcher URL .lnk olarak hazırlandı", romCount:"{0} emulator ROM", linkedCount:"{0} zaten bir Shortcut'a bağlı", launcherUtilityCount:"{0} Launcher yardımcı Shortcut'ı olduğu gibi bırakıldı", helperSkippedCount:"{0} kurulum/yardımcı dosya atlandı", failedUrlCount:"{0} URL dönüşümü kaynak dosya olarak bırakıldı", safetyLimitCount:"güvenlik sınırı: {0} ek öğeye dokunulmadı", healthLauncherNote:"Icon'larını özelleştirmek için Launcher Shortcut'ları dönüştürülebilir.", healthBrokenNote:"Bazı Shortcut'lar eksik dosyalara işaret ediyor; bu öğeler güvenli şekilde atlanacak.", scanPreparingPrograms:"Program Shortcut'ları hazırlanıyor…", scanSteamFolders:"Game klasörlerin SteamGridDB'de aranıyor…", scanSteamGames:"Oyunların SteamGridDB'de aranıyor…", readingAppShortcuts:"Uygulama Shortcut'ları okunuyor…", readingFolders:"Klasörlerin okunuyor…", readingFolder:"Klasörün okunuyor…", backupItemCount:"{0} öğe · {1}", backupPreviouslyRestored:"Daha önce Restore edildi: {0} · Yeniden Restore edilebilir", backupOriginalSaved:"Orijinal Shortcut/Folder Icon durumu kaydedildi", repairScanned:"Taranan Shortcut: {0}", repairRepaired:"Onarılan referans: {0}", repairRebuilt:"Cache'ten yeniden oluşturulan ICO: {0}", repairAlreadyValid:"Zaten geçerli: {0}", repairUnresolved:"Çözümlenemedi: {0}", repairFailed:"Başarısız: {0}", repairCacheRefreshed:"Windows Icon Cache yenilendi ve Explorer yeniden başlatıldı.", repairMissingArtwork:"Eşleşen Artwork yerel Cache'te bulunmadığından bazı Icon'lar yeniden oluşturulamadı.",
-    programIconShortcutCount:"Program & App Icons için {0} emulator/app Shortcut sayısı",
     previewUnavailable:"Bu kaynaktan Preview alınamadı; başka bir sonuç dene.", sizeUnknown:"boyut bilinmiyor", scanProgress:"{1} öğeden {0} bulundu: {2}", scannedCounter:"{0} / {1} tarandı", aboutSeconds:"yaklaşık {0} saniye", aboutMinutes:"yaklaşık {0} dakika", scanEstimate:"Tahmini süre: {0} · {1} {2}.", programFileIconNoun:"Program/Dosya Icon'u", gameSingular:"oyun", gamesPlural:"oyun", programSearchDetail:"Google Images, Yandex Images ve yapılandırılmış brand-icon kataloğu kontrol ediliyor; boyuttan önce anlamsal uygunluk dikkate alınıyor.", notAutoMatched:"otomatik eşleşme bulunamadı; değişiklik yapılmadı", savedSuffix:"kayıtlı", placeholderSuffix:"placeholder", placeholderLabel:"placeholder",
     loadingCover:"Yükleniyor…"
   },
@@ -1618,7 +1616,6 @@ var statusI18n = {
     launchableEntries:"عناصر قابلة للتشغيل تم العثور عليها", exeFiles:"EXE", scriptFiles:"BAT/CMD", existingLinks:"اختصارات موجودة", urlPrepared:"روابط Launcher مجهزة كملفات .lnk", romFiles:"ملفات ROM للمحاكيات", alreadyLinked:"لديها اختصار يعمل بالفعل", launcherUtilities:"اختصارات أدوات Launcher التي تُركت دون تغيير", installerHelpers:"ملفات تثبيت/مساعدة تم تخطيها", urlsKept:"تحويلات URL التي احتُفظت كملفات مصدر", safetyLimit:"حد الأمان", extraEntries:"عناصر إضافية تُركت دون تغيير", originalsUntouched:"لم يتم تعديل ملفات EXE/BAT/CMD الأصلية.", everythingGood:"كل شيء يبدو جيداً!", convertedCount:"تم تحويل {0} من الاختصارات إلى تنسيق .lnk القياسي.", shortcutsReady:"اختصاراتك جاهزة.", checkingSavedChoices:"جارٍ التحقق من اختياراتك المحفوظة…", startingFresh:"جارٍ البدء من جديد…", clearingChoices:"جارٍ مسح اختياراتك السابقة…", searchingBoth:"جارٍ البحث في Google Images وYandex Images وكتالوج الأيقونات عن أيقونات تطبيقات مربعة وعالية الدقة…", searchingGoogle:"جارٍ البحث في Google Images وكتالوج العلامات عن أيقونات تطبيقات مربعة وعالية الدقة…", searchingYandex:"جارٍ البحث في Yandex Images وكتالوج العلامات عن أيقونات تطبيقات مربعة وعالية الدقة…", onlineFound:"تم العثور على {0} نتيجة. تظهر النتائج المرتبطة بالعلامة أولاً؛ ثم تُستخدم الدقة والشكل المربع لترتيبها. اختر نتيجة لمعاينتها ثم Apply.", imageReady:"الصورة جاهزة ({0} × {1}).{2} راجع Crop في Preview ثم اضغط Apply.", imageQualityLow:" قد تبدو الدقة المنخفضة ضبابية عند أحجام الأيقونات الكبيرة.", imageQualityHigh:" الدقة كافية لأيقونات Windows واضحة.", imageLoaded:"تم تحميل الصورة ({0} × {1}). اضغط Apply this Icon لاستخدامها.", imageDecodeError:"تعذر فك ترميز الصورة. جرّب صورة أخرى أو احفظها محلياً أولاً.", notImage:"هذا العنصر ليس صورة. أسقط الصورة نفسها أو انسخها باستخدام Copy image ثم اضغط Ctrl+V.", readingImage:"جارٍ قراءة الصورة…", fileReadError:"فشلت قراءة الملف.", tryingImageSource:"جارٍ تجربة مصدر الصورة {0} من {1}…", imageFetchError:"تعذر جلب هذه الصورة. اسحب الصورة نفسها أو استخدم Copy image → Ctrl+V.", noImageUrl:"لم يتم العثور على Image URL صالح. انسخ الصورة نفسها أو احفظها واخترها من جهازك.", savingCustomIcon:"جارٍ حفظ Custom Icon…", localServerError:"خطأ في الاتصال بالخادم المحلي.", readingDroppedImage:"جارٍ قراءة الصورة التي تم إسقاطها…", dropReadError:"تعذرت قراءة الصورة. اسحب الصورة نفسها أو استخدم Copy image → Ctrl+V أو احفظها واختر الملف."
  ,
     exeCount:"{0} EXE", scriptCount:"{0} BAT/CMD", existingShortcutCount:"{0} اختصار موجود", preparedLauncherCount:"تم تجهيز {0} من روابط Launcher كملفات .lnk", romCount:"{0} من ملفات ROM للمحاكيات", linkedCount:"{0} لديها اختصار بالفعل", launcherUtilityCount:"تم ترك {0} من اختصارات أدوات Launcher دون تغيير", helperSkippedCount:"تم تخطي {0} من ملفات التثبيت/المساعدة", failedUrlCount:"تم الاحتفاظ بـ {0} من تحويلات URL كملفات مصدر", safetyLimitCount:"حد الأمان: تُركت {0} من العناصر الإضافية دون تغيير", healthLauncherNote:"يمكن تحويل اختصارات Launcher لتخصيص أيقوناتها.", healthBrokenNote:"تشير بعض الاختصارات إلى ملفات مفقودة؛ سيتم تخطيها بأمان.", scanPreparingPrograms:"جارٍ تجهيز اختصارات البرامج…", scanSteamFolders:"جارٍ البحث عن مجلدات الألعاب في SteamGridDB…", scanSteamGames:"جارٍ البحث عن ألعابك في SteamGridDB…", readingAppShortcuts:"جارٍ قراءة اختصارات التطبيقات…", readingFolders:"جارٍ قراءة المجلدات…", readingFolder:"جارٍ قراءة المجلد…", backupItemCount:"{0} عنصر · {1}", backupPreviouslyRestored:"تمت الاستعادة سابقاً: {0} · يمكن الاستعادة مرة أخرى", backupOriginalSaved:"تم حفظ حالة أيقونات الاختصارات/المجلدات الأصلية", repairScanned:"الاختصارات التي تم فحصها: {0}", repairRepaired:"المراجع التي تم إصلاحها: {0}", repairRebuilt:"ملفات ICO التي أُعيد إنشاؤها من Cache: {0}", repairAlreadyValid:"صالحة بالفعل: {0}", repairUnresolved:"لم يتم حلها: {0}", repairFailed:"فشل: {0}", repairCacheRefreshed:"تم تحديث Windows Icon Cache وإعادة تشغيل Explorer.", repairMissingArtwork:"تعذر إعادة إنشاء بعض الأيقونات لأن Artwork المطابق لم يعد موجوداً في Cache المحلي.",
-    programIconShortcutCount:"تمت إضافة {0} من اختصارات المحاكيات والتطبيقات إلى Program & App Icons",
     previewUnavailable:"المعاينة غير متاحة من هذا المصدر؛ جرّب نتيجة أخرى.", sizeUnknown:"الحجم غير معروف", scanProgress:"تم العثور على {0} من أصل {1}: {2}", scannedCounter:"تم فحص {0} / {1}", aboutSeconds:"حوالي {0} ثانية", aboutMinutes:"حوالي {0} دقيقة", scanEstimate:"الوقت التقديري: {0} · {1} {2}.", programFileIconNoun:"أيقونة برنامج/ملف", gameSingular:"لعبة", gamesPlural:"ألعاب", programSearchDetail:"جارٍ فحص Google Images وYandex Images وكتالوج أيقونات العلامات؛ تُعطى الأولوية للصلة الدلالية قبل الأبعاد.", notAutoMatched:"لم يتم العثور على مطابقة تلقائية؛ تُرك دون تغيير", savedSuffix:"محفوظ", placeholderSuffix:"Placeholder", placeholderLabel:"Placeholder",
     loadingCover:"جارٍ التحميل…"
   }
@@ -1954,7 +1951,7 @@ function applyScreenLanguage(screen) {
 
 var state = {
   mode:'full', folder:'', items:[], pos:0, picks:{}, history:[],
-  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false, targetMode:'shortcuts', iconSearchOnly:false, scanIconSearchOnly:false, _backups:[]
+  focusIdx:0, total:0, autoAll:false, zoom:1, homeFocus:0, report:null, editQueue:[], editReturnToReview:false, reviewSelected:{}, memoryAsked:false, useMemory:false, _applyConfirmed:false, onlyNew:false, gallery:false, _history:[], _autoApplyAfterScan:false, targetMode:'shortcuts', iconSearchOnly:false, _backups:[]
 };
 var coverCache = {};
 var currentPollId = 0;
@@ -2680,7 +2677,6 @@ function scanGameFilesFolder(folder){
     details.push(formatStr(statusText('exeCount'), [res.includedExecutables||0]));
     if (res.includedScripts) details.push(formatStr(statusText('scriptCount'), [res.includedScripts]));
     if (res.includedShortcuts) details.push(formatStr(statusText('existingShortcutCount'), [res.includedShortcuts]));
-    if (res.includedProgramIconShortcuts) details.push(formatStr(statusText('programIconShortcutCount'), [res.includedProgramIconShortcuts]));
     if (res.convertedUrls) details.push(formatStr(statusText('preparedLauncherCount'), [res.convertedUrls]));
     if (res.includedRoms) details.push(formatStr(statusText('romCount'), [res.includedRoms]));
     if (res.alreadyLinked) details.push(formatStr(statusText('linkedCount'), [res.alreadyLinked]));
@@ -2832,7 +2828,6 @@ function startChangeIcons(anyFiles){
 
 // ---- shared scan loop ----
 function beginScanLoop(total){
-  state.scanIconSearchOnly = !!state.iconSearchOnly;
   state.items = []; state.pos = 0; state.picks = {}; state.history = []; state.reviewSelected = {};
   state.total = total || 0;
   if (state.total === 0){ alert(state.iconSearchOnly ? statusText('noSupportedFiles') : statusText('noGamesMatched')); goHome(); return; }
@@ -2871,7 +2866,7 @@ function rasterizeImageDataUrlToPng(dataUrl, size){
   });
 }
 function prepareIconifyCandidatesInBrowser(it){
-  if (!(state.iconSearchOnly || (it && it.iconSearchOnly)) || !it || !it.sections || !it.sections.length) return Promise.resolve();
+  if (!state.iconSearchOnly || !it || !it.sections || !it.sections.length) return Promise.resolve();
   var covers = it.sections[0].covers || [];
   var vectors = covers.filter(function(c){ return c && /^Iconify\s*\//i.test(String(c.source||'')) && /\.svg(?:[?#]|$)/i.test(String(c.url||'')); }).slice(0,8);
   if (!vectors.length) return Promise.resolve();
@@ -2907,7 +2902,7 @@ function prepareIconifyCandidatesInBrowser(it){
 
 function rankProgramCandidatesInBrowser(it){
   return new Promise(function(resolve){
-    if (!(state.iconSearchOnly || (it && it.iconSearchOnly)) || !it || !it.sections || !it.sections.length || !it.sections[0].covers || it.sections[0].covers.length < 2) { resolve(); return; }
+    if (!state.iconSearchOnly || !it || !it.sections || !it.sections.length || !it.sections[0].covers || it.sections[0].covers.length < 2) { resolve(); return; }
     var section = it.sections[0], covers = section.covers;
     var sample = covers.slice(0, Math.min(5, covers.length));
     var remaining = sample.length, finished = false;
@@ -2945,7 +2940,7 @@ function scanStep(i){
     if (!res.ok){ alert(res.error || statusText('scanFailed')); goHome(); return; }
     if (res.item){
       state.items.push(res.item); preloadItem(res.item);
-      if (state.iconSearchOnly || res.item.iconSearchOnly){
+      if (state.iconSearchOnly){
         prepareIconifyCandidatesInBrowser(res.item).then(function(){
           rankProgramCandidatesInBrowser(res.item).then(function(){ continueScanStep(res); });
         });
@@ -2992,10 +2987,7 @@ function enterItem(pos){
   setProgress(1);
   preloadAround(pos);
   var it = currentItem();
-  if (!it){ state.iconSearchOnly = !!state.scanIconSearchOnly; goReview(); return; }
-  // A mixed Game Library scan can contain emulator applications. Switch the
-  // existing editor to Program & App Icons only for the current item.
-  state.iconSearchOnly = !!state.scanIconSearchOnly || !!it.iconSearchOnly;
+  if (!it){ goReview(); return; }
   if (!state.picks[it.index]) state.picks[it.index] = { game:1, cover:1 };
   if (state.iconSearchOnly) {
     // Batch auto-match: first pass chooses the best-ranked software icon and
@@ -3213,7 +3205,6 @@ function pickGame(it, g){
 }
 
 function goReview(){
-  state.iconSearchOnly = !!state.scanIconSearchOnly;
   state.autoAll = false;
   // One-click quick re-apply: skip the review screen and apply directly.
   if (state._autoApplyAfterScan){
@@ -3237,8 +3228,7 @@ function goReview(){
     var img = cover
       ? '<img src="'+cover.thumb+'" loading="lazy">'
       : '<div style="width:100%;aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,#2b3550,#141821);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;text-align:center;padding:8px;word-break:break-word;">'+it.name+'</div>';
-    var itemIsProgramIcon = !!(state.scanIconSearchOnly || it.iconSearchOnly);
-    var previewLabel = sec ? sec.gameName : (itemIsProgramIcon ? statusText('notAutoMatched') : statusText('placeholderLabel'));
+    var previewLabel = sec ? sec.gameName : (state.iconSearchOnly ? statusText('notAutoMatched') : statusText('placeholderLabel'));
     el.innerHTML = img +
       '<div style="font-size:.78rem;margin-top:6px;text-align:center;">'+it.name+
       '<div style="color:var(--muted)">'+previewLabel+'</div></div>';
@@ -3472,8 +3462,7 @@ function applyAll(){
       index: it.index,
       url: cover ? cover.url : '',
       gameId: sec ? sec.gameId : 0,
-      gameName: sec ? sec.gameName : it.name,
-      isProgramIcon: !!(state.scanIconSearchOnly || it.iconSearchOnly)
+      gameName: sec ? sec.gameName : it.name
     };
   });
   api('/api/apply-begin', { picks: picks }).then(function(res){

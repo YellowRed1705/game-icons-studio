@@ -1,5 +1,5 @@
 # ============================================================
-#  WebServer.ps1 (v6.43) - Local browser-driven mode
+#  WebServer.ps1 (v6.42) - Local browser-driven mode
 #  A tiny HttpListener server on http://localhost:PORT that
 #  serves a single-page web app and a small JSON API. The whole
 #  workflow (folder pick, scan, match, cover choice, apply, live
@@ -204,7 +204,6 @@ function Start-IconWebApp {
         Running    = $true
         Dialog     = $dialog
         CoverCache = @{}    # gameId -> covers, to avoid repeat API calls
-        ProgramIconNames = @{} # normalized names routed through Program & App Icons within mixed scans
     }
 
     # Serve until quit. Use async GetContext so we can poll Q key.
@@ -274,7 +273,6 @@ function Invoke-WebRoute {
         $Session.Shortcuts     = @()
         $Session.Names         = @()
         $Session.Pending       = @()
-        $Session.ProgramIconNames = @{}
 
         Send-HttpResponse -Context $Context -Body (Get-WebAppHtml) -ContentType 'text/html; charset=utf-8'
         return
@@ -885,7 +883,6 @@ function Start-WebScan {
 
     $ctx = $Session.Ctx
     $Session.CoverCache = @{}
-    $Session.ProgramIconNames = @{}
     Write-Log "Web scan: $($ctx.Folder) (OnlyNew=$OnlyNew, TargetMode=$TargetMode, IconSearchOnly=$($Session.IconSearchOnly))" 'INFO'
 
     $shortcuts = @()
@@ -1079,10 +1076,8 @@ function Step-WebScan {
     }
 
     $name = [string]$names[$Index]
-    $isProgramIcon = [bool]$Session.IconSearchOnly
-    if (-not $isProgramIcon -and $Session.ProgramIconNames -and $Session.ProgramIconNames.ContainsKey($name)) { $isProgramIcon = $true }
     $fast = $null
-    if ($isProgramIcon) {
+    if ($Session.IconSearchOnly) {
         # Program/App mode performs automatic software-icon matching when an
         # API key is configured. Without a key, leave the item unmatched so it
         # can be handled from the review grid with Google/Yandex/local images.
@@ -1126,7 +1121,7 @@ function Step-WebScan {
         # stop for borderline-but-likely matches.
         if (@($fast.candidateGames).Count -gt 0) { $topScore = [int]([double]$fast.candidateGames[0].Score * 100) }
         if (@($fast.best.Covers).Count -gt 0 -and $topScore -ge 55) { $autoConfident = $true }
-        if ($isProgramIcon -and @($fast.best.Covers).Count -gt 0) {
+        if ($Session.IconSearchOnly -and @($fast.best.Covers).Count -gt 0) {
             # The app-icon workflow is batch-first: choose the best-ranked
             # candidate automatically and expose the full preview grid after
             # the scan, where the user can change selected items.
@@ -1150,7 +1145,7 @@ function Step-WebScan {
         }
     }
 
-    if ($isProgramIcon) {
+    if ($Session.IconSearchOnly) {
         # v6.35: real web-image candidates complement the sparse SteamGridDB software catalogue.
         # Google/Yandex are queried in parallel; the merged results are ranked by square ratio,
         # available dimensions, file type and likely image relevance before the preview grid appears.
@@ -1204,7 +1199,7 @@ function Step-WebScan {
         }
     }
 
-    if ($isProgramIcon -and $onlineCandidates.Count -eq 0) {
+    if ($Session.IconSearchOnly -and $onlineCandidates.Count -eq 0) {
         # If the web providers return no parseable candidates, do not let a
         # possibly unrelated game-catalog result outrank the program's own icon.
         # Prefer the embedded EXE/ICO icon first, keeping SGDB results only as
@@ -1239,7 +1234,6 @@ function Step-WebScan {
         Safe     = [string]$safe
         IcoPath  = [string]$icoPath
         Sections = $jsonSections   # filled/extended by the browser as needed
-        IsProgramIcon = [bool]$isProgramIcon
     }
     $Session.Pending += $itemObj
 
@@ -1251,7 +1245,7 @@ function Step-WebScan {
         confident      = $confident
         autoConfident  = $autoConfident
         topScore       = $topScore
-        iconSearchOnly = [bool]$isProgramIcon
+        iconSearchOnly = [bool]$Session.IconSearchOnly
     }
 
     # Remembered choice? Mark it so the browser can offer to skip /
@@ -1260,7 +1254,7 @@ function Step-WebScan {
         if ($ctx.SavedChoices.ContainsKey($name)) {
             $sc = $ctx.SavedChoices[$name]
             $savedKind = if ($sc.PSObject.Properties.Name -contains 'Kind') { [string]$sc.Kind } else { '' }
-            $kindMatches = if ($isProgramIcon) { $savedKind -eq 'icon' } else { $savedKind -ne 'icon' }
+            $kindMatches = if ($Session.IconSearchOnly) { $savedKind -eq 'icon' } else { $savedKind -ne 'icon' }
             $savedUrl = [string]$sc.Url
             $savedSourceExists = $true
             if ($savedUrl -match '^/cache/') {
@@ -1333,7 +1327,6 @@ function Step-WebApply {
                     Url      = [string]$p.url
                     GameId   = [int]$p.gameId
                     GameName = [string]$p.gameName
-                    IsProgramIcon = [bool]$p.isProgramIcon
                 }
             }
         }
@@ -1347,17 +1340,17 @@ function Step-WebApply {
         if (-not $pickMap.ContainsKey($key) -or [string]::IsNullOrWhiteSpace($pickMap[$key].Url)) {
             # In app/file mode, never overwrite an unresolved target with a fake
             # placeholder. The normal apply engine reports it as Skipped.
-            if ($Session.IconSearchOnly -or [bool]$entry.IsProgramIcon) { continue }
+            if ($Session.IconSearchOnly) { continue }
             $resolutions[$nm] = @{ Placeholder = $true; IcoPath = [string]$entry.IcoPath; GameName = $nm; Failed = $false; Cached = $false }
             continue
         }
 
         $pick = $pickMap[$key]
-        $kind = if ($Session.IconSearchOnly -or [bool]$pick.IsProgramIcon) { 'icon' } else { [string]$ctx.Category }
+        $kind = if ($Session.IconSearchOnly) { 'icon' } else { [string]$ctx.Category }
         $resolutions[$nm] = New-ArtworkResolution -Ctx $ctx -Name $nm -Safe ([string]$entry.Safe) -IcoPath ([string]$entry.IcoPath) `
             -Url ([string]$pick.Url) -Kind $kind -GameName ([string]$pick.GameName) -Score 1.0 -DeleteRaw ([string]$pick.Url -notlike '/cache/*')
 
-        if (-not $Session.IconSearchOnly -and -not [bool]$pick.IsProgramIcon) {
+        if (-not $Session.IconSearchOnly) {
             if ($pick.GameId -gt 0) { $ctx.Overrides[$nm] = [int]$pick.GameId }
         }
         $ctx.SavedChoices[$nm] = [PSCustomObject]@{
@@ -1471,13 +1464,11 @@ function Start-WebScanGameFolder {
     $existingLinkPaths = @{}
     $urlSourceByLink = @{}
     $launchConfigBySource = @{}
-    $programIconPaths = @{}
-    $includedProgramIconShortcuts = 0
     $wsh = Get-WshShell
 
     $emulatorProfiles = @(
         @{ Family='cemu'; Pattern='^(?i:cemu)(?:[-_].*)?$'; Extensions=@('.wud','.wux','.wua','.rpx'); Prefix='-g' },
-        @{ Family='ryujinx'; Pattern='^(?i:ryujinx|ryubing)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
+        @{ Family='ryujinx'; Pattern='^(?i:ryujinx)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
         @{ Family='eden'; Pattern='^(?i:eden)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
         @{ Family='yuzu'; Pattern='^(?i:yuzu)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
         @{ Family='dolphin'; Pattern='^(?i:dolphin)(?:-qt)?$'; Extensions=@('.wbfs','.rvz','.gcm','.gcz'); Prefix='-e' },
@@ -1551,26 +1542,23 @@ function Start-WebScanGameFolder {
     $excludedLauncherApps = 0
     foreach ($linkFile in $existingLinks) {
         if ($files.Count -ge $maxTargets) { $truncated++; continue }
-        $skipAsLauncherUtility = $false
-        $isEmulatorAppShortcut = $false
+        $skipAsEmulatorUtility = $false
         try {
             $link = $wsh.CreateShortcut($linkFile.FullName)
             $target = [string]$link.TargetPath
             $targetLeaf = [System.IO.Path]::GetFileNameWithoutExtension($target)
             $arguments = [string]$link.Arguments
             if ([string]::IsNullOrWhiteSpace($arguments)) {
-                # Keep emulator executable links available both as ROM launch
-                # profiles and as application-icon artwork targets.
                 foreach ($profile in $emulatorProfiles) {
-                    if ($targetLeaf -match $profile.Pattern) { $isEmulatorAppShortcut = $true; break }
+                    if ($targetLeaf -match $profile.Pattern) { $skipAsEmulatorUtility = $true; break }
                 }
                 $launcherClientNames = @('steam','steamwebhelper','epicgameslauncher','epiconlineservices','ubisoftconnect','ubisoftgamelauncher','upc','uplay','battle.net','eadesktop','origin','goggalaxy','galaxyclient','xbox','gamingservicesui','playnite','amazongames','heroic')
-                if (-not $isEmulatorAppShortcut -and $launcherClientNames -contains $targetLeaf.ToLowerInvariant()) {
-                    $skipAsLauncherUtility = $true
+                if (-not $skipAsEmulatorUtility -and $launcherClientNames -contains $targetLeaf.ToLowerInvariant()) {
+                    $skipAsEmulatorUtility = $true
                 }
             }
         } catch { }
-        if ($skipAsLauncherUtility) {
+        if ($skipAsEmulatorUtility) {
             $excludedLauncherApps++
             continue
         }
@@ -1579,10 +1567,6 @@ function Start-WebScanGameFolder {
             $seenPaths[$key] = $true
             $files.Add([string]$linkFile.FullName)
             $includedShortcuts++
-            if ($isEmulatorAppShortcut) {
-                $programIconPaths[$key] = $true
-                $includedProgramIconShortcuts++
-            }
         }
     }
 
@@ -1721,24 +1705,6 @@ function Start-WebScanGameFolder {
     Write-Log "Game library scan: $($files.Count) entries, $includedShortcuts existing shortcuts, $convertedUrls launcher URLs, $includedExecutables EXE, $includedScripts scripts, $includedRoms ROMs, $alreadyLinked already linked, $excludedHelpers helper files skipped." 'INFO'
     $result = Start-WebScanFiles -Session $Session -Files @($files.ToArray()) -IconSearchOnly $false
 
-    # Re-tag recognized emulator launcher links as Program & App Icons items
-    # after Start-WebScanFiles has built the common shortcut/name queue. Their
-    # executable targets remain available in $emulatorTargets for ROM links.
-    $Session.ProgramIconNames = @{}
-    if ($result.ok) {
-        foreach ($shortcut in @($Session.Shortcuts)) {
-            $shortcutKey = ([string]$shortcut.Path).ToLowerInvariant()
-            if ($programIconPaths.ContainsKey($shortcutKey)) {
-                $programName = ([string]$shortcut.Name -replace '^\s*[-–—]+\s*','').Trim()
-                if ([string]::IsNullOrWhiteSpace($programName)) { $programName = [string]$shortcut.Name }
-                $shortcut.NormalizedName = $programName
-                $shortcut | Add-Member -NotePropertyName IsProgramIconShortcut -NotePropertyValue $true -Force
-                $Session.ProgramIconNames[$programName] = $true
-            }
-        }
-        $Session.Names = @($Session.Shortcuts | Where-Object { $_.Status -ne 'Failed' } | ForEach-Object { [string]$_.NormalizedName } | Sort-Object -Unique)
-    }
-
     # Start-WebScanFiles remembers the parent of its first item. Restore the
     # exact user-selected root so later scans, backup UI and folder actions
     # continue to point at the game library rather than a child directory.
@@ -1768,7 +1734,6 @@ function Start-WebScanGameFolder {
         }
         $result.sourceFiles = $files.Count
         $result.includedShortcuts = $includedShortcuts
-        $result.includedProgramIconShortcuts = $includedProgramIconShortcuts
         $result.includedExecutables = $includedExecutables
         $result.includedScripts = $includedScripts
         $result.includedRoms = $includedRoms
@@ -1796,7 +1761,6 @@ function Start-WebScanFiles {
     )
 
     $Session.IconSearchOnly = [bool]$IconSearchOnly
-    $Session.ProgramIconNames = @{}
     $Session.CoverCache = @{}
     if ($Files.Count -eq 0) {
         return @{ ok = $false; error = 'No files selected.' }
