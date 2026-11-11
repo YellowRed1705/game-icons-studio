@@ -1493,7 +1493,7 @@ var screenI18n = {
     grid:"▦ Grid", gallery:"▤ Gallery", onlineTitle:"اقتراحات ذكية للأيقونات عبر الإنترنت",
     onlineDesc:"ترتيب نتائج Google وYandex حسب الشكل المربع والدقة ومدى ملاءمتها كأيقونة.",
     onlineBoth:"المزيد من المصدرين", onlineGoogle:"Google فقط", onlineYandex:"Yandex فقط",
-    onlineStatus:"تظهر النتائج المكتشفة أثناء الفحص التلقائي.",
+    onlineStatus:"اختر صور Google أو Yandex ثم اسحب الصورة إلى منطقة الإفلات المحددة.",
     dropHelp:"اسحب صورة من Google Images أو Yandex Images إلى هنا. يمكنك أيضاً النقر بزر الفأرة الأيمن واختيار Copy image ثم الضغط على Ctrl+V، أو النقر لاختيار صورة من جهازك.",
     previewTitle:"معاينة الأيقونة (1:1)", previewDropTitle:"يمكنك أيضاً إسقاط صورة مباشرة على هذه المعاينة", canvasDropTitle:"أسقط صورة هنا لمعاينتها", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"تحميل URL", cancelSkip:"← إلغاء / تخطي",
         retentionOptions:["آخر 10 إصدارات","آخر 25 إصداراً","آخر 50 إصداراً","آخر 100 إصدار","غير محدود (يستخدم مساحة أكبر من القرص)"],
