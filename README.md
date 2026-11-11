@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.43
+# Game Icons Studio v6.44
 
 ### From generic icons to a game shelf.
 
@@ -64,6 +64,18 @@ These release notes are an addition to the original introduction above. The logo
 
 <details>
 <details>
+<details>
+<summary><strong>v6.44 — one-flag language switcher and manual game selection</strong></summary>
+
+- Replaces the three visible language buttons with one compact flag button. Click to cycle English → Turkish → Arabic → English; the current language remains saved in this browser.
+- Adds a direct Change Game action on each game tile in the review grid.
+- Expands the wrong-match screen with manual SteamGridDB game-title search, using the API key already stored in the current browser.
+- Keeps the automatic candidate list available as built-in alternatives.
+- Adds a custom game-title path for titles missing from SteamGridDB. Choose a cover via Google Images, Yandex Images, URL, drag-and-drop, clipboard or a local image.
+- Stores the chosen artwork title separately from the original Shortcut name and launch command.
+
+</details>
+
 <summary><strong>v6.43 — emulator app icons are included in Game Library scans</strong></summary>
 
 - Fixes the Game Library filter that treated plain emulator launcher shortcuts as helper utilities and excluded them from artwork matching.
@@ -199,7 +211,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.43.md](CHANGELOG-v6.42.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.43.md](CHANGELOG-v6.44.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 
