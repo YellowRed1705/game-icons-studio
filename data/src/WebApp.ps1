@@ -1794,6 +1794,7 @@ function startGameFilesFolder(){
 }
 
 function startFolderMode(type){
+  state.gameFilesSummary = '';
   state.mode = 'full';
   state.iconSearchOnly = false;
   state.targetMode = (type === 'all') ? 'folders_all' : 'folders_single';
