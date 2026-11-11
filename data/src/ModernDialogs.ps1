@@ -54,8 +54,6 @@ namespace GIS {
         [PreserveSig] int SetClientGuid(ref Guid guid);
         [PreserveSig] int ClearClientData();
         [PreserveSig] int SetFilter(IntPtr filter);
-        [PreserveSig] int SetPreviewMode([MarshalAs(UnmanagedType.Bool)] bool preview);
-        [PreserveSig] int SetSearchCriteria(IShellItemArray searchCriteria);
     }
 
     [ComImport, Guid("D57C7288-D4AD-4768-BE02-9D969532D960"),
@@ -85,8 +83,6 @@ namespace GIS {
         [PreserveSig] int SetClientGuid(ref Guid guid);
         [PreserveSig] int ClearClientData();
         [PreserveSig] int SetFilter(IntPtr filter);
-        [PreserveSig] int SetPreviewMode([MarshalAs(UnmanagedType.Bool)] bool preview);
-        [PreserveSig] int SetSearchCriteria(IShellItemArray searchCriteria);
         [PreserveSig] int GetResults(out IShellItemArray results);
         [PreserveSig] int GetSelectedItems(out IShellItemArray items);
     }
