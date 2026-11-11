@@ -1,6 +1,6 @@
 # ============================================================
 # ImageSearch.ps1 - multi-provider web image search for app icons
-# v6.40
+# v6.46
 # Structured brand-icon search plus semantically-filtered image-engine candidates.
 # Best-effort parser for public Google Images / Yandex Images result pages.
 # Official API mode is not required; if providers block automated requests,
