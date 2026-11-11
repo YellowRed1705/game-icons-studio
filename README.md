@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.41
+# Game Icons Studio v6.42
 
 ### From generic icons to a game shelf.
 
@@ -58,10 +58,22 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 - 🧰 **Icon-cache repair** — help refresh blank or stale icons displayed by Windows.
 - 🎨 **Multiple themes** — Aurora Glass is the default theme, with other themes available.
 
-## What's new in v6.30–v6.41
+## What's new in v6.30–v6.42
 
 These release notes are an addition to the original introduction above. The logo, demo, before-and-after image, and original page structure are retained.
 
+<details>
+<summary><strong>v6.42 — per-browser API keys and matching-flow repair</strong></summary>
+
+- Stores each user's SteamGridDB API key only in that user's browser profile `localStorage` under `gis-sgdb-api-key`. The key is validated when the app starts and is sent to the local server in a request header only when needed.
+- Removes the legacy `ApiKey` property from `settings.json` on load, automatically cleaning old disk-based copies. The API key is never written to `settings.json`, application logs, release archives, or GitHub source files.
+- Classic CMD mode prompts for a key for the current run only; it no longer persists the key to disk.
+- Corrects the keyless entry flow: Continue without a key is limited to Program & App Icons and other non-SteamGridDB image workflows. Game, folder and game-file matching require a valid key and cannot silently create Placeholder-only runs because a key is missing.
+- Validates a stored browser key against SteamGridDB on every launch. Invalid or revoked keys are removed from localStorage and the setup screen is shown again.
+- Adds an explicit storage notice to the API setup screen and masks the API key input.
+- Adds backend checks to prevent game-artwork scan requests from proceeding without a validated key.
+
+</details>
 <details>
 <summary><strong>v6.41 — JavaScript recovery, persistent SVG flags and foreground picker ownership</strong></summary>
 
@@ -176,7 +188,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.40.md](CHANGELOG-v6.39.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.42.md](CHANGELOG-v6.42.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 
@@ -191,7 +203,7 @@ Local image selection and available embedded executable-icon fallbacks can work 
 1. **[Download the latest release](https://github.com/YellowRed1705/game-icons-studio/releases/latest)** (the ZIP file).
 2. Right-click the ZIP → **Properties** → check **Unblock** if shown → OK, then extract it.
 3. Open the folder and double-click **`Game Icons Studio.bat`**.
-4. Follow the setup prompts and configure your free SteamGridDB API key if you want game matching.
+4. Enter your free SteamGridDB API key in the browser setup screen. It is saved only in your browser's localStorage, never in the app folder or GitHub.
 5. Choose your shortcuts or folder mode, review the suggested icons, make any corrections, and apply the changes.
 
 > 💡 New here? Look for the in-app **“What is GIS?”** tour if it is available in your build.
@@ -222,7 +234,7 @@ For normal shortcuts, it changes the shortcut's icon. For file types that do not
 
 **Do I have to pay for a SteamGridDB API key?**
 
-No. SteamGridDB provides free API keys; the app can guide you through configuration.
+No. SteamGridDB provides free API keys. Game Icons Studio validates your key and stores it only in the localStorage of your browser profile.
 
 **Why does it open in my browser?**
 

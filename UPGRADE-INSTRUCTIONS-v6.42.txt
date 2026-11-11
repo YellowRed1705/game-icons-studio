@@ -1,0 +1,25 @@
+Game Icons Studio v6.42 — Upgrade Instructions
+
+1. Close Game Icons Studio completely.
+2. Download Game-Icons-Studio-v6.42-Upgrade.zip from GitHub Releases.
+3. Extract the ZIP contents over your existing Game Icons Studio program folder and approve application-file replacement.
+4. Start Game Icons Studio.bat.
+5. The app removes the legacy API key property from data/settings.json. Enter your SteamGridDB API key in the browser setup screen once; the validated key is saved to this browser profile's localStorage.
+
+API key privacy
+- Browser mode stores the API key only in localStorage for the current browser profile and localhost origin.
+- The key is sent to the local app server in an HTTP request header when the browser makes API requests. It is kept in server process memory only and is not written back to settings.json or logs.
+- Classic CMD mode asks for a key for that run only and does not save it.
+- Do not paste or commit your key into GitHub, source files, README files, issue reports, or screenshots.
+- Clearing browser site data, using another browser profile, or changing the server port may require entering the key again.
+
+No-key workflow
+- Continue with Program & App Icons remains available without an API key.
+- SteamGridDB game artwork, game-library, folder and shortcut matching require a valid API key. Missing or invalid keys are rejected before the scan, instead of quietly turning every item into a Placeholder.
+
+Preserve your existing:
+- Icons, downloaded artwork and Cache
+- Logs, History and Restore Point backups
+- overrides.json, choices.json and knownGames.json
+
+The API key is the only user setting deliberately migrated from settings.json. No API key is included in the release archive or GitHub source.
