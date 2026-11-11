@@ -1841,9 +1841,15 @@ function updateFolderScreenLabels(){
     fs.textContent = t.fsSingle;
     if (sb) sb.textContent = t.btnScanSingle;
   } else if (state.targetMode === 'game_files'){
-    ft.textContent = 'Find games inside a folder';
-    fs.textContent = 'Scan EXE files and launchers recursively. Existing shortcuts are kept; missing game shortcuts are created safely.';
-    if (sb) sb.textContent = 'Scan game files';
+    if (currentLang === 'ar') {
+      ft.textContent = 'ابحث عن الألعاب داخل مجلد';
+      fs.textContent = 'افحص روابط التشغيل وملفات الألعاب وROM داخل المجلدات الفرعية، مع الحفاظ على الملفات الأصلية.';
+      if (sb) sb.textContent = 'افحص مجلد الألعاب';
+    } else {
+      ft.textContent = 'Find games inside a folder';
+      fs.textContent = 'Scan launcher links, game files and ROMs recursively. Existing shortcuts are kept; original files stay untouched.';
+      if (sb) sb.textContent = 'Scan game library';
+    }
   } else {
     ft.textContent = t.folderTitle;
     fs.textContent = t.folderSub;
@@ -1882,7 +1888,7 @@ function browseFolder(){
   var detail = 'A Windows folder window will appear in front. Pick your games folder and click OK.';
   if (state.targetMode === 'folders_all'){ detail = 'A Windows folder window will appear in front. Pick the parent folder that holds your game folders and click OK.'; }
   if (state.targetMode === 'folders_single'){ detail = 'A Windows folder window will appear in front. Pick the game folder you want to customize and click OK.'; }
-  if (state.targetMode === 'game_files'){ detail = 'Choose a game installation or library folder. I will find playable EXE files and launcher shortcuts inside it.'; }
+  if (state.targetMode === 'game_files'){ detail = (currentLang === 'ar') ? 'اختر مجلد تثبيت اللعبة أو مكتبتها. سأبحث عن ملفات التشغيل وروابط المنصات وملفات ROM داخله.' : 'Choose a game installation or library folder. I will find playable EXE files, launcher links and ROMs inside it.'; }
   setLoading('Opening the folder window...', detail, null);
   api('/api/browse-folder', {}).then(function(){
     pollDialog(function(res){
