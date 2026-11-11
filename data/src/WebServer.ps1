@@ -189,6 +189,7 @@ function Start-IconWebApp {
         kind   = ''        # folder | files
         folder = ''
         files  = @()
+        error  = ''
         ps     = $null
         handle = $null
     })
@@ -1628,56 +1629,34 @@ function Start-AsyncDialog {
     $Dialog.kind   = $Kind
     $Dialog.folder = ''
     $Dialog.files  = @()
+    $Dialog.error  = ''
 
     $worker = {
         param($Dialog, $Kind, $InitialFolder)
 
         try {
+            # Native IFileOpenDialog: the modern Windows 10/11 Explorer picker.
+            # The picker is hosted on this STA runspace so it never blocks HTTP.
             if ($Kind -eq 'folder') {
-                # Shell folder browser via a topmost owner form
-                Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-                Add-Type -AssemblyName System.Drawing -ErrorAction Stop
-                $owner = New-Object System.Windows.Forms.Form
-                $owner.TopMost = $true; $owner.ShowInTaskbar = $false
-                $owner.Opacity = 0; $owner.Width = 1; $owner.Height = 1
-                $owner.StartPosition = 'CenterScreen'
-                $owner.Add_Shown({ $owner.Activate() })
-                $owner.Show(); $owner.Activate()
-
-                $fb = New-Object System.Windows.Forms.FolderBrowserDialog
-                $fb.Description = 'Select your game shortcuts folder'
-                $fb.ShowNewFolderButton = $false
-                if (-not [string]::IsNullOrWhiteSpace($InitialFolder) -and (Test-Path $InitialFolder)) {
-                    $fb.SelectedPath = $InitialFolder
+                $selectedFolder = [GIS.NativeFileDialog]::PickFolder(
+                    [IntPtr]::Zero,
+                    'Select your game library or shortcuts folder',
+                    [string]$InitialFolder
+                )
+                if (-not [string]::IsNullOrWhiteSpace([string]$selectedFolder)) {
+                    $Dialog.folder = [string]$selectedFolder
                 }
-                $res = $fb.ShowDialog($owner)
-                if ($res -eq [System.Windows.Forms.DialogResult]::OK) { $Dialog.folder = [string]$fb.SelectedPath }
-                $owner.Close(); $owner.Dispose()
-            }
-            else {
-                Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-                Add-Type -AssemblyName System.Drawing -ErrorAction Stop
-                $owner = New-Object System.Windows.Forms.Form
-                $owner.TopMost = $true; $owner.ShowInTaskbar = $false
-                $owner.Opacity = 0; $owner.Width = 1; $owner.Height = 1
-                $owner.StartPosition = 'CenterScreen'
-                $owner.Add_Shown({ $owner.Activate() })
-                $owner.Show(); $owner.Activate()
-
-                $ofd = New-Object System.Windows.Forms.OpenFileDialog
-                $ofd.Title = 'Select the shortcuts whose icons you want to change (Ctrl+click for multiple)'
-                $ofd.Filter = 'Shortcuts (*.lnk)|*.lnk|All files (*.*)|*.*'
-                $ofd.Multiselect = $true
-                $ofd.CheckFileExists = $true
-                if (-not [string]::IsNullOrWhiteSpace($InitialFolder) -and (Test-Path $InitialFolder)) {
-                    $ofd.InitialDirectory = $InitialFolder
-                }
-                $res = $ofd.ShowDialog($owner)
-                if ($res -eq [System.Windows.Forms.DialogResult]::OK) { $Dialog.files = @($ofd.FileNames) }
-                $owner.Close(); $owner.Dispose()
+            } else {
+                $selectedFiles = [GIS.NativeFileDialog]::PickFiles(
+                    [IntPtr]::Zero,
+                    'Choose shortcuts, launchers, game files, or ROMs',
+                    [string]$InitialFolder
+                )
+                $Dialog.files = @($selectedFiles | ForEach-Object { [string]$_ })
             }
         } catch {
-            # leave results empty on failure
+            $Dialog.error = $_.Exception.Message
+            Write-Log "Modern Windows picker failed: $($_.Exception.Message)" 'WARN'
         } finally {
             $Dialog.status = 'done'
         }
