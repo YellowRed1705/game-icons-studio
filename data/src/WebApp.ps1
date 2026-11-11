@@ -1918,6 +1918,17 @@ function applyScreenLanguage(screen) {
   if (chooser) chooser.setAttribute('aria-label', screen.folderBrowse);
   var progress = document.getElementById('loadBar');
   if (progress) progress.setAttribute('aria-label', screen.loadingWorking);
+  var languageSwitcher = document.getElementById('languageSwitcher');
+  if (languageSwitcher) languageSwitcher.setAttribute('aria-label', screen.languageGroupLabel);
+  var zoomButtons = document.querySelectorAll('header .zoombtn');
+  if (zoomButtons.length >= 2) {
+    zoomButtons[0].setAttribute('title', screen.zoomOutTitle);
+    zoomButtons[1].setAttribute('title', screen.zoomInTitle);
+  }
+  var themeButton = document.getElementById('themeBtn');
+  if (themeButton) themeButton.setAttribute('title', screen.cycleTheme || 'Change theme');
+  var fullscreenButton = document.getElementById('fsBtn');
+  if (fullscreenButton) fullscreenButton.setAttribute('title', screen.fullscreenTitle);
 }
 
 var state = {
@@ -2056,7 +2067,7 @@ function setLoading(msg, detail, pct){
   $('autoFeed').innerHTML = '';
   show('step-loading');
 }
-function setLoadProgress(detail, pct){
+function setLoadProgress(detail, pct, current, total){
   $('loadDetail').textContent = detail || '';
   if (pct != null){
     var value = Math.max(0,Math.min(100,Math.round(Number(pct)||0)));
@@ -2064,8 +2075,12 @@ function setLoadProgress(detail, pct){
     $('loadPercent').textContent = value + '%';
     $('loadBar').setAttribute('aria-valuenow', String(value));
   }
-  var match = String(detail||'').match(/Found\s+(\d+)\s+of\s+(\d+)/i);
-  if (match) $('loadCounter').textContent = match[1] + ' / ' + match[2] + ' scanned';
+  if (Number.isFinite(Number(current)) && Number.isFinite(Number(total))) {
+    $('loadCounter').textContent = formatStr(statusText('scannedCounter'), [Number(current),Number(total)]);
+  } else {
+    var match = String(detail||'').match(/Found\s+(\d+)\s+of\s+(\d+)/i);
+    if (match) $('loadCounter').textContent = formatStr(statusText('scannedCounter'), [match[1],match[2]]);
+  }
 }
 
 // ---- theme / zoom / fullscreen ----
@@ -2081,9 +2096,11 @@ var THEMES = [
 var themeIdx = 0;
 function applyTheme(){
   var t = THEMES[themeIdx];
+  var screen = screenI18n[currentLang] || screenI18n.en;
   document.documentElement.setAttribute('data-theme', t.id);
   $('themeIcon').innerHTML = t.icon;
-  $('themeTxt').textContent = t.name;
+  $('themeTxt').textContent = (screen.themeNames && screen.themeNames[themeIdx]) || t.name;
+  $('themeBtn').setAttribute('aria-label', (screen.cycleTheme || 'Change theme') + ': ' + $('themeTxt').textContent);
   // Remember the choice so it returns next launch.
   try { localStorage.setItem('gis-theme', t.id); } catch(e){}
 }
@@ -2749,19 +2766,19 @@ function beginScanLoop(total){
   state.total = total || 0;
   if (state.total === 0){ alert(state.iconSearchOnly ? statusText('noSupportedFiles') : statusText('noGamesMatched')); goHome(); return; }
   // Program mode queries external image engines per item, so show a realistic estimate.
-  var est = estimateSeconds(state.total, state.iconSearchOnly ? 13 : 0.6);
-  var noun = state.iconSearchOnly ? 'program/file icon' : 'game';
-  var detail = 'About ' + est + ' for ' + state.total + ' ' + noun + (state.total===1?'':'s') + '.';
-  if (state.iconSearchOnly) detail += ' Checking Google Images, Yandex Images and a structured brand-icon catalog; semantic relevance is prioritized over dimensions.';
+  var seconds = estimateSeconds(state.total, state.iconSearchOnly ? 13 : 0.6);
+  var duration = seconds < 60
+    ? formatStr(statusText('aboutSeconds'), [seconds])
+    : formatStr(statusText('aboutMinutes'), [Math.round(seconds/60)]);
+  var noun = state.iconSearchOnly ? statusText('programFileIconNoun') : (state.total === 1 ? statusText('gameSingular') : statusText('gamesPlural'));
+  var detail = formatStr(statusText('scanEstimate'), [duration,state.total,noun]);
+  if (state.iconSearchOnly) detail += ' ' + statusText('programSearchDetail');
   if (state.gameFilesSummary) detail = state.gameFilesSummary + ' ' + detail;
   setLoading(state.iconSearchOnly ? statusText('findingProgramIcons') : statusText('scanningGames'), detail, 0);
   scanStep(0);
 }
 function estimateSeconds(count, perItem){
-  var secs = Math.max(1, Math.round(count * perItem));
-  if (secs < 60) return 'about ' + secs + ' second' + (secs===1?'':'s');
-  var m = Math.round(secs/60);
-  return 'about ' + m + ' minute' + (m===1?'':'s');
+  return Math.max(1, Math.round(count * perItem));
 }
 function rasterizeImageDataUrlToPng(dataUrl, size){
   size = size || 256;
@@ -2869,7 +2886,7 @@ function scanStep(i){
 }
 function continueScanStep(res){
   var pct = res.total ? Math.round(res.current/res.total*100) : 0;
-  setLoadProgress('Found ' + res.current + ' of ' + res.total + ':  ' + (res.label||''), pct);
+  setLoadProgress(formatStr(statusText('scanProgress'), [res.current,res.total,res.label||'']), pct, res.current, res.total);
   if (res.done || res.current >= res.total){ preloadAround(0); enterItem(0); }
   else { setTimeout(function(){ scanStep(res.current); }, 0); }
 }
@@ -2924,7 +2941,7 @@ function enterItem(pos){
     } else {
       it.noAutoIcon = true;
       delete state.picks[it.index];
-      updateAutoBanner(it.name + ' (no automatic match; left unchanged)');
+      updateAutoBanner(it.name + ' (' + statusText('notAutoMatched') + ')');
     }
     if (state.pos + 1 >= state.items.length) { goReview(); }
     else { setTimeout(function(){ enterItem(state.pos+1); }, 40); }
@@ -2935,7 +2952,7 @@ function enterItem(pos){
   // has a remembered cover, apply it and move on without asking.
   if (state.useMemory && !state.editReturnToReview && it.remembered && it.savedUrl){
     applyRememberedCover(it);
-    if (state.autoAll){ updateAutoBanner(it.savedGameName ? (it.savedGameName + ' (saved)') : (it.name + ' (saved)')); }
+    if (state.autoAll){ updateAutoBanner((it.savedGameName || it.name) + ' (' + statusText('savedSuffix') + ')'); }
     if (state.pos + 1 >= state.items.length){ goReview(); }
     else { setTimeout(function(){ enterItem(state.pos+1); }, 60); }
     return;
@@ -2947,7 +2964,7 @@ function enterItem(pos){
     // no artwork at all). Mistakes are fixable later via Change Icons.
     if (noArt || it.autoConfident){
       state.picks[it.index] = { game:1, cover:1 };
-      updateAutoBanner(noArt ? (it.name + ' (placeholder)') : it.sections[0].gameName);
+      updateAutoBanner(noArt ? (it.name + ' (' + statusText('placeholderSuffix') + ')') : it.sections[0].gameName);
       if (state.pos + 1 >= state.items.length){ goReview(); }
       else { setTimeout(function(){ enterItem(state.pos+1); }, 90); }
       return;
@@ -3145,7 +3162,7 @@ function goReview(){
     var img = cover
       ? '<img src="'+cover.thumb+'" loading="lazy">'
       : '<div style="width:100%;aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,#2b3550,#141821);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem;text-align:center;padding:8px;word-break:break-word;">'+it.name+'</div>';
-    var previewLabel = sec ? sec.gameName : (state.iconSearchOnly ? 'No automatic icon match — will be skipped' : 'placeholder');
+    var previewLabel = sec ? sec.gameName : (state.iconSearchOnly ? statusText('notAutoMatched') : statusText('placeholderLabel'));
     el.innerHTML = img +
       '<div style="font-size:.78rem;margin-top:6px;text-align:center;">'+it.name+
       '<div style="color:var(--muted)">'+previewLabel+'</div></div>';
