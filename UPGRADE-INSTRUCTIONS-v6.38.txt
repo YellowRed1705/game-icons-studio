@@ -1,0 +1,25 @@
+Game Icons Studio v6.38 — Upgrade Instructions
+
+This is the overlay-upgrade package for an existing installation.
+
+1. Close Game Icons Studio completely. Use Quit in the app and allow the console window to exit.
+2. Extract the contents of Game-Icons-Studio-v6.38-Upgrade.zip directly into your existing Game Icons Studio program folder.
+3. Approve overwrite/replace prompts for application files.
+4. Launch Game Icons Studio.bat again.
+
+New feature: Game Files Folder
+
+1. Open Game Icons Studio and choose "Game Files Folder" on the home screen.
+2. Select a game installation folder or a parent folder that contains your game files.
+3. The app recursively scans for existing .lnk shortcuts, .url launchers, playable .exe files, and .bat/.cmd launchers.
+4. Existing shortcuts are reused. A .url launcher is converted into a standard .lnk only after the new shortcut exists successfully. Executables and scripts receive a companion "(Custom Icon).lnk" shortcut when needed.
+5. The app matches the discovered game names, lets you review the selected covers, and then applies the custom icons to the shortcuts.
+
+Safety behavior:
+- Original .exe, .bat, and .cmd files are never modified. Their working custom-icon shortcut is created beside the source file.
+- Existing .lnk shortcuts are reused, and EXE targets already covered by a shortcut are not added again.
+- A .url source is removed only after a standard .lnk has been created successfully. If conversion fails, the original remains and a safe companion shortcut fallback is attempted.
+- Common setup programs, uninstallers, crash reporters, and redistributable helpers are excluded from the EXE scan.
+- A scan is capped at 1,000 launchable entries to avoid unexpectedly processing an entire huge library. Additional entries are left untouched.
+
+The normal "Shortcuts Folder", "Specific Shortcuts", "Any Files & Scripts", folder-icon, and Program & App Icons workflows remain available.
