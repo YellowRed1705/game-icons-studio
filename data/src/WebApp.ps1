@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.37) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.38) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio v6.37</title>
+<title>Game Icons Studio v6.38</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {
@@ -531,6 +531,11 @@ function Get-WebAppHtml {
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><path d="M4 4h16v16H4z"/><path d="M8 8h3v3H8zM13 8h3M13 11h3M8 14h8M8 17h5"/></svg>
         <div class="t">Any Files &amp; Scripts</div>
         <div class="d">Choose .exe, .bat, .cmd, .ps1 and other files. Custom icon shortcuts are created beside regular files.</div>
+      </button>
+      <button class="home-btn" data-home="7" onclick="startGameFilesFolder()">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><path d="M8 13h8M12 9v8"/></svg>
+        <div class="t">Game Files Folder</div>
+        <div class="d">Scan a game folder for EXE files and launchers. Prepare working .lnk shortcuts and match game covers automatically.</div>
       </button>
     </div>
     <div class="home-tools">
@@ -1755,12 +1760,30 @@ function updateFolderScreenLabels(){
     ft.textContent = t.ftSingle;
     fs.textContent = t.fsSingle;
     if (sb) sb.textContent = t.btnScanSingle;
+  } else if (state.targetMode === 'game_files'){
+    ft.textContent = 'Find games inside a folder';
+    fs.textContent = 'Scan EXE files and launchers recursively. Existing shortcuts are kept; missing game shortcuts are created safely.';
+    if (sb) sb.textContent = 'Scan game files';
   } else {
     ft.textContent = t.folderTitle;
     fs.textContent = t.folderSub;
     if (sb) sb.textContent = t.scanBtn;
   }
 }
+function startGameFilesFolder(){
+  state.mode = 'change';
+  state.iconSearchOnly = false;
+  state.targetMode = 'game_files';
+  state.autoAll = true;
+  state.useMemory = false;
+  state.onlyNew = false;
+  state.memoryAsked = true;
+  state.gameFilesSummary = '';
+  updateFolderScreenLabels();
+  setProgress(0);
+  browseFolder();
+}
+
 function startFolderMode(type){
   state.mode = 'full';
   state.iconSearchOnly = false;
@@ -1778,6 +1801,7 @@ function browseFolder(){
   var detail = 'A Windows folder window will appear in front. Pick your games folder and click OK.';
   if (state.targetMode === 'folders_all'){ detail = 'A Windows folder window will appear in front. Pick the parent folder that holds your game folders and click OK.'; }
   if (state.targetMode === 'folders_single'){ detail = 'A Windows folder window will appear in front. Pick the game folder you want to customize and click OK.'; }
+  if (state.targetMode === 'game_files'){ detail = 'Choose a game installation or library folder. I will find playable EXE files and launcher shortcuts inside it.'; }
   setLoading('Opening the folder window...', detail, null);
   api('/api/browse-folder', {}).then(function(){
     pollDialog(function(res){
@@ -1798,6 +1822,7 @@ function folderReady(folder){
   $('folderInput').value = folder;
   $('folderPath').textContent = 'Folder ready. Starting...';
   $('scanBtn').classList.remove('hidden');
+  if (state.targetMode === 'game_files'){ scanGameFilesFolder(folder); return; }
   // Folder modes skip the shortcut-only new-game detection.
   if (isFolderMode()){ startScan(); return; }
   if (state.iconSearchOnly){ startScan(); return; }
@@ -1846,6 +1871,38 @@ function tryTypedFolder(){
     } else {
       $('folderPath').textContent = 'That path does not exist. Check it and try again.';
     }
+  });
+}
+
+function scanGameFilesFolder(folder){
+  state.mode = 'change';
+  state.iconSearchOnly = false;
+  state.autoAll = true;
+  state.useMemory = false;
+  state.onlyNew = false;
+  state.memoryAsked = true;
+  state.gameFilesSummary = '';
+  setLoading('Finding games and launchers…', 'Scanning this folder for existing shortcuts and playable game files.', 0);
+  api('/api/scan-game-folder-begin', { folder: folder }).then(function(res){
+    if (!res || !res.ok){
+      show('step-folder');
+      $('folderPath').textContent = (res && res.error) ? res.error : 'Could not scan this game folder.';
+      return;
+    }
+    var details = [];
+    details.push((res.sourceFiles||0) + ' launchable entries found');
+    details.push((res.includedExecutables||0) + ' EXE');
+    if (res.includedScripts) details.push(res.includedScripts + ' BAT/CMD');
+    if (res.convertedUrls) details.push(res.convertedUrls + ' .url converted to .lnk');
+    if (res.alreadyLinked) details.push(res.alreadyLinked + ' already had a shortcut');
+    if (res.excludedHelpers) details.push(res.excludedHelpers + ' installer/helper files skipped');
+    if (res.failedUrls) details.push(res.failedUrls + ' URL conversion(s) kept as source files');
+    if (res.truncated) details.push('safety limit: ' + res.truncated + ' extra entries left untouched');
+    state.gameFilesSummary = details.join(' · ') + '. Original EXE/BAT/CMD files remain untouched.';
+    beginScanLoop(res.total);
+  }).catch(function(error){
+    show('step-folder');
+    $('folderPath').textContent = (error && error.message) ? error.message : 'The game folder could not be scanned.';
   });
 }
 
@@ -1993,6 +2050,7 @@ function beginScanLoop(total){
   var noun = state.iconSearchOnly ? 'program/file icon' : 'game';
   var detail = 'About ' + est + ' for ' + state.total + ' ' + noun + (state.total===1?'':'s') + '.';
   if (state.iconSearchOnly) detail += ' Checking Google Images, Yandex Images and a structured brand-icon catalog; semantic relevance is prioritized over dimensions.';
+  if (state.gameFilesSummary) detail = state.gameFilesSummary + ' ' + detail;
   setLoading(state.iconSearchOnly ? 'Finding the best program icons...' : 'Scanning your games...', detail, 0);
   scanStep(0);
 }
