@@ -1477,7 +1477,7 @@ function Start-WebScanGameFolder {
 
     $emulatorProfiles = @(
         @{ Family='cemu'; Pattern='^(?i:cemu)(?:[-_].*)?$'; Extensions=@('.wud','.wux','.wua','.rpx'); Prefix='-g' },
-        @{ Family='ryujinx'; Pattern='^(?i:ryujinx|ryubing),
+        @{ Family='ryujinx'; Pattern='^(?i:ryujinx|ryubing)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
         @{ Family='eden'; Pattern='^(?i:eden)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
         @{ Family='yuzu'; Pattern='^(?i:yuzu)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
         @{ Family='dolphin'; Pattern='^(?i:dolphin)(?:-qt)?$'; Extensions=@('.wbfs','.rvz','.gcm','.gcz'); Prefix='-e' },
