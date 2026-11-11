@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.44
+# Game Icons Studio v6.45
 
 ### From generic icons to a game shelf.
 
@@ -65,6 +65,16 @@ These release notes are an addition to the original introduction above. The logo
 <details>
 <details>
 <details>
+<details>
+<summary><strong>v6.45 — compact, no-scroll home dashboard</strong></summary>
+
+- Reworks the eight primary home actions into a consistent four-column, two-row desktop dashboard.
+- Reduces card height, padding, icon size and vertical spacing so the main choices fit on a typical desktop screen without scrolling.
+- Keeps descriptions to three visible lines, with responsive layout retained.
+- Uses a two-column, touch-friendly layout on smaller screens and a shorter-height layout on compact displays.
+
+</details>
+
 <summary><strong>v6.44 — one-flag language switcher and manual game selection</strong></summary>
 
 - Replaces the three visible language buttons with one compact flag button. Click to cycle English → Turkish → Arabic → English; the current language remains saved in this browser.
@@ -211,7 +221,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.43.md](CHANGELOG-v6.44.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.43.md](CHANGELOG-v6.45.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 
