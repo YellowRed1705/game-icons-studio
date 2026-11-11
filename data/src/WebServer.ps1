@@ -374,14 +374,15 @@ function Invoke-WebRoute {
         if ($d.status -eq 'done') {
             # Clean up the worker runspace
             try { if ($d.ps) { $d.ps.EndInvoke($d.handle); $d.ps.Runspace.Close(); $d.ps.Dispose(); $d.ps = $null } } catch { }
+            $dialogError = [string]$d.error
             if ($d.kind -eq 'folder') {
                 $folder = [string]$d.folder
                 $d.status = 'idle'
-                Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ status = 'done'; kind = 'folder'; ok = (-not [string]::IsNullOrWhiteSpace($folder)); folder = $folder })
+                Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ status = 'done'; kind = 'folder'; ok = (-not [string]::IsNullOrWhiteSpace($folder)); folder = $folder; error = $dialogError })
             } else {
                 $files = @($d.files | ForEach-Object { [string]$_ })
                 $d.status = 'idle'
-                Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ status = 'done'; kind = 'files'; ok = ($files.Count -gt 0); files = $files })
+                Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ status = 'done'; kind = 'files'; ok = ($files.Count -gt 0); files = $files; error = $dialogError })
             }
             return
         }
