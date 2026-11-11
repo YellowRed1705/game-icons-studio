@@ -821,9 +821,31 @@ function Invoke-WebRoute {
             return
         }
         try {
-            $candidates = @(Get-OnlineProgramIconCandidates -Query $query -Provider $provider -MaxResults 24 -Session $Session)
-            $items = @($candidates | ForEach-Object { @{ url=[string]$_.Url; thumb=[string]$_.Thumb; source=[string]$_.Source; title=[string]$_.Title; width=[int]$_.Width; height=[int]$_.Height; score=[int]$_.Score; searchPage=[string]$_.SearchPage } })
-            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; count = $items.Count; candidates = $items; provider = $provider })
+            $candidates = @(Get-OnlineProgramIconCandidates -Query $query -Provider $provider -MaxResults 80 -Session $Session)
+            $toImageItem = {
+                param($candidate)
+                @{
+                    url=[string]$candidate.Url
+                    thumb=[string]$candidate.Thumb
+                    source=[string]$candidate.Source
+                    title=[string]$candidate.Title
+                    width=[int]$candidate.Width
+                    height=[int]$candidate.Height
+                    score=[int]$candidate.Score
+                    searchPage=[string]$candidate.SearchPage
+                }
+            }
+            $items = @($candidates | Select-Object -First 30 | ForEach-Object { & $toImageItem $_ })
+            $googleTop5 = @($candidates | Where-Object { [string]$_.Source -eq 'Google Images' } | Select-Object -First 5 | ForEach-Object { & $toImageItem $_ })
+            $yandexTop5 = @($candidates | Where-Object { [string]$_.Source -eq 'Yandex Images' } | Select-Object -First 5 | ForEach-Object { & $toImageItem $_ })
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{
+                ok = $true
+                count = $items.Count
+                candidates = $items
+                googleTop5 = $googleTop5
+                yandexTop5 = $yandexTop5
+                provider = $provider
+            })
         } catch {
             Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'Image search could not retrieve candidates. Open Google/Yandex in a tab or drag an image into the preview.'; candidates = @() })
         }
