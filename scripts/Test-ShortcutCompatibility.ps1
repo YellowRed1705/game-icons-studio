@@ -71,7 +71,7 @@ foreach ($token in @('$googleTop = @($ranked', '$yandexTop = @($ranked', 'Select
 if ($webServerText.Contains("'/api/search-images'")) {
     throw 'The retired manual Top 5 image-fetch endpoint must not be exposed.'
 }
-foreach ($token in @('id="googleImagesBtn"','id="yandexImagesBtn"','function openGoogleSearch()','function openYandexSearch()','function prepareCustomDropTarget','drop-ready','id="customDropZone"','function onCustomCropPointerDown','function zoomCustomCrop','customSourceCanvas','customCropState.crop')) {
+foreach ($token in @('id="googleImagesBtn"','id="yandexImagesBtn"','function openGoogleSearch()','function openYandexSearch()','function prepareCustomDropTarget','drop-ready','id="customDropZone"','#customCropEditor.visible { display:block; }','img.onload=function(){','#customCropEditor { display:none;','function onCustomCropPointerDown','function zoomCustomCrop','customSourceCanvas','customCropState.crop')) {
     if (-not $webAppText.Contains($token)) { throw "Google/Yandex search and drag-drop workflow is missing: $token" }
 }
 foreach ($token in @('onlineAutoTop5Btn','googleImageResultsGrid','yandexImageResultsGrid','function searchOnlineImageCandidates','Fetch Top 5 from each','function fetchAndApplyOnlineCandidate')) {
