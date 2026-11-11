@@ -1,0 +1,19 @@
+Game Icons Studio v6.46 — Upgrade Instructions
+
+1. Close Game Icons Studio completely.
+2. Download Game-Icons-Studio-v6.46-Upgrade.zip from GitHub Releases.
+3. Extract the ZIP contents over the existing application folder and approve replacement.
+4. Start Game Icons Studio.bat.
+
+Automatic Google / Yandex icons
+- Open Program / App icon.
+- The app fetches up to five Google Images results and five Yandex Images results in separate groups.
+- Click Fetch & Apply on a result to download and add it to the current item in one action.
+- Click Crop first to inspect it and adjust the selected area before applying.
+
+Crop editor
+- Drag outside the current square to draw a new selection.
+- Drag inside the square to move the selection.
+- Use + / − or the mouse wheel to zoom.
+- Reset restores the centered square.
+- The final ICO uses the same CornerRadius, Border and Shadow styling as the rest of the app.
