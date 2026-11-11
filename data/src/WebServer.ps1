@@ -472,6 +472,23 @@ function Invoke-WebRoute {
         return
     }
 
+    if ($path -eq '/api/repair-shortcut-icons' -and $method -eq 'POST') {
+        $bodyText = Read-RequestBody -Context $Context
+        $body = $null
+        try { $body = $bodyText | ConvertFrom-Json } catch { }
+        $folder = if ($body -and $body.folder) { [string]$body.folder } else { '' }
+        if ([string]::IsNullOrWhiteSpace($folder) -or -not (Test-Path -LiteralPath $folder -PathType Container)) {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'Select an existing folder first.' })
+            return
+        }
+        $repair = Repair-ShortcutIcons -Folder $folder -IconsDir $Session.Ctx.IconsDir -CacheDir $Session.Ctx.CacheDir -Style $Session.Ctx.Style
+        $cacheOk = Repair-IconCache
+        $repair.cacheRefreshed = [bool]$cacheOk
+        $repair.ok = ([bool]$repair.ok -and [bool]$cacheOk)
+        Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe $repair)
+        return
+    }
+
     if ($path -eq '/api/folder-health' -and $method -eq 'POST') {
         $bodyText = Read-RequestBody -Context $Context
         $body = $null
