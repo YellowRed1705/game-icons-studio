@@ -110,3 +110,84 @@ function Repair-IconCache {
         return $false
     }
 }
+
+function Repair-ShortcutIcons {
+    <#
+        Repairs missing or invalid custom ICO references in a selected folder.
+        It first relinks to a valid persistent ICO under the app Icons folder,
+        then rebuilds from a matching raw artwork file in Cache when available.
+        Original shortcut launch targets and arguments are never changed.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$Folder,
+        [Parameter(Mandatory)][string]$IconsDir,
+        [Parameter(Mandatory)][string]$CacheDir,
+        [hashtable]$Style = @{}
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Folder) -or -not (Test-Path -LiteralPath $Folder -PathType Container)) {
+        return @{ ok = $false; error = 'Selected folder does not exist.'; scanned = 0; repaired = 0; rebuilt = 0; unresolved = 0; failed = 0 }
+    }
+    foreach ($directory in @($IconsDir,$CacheDir)) {
+        if (-not (Test-Path -LiteralPath $directory -PathType Container)) { New-Item -ItemType Directory -Path $directory -Force | Out-Null }
+    }
+
+    $corner = 0; $border = 0; $borderColor = '#FFFFFF'; $shadow = $false
+    if ($Style) {
+        if ($Style.ContainsKey('CornerRadiusPercent')) { $corner = [int]$Style.CornerRadiusPercent }
+        if ($Style.ContainsKey('BorderWidthPercent')) { $border = [int]$Style.BorderWidthPercent }
+        if ($Style.ContainsKey('BorderColor')) { $borderColor = [string]$Style.BorderColor }
+        if ($Style.ContainsKey('ShadowEnabled')) { $shadow = [bool]$Style.ShadowEnabled }
+    }
+
+    $links = @()
+    try { $links = @(Get-ChildItem -LiteralPath $Folder -Recurse -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.Extension -ieq '.lnk' }) }
+    catch { return @{ ok = $false; error = $_.Exception.Message; scanned = 0; repaired = 0; rebuilt = 0; unresolved = 0; failed = 0 } }
+
+    $wsh = Get-WshShell
+    $repaired = 0; $rebuilt = 0; $alreadyValid = 0; $unresolved = 0; $failed = 0
+    $allowedRaw = @('.png','.jpg','.jpeg','.bmp','.gif','.webp','.ico')
+    foreach ($file in $links) {
+        try {
+            $link = $wsh.CreateShortcut($file.FullName)
+            $iconLocation = [string]$link.IconLocation
+            $iconPath = ''
+            if (-not [string]::IsNullOrWhiteSpace($iconLocation)) { $iconPath = ($iconLocation -replace ',\s*-?\d+\s*$','').Trim().Trim('"') }
+            if (-not [string]::IsNullOrWhiteSpace($iconPath) -and (Test-ValidIcoFile -Path $iconPath)) { $alreadyValid++; continue }
+
+            $baseNames = New-Object System.Collections.Generic.List[string]
+            if (-not [string]::IsNullOrWhiteSpace($iconPath)) { $baseNames.Add([System.IO.Path]::GetFileNameWithoutExtension($iconPath)) }
+            $linkStem = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+            $linkStem = $linkStem -replace '\s+\((?i:custom icon|converted)(?:\s+\d+)?\)$',''
+            if (-not [string]::IsNullOrWhiteSpace($linkStem) -and -not $baseNames.Contains($linkStem)) { $baseNames.Add($linkStem) }
+
+            $resolvedIco = ''
+            foreach ($base in $baseNames) {
+                $safe = Get-SafeFileName -Name $base
+                if ([string]::IsNullOrWhiteSpace($safe)) { continue }
+                $candidateIco = Join-Path $IconsDir ($safe + '.ico')
+                if (Test-ValidIcoFile -Path $candidateIco) { $resolvedIco = $candidateIco; break }
+                $rawMatches = @()
+                try { $rawMatches = @(Get-ChildItem -LiteralPath $CacheDir -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.BaseName -ieq $safe -and $_.Extension.ToLowerInvariant() -in $allowedRaw } | Sort-Object Length -Descending) } catch { }
+                foreach ($raw in $rawMatches) {
+                    try {
+                        ConvertTo-Ico -SourcePath $raw.FullName -OutputPath $candidateIco -CornerRadiusPercent $corner -BorderWidthPercent $border -BorderColor $borderColor -ShadowEnabled $shadow | Out-Null
+                        if (Test-ValidIcoFile -Path $candidateIco) { $resolvedIco = $candidateIco; $rebuilt++; break }
+                    } catch { Write-Log "Could not rebuild icon '$safe' from '$($raw.Name)': $($_.Exception.Message)" 'WARN' }
+                }
+                if (-not [string]::IsNullOrWhiteSpace($resolvedIco)) { break }
+            }
+
+            if ([string]::IsNullOrWhiteSpace($resolvedIco)) { $unresolved++; continue }
+            $resolvedIco = [System.IO.Path]::GetFullPath($resolvedIco)
+            $link.IconLocation = "$resolvedIco,0"
+            $link.Save()
+            $verify = $wsh.CreateShortcut($file.FullName)
+            if (([string]$verify.IconLocation -split ',')[0].Trim('"') -ine $resolvedIco) { throw 'Windows did not persist the repaired icon location.' }
+            $repaired++
+        } catch { $failed++; Write-Log "Icon repair failed for '$($file.FullName)': $($_.Exception.Message)" 'WARN' }
+    }
+
+    Write-Log "Shortcut icon repair: scanned $($links.Count), repaired $repaired, rebuilt $rebuilt, already valid $alreadyValid, unresolved $unresolved, failed $failed." 'INFO'
+    return @{ ok = ($failed -eq 0); scanned = $links.Count; alreadyValid = $alreadyValid; repaired = $repaired; rebuilt = $rebuilt; unresolved = $unresolved; failed = $failed }
+}
