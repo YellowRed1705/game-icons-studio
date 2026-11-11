@@ -20,6 +20,9 @@ The Game Library folder scanner deliberately excluded existing emulator launcher
 ## Windows test cleanup
 - Replace the duplicated legacy test script with a compact, parser-valid regression suite for emulator app shortcuts, ROM argument separation, launcher conversion, shortcut icon persistence and Undo.
 
+## Language test alignment
+- Align the English-default regression test with the existing v3 language preference key.
+
 ## Upgrade
 - Full package: Game-Icons-Studio-v6.43.zip.
 - Existing installation: close Game Icons Studio and extract the Upgrade ZIP over the existing application folder.
