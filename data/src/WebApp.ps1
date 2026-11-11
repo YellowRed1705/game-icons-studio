@@ -1616,6 +1616,36 @@ function quickReapply(){
   });
 }
 
+function undoLastIconChange(){
+  setLoading('Finding your latest restore point…', 'Checking saved icon backups.', 10);
+  api('/api/backup-list', {}).then(function(result){
+    var backups = Array.isArray(result && result.backups) ? result.backups : [];
+    backups = backups.filter(function(item){ return !item.RestoredAt; });
+    backups.sort(function(a,b){ return new Date(b.CreatedAt||0).getTime() - new Date(a.CreatedAt||0).getTime(); });
+    if (!backups.length){
+      $('restoreResultMsg').textContent = 'There is no unused restore point yet. Apply an icon change first to create a backup.';
+      show('step-restore-ok');
+      return;
+    }
+    var latest = backups[0];
+    var message = 'Undo the latest icon change from ' + (latest.CreatedAt||latest.Id) +
+      '? This will restore ' + (latest.ItemCount||0) + ' item(s) and remove shortcuts created by that change.';
+    if (!window.confirm(message)){ goHome(); return; }
+    setLoading('Restoring the previous icon state…', 'Reversing the latest saved icon transaction.', 35);
+    api('/api/backup-restore-latest', {}).then(function(res){
+      var failures = (res && res.failures && res.failures.length) ? '\\n\\n' + res.failures.slice(0,8).join('\\n') : '';
+      $('restoreResultMsg').textContent = (res && res.message) ? res.message + failures : (res && res.error) || 'The latest restore point could not be restored.';
+      show('step-restore-ok');
+    }).catch(function(error){
+      $('restoreResultMsg').textContent = (error && error.message) || 'The latest restore point could not be restored.';
+      show('step-restore-ok');
+    });
+  }).catch(function(error){
+    $('restoreResultMsg').textContent = (error && error.message) || 'Could not read the backup list.';
+    show('step-restore-ok');
+  });
+}
+
 function showAbout(){ show('step-about'); setNavFocus(null); window.scrollTo(0,0); var c=$('step-about'); if(c) c.scrollTop=0; }
 function aboutDone(){
   // If the user has not set an API key yet, send them back to setup;
