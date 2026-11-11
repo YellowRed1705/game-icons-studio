@@ -426,16 +426,6 @@ function Get-WebAppHtml {
     #step-custom .url-row { gap:6px; }
     #step-custom #customStatusMsg { min-height:.8em !important; }
   }
-  .online-search-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:9px; }
-  .online-search-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:10px; margin-top:10px; max-height:390px; overflow:auto; }
-  .online-provider-block { margin-top:14px; padding-top:10px; border-top:1px solid var(--line); }
-  .online-provider-title { font-size:.9rem; font-weight:800; margin:0 0 7px; }
-  .online-provider-grid { max-height:none; overflow:visible; }
-  .online-provider-grid .online-candidate { background:var(--panel2); }
-  .online-candidate-auto { margin-top:7px; width:100%; border:1px solid var(--good); border-radius:8px; padding:6px; background:rgba(34,197,94,.12); color:var(--text); cursor:pointer; font-size:.72rem; font-weight:700; }
-  .online-candidate-auto:hover { background:var(--good); color:#092015; }
-  .online-candidate-crop { margin-top:5px; width:100%; border:1px solid var(--line); border-radius:8px; padding:5px; background:transparent; color:var(--muted); cursor:pointer; font-size:.7rem; }
-  .online-candidate-crop:hover { border-color:var(--accent); color:var(--text); }
   .crop-editor { width:100%; flex:1 1 100%; order:3; padding:14px; border:1px solid var(--line); border-radius:14px; background:var(--panel); text-align:left; }
   .crop-editor-head { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:9px; }
   .crop-editor-title { font-weight:800; font-size:.9rem; }
@@ -1449,7 +1439,7 @@ var screenI18n = {
     grid:"▦ Grid", gallery:"▤ Gallery", onlineTitle:"Akıllı Online Icon adayları",
     onlineDesc:"Google ve Yandex sonuçları kare oranı, çözünürlük ve Icon uygunluğuna göre sıralanır.",
     onlineBoth:"İki kaynaktan da daha fazla bul", onlineGoogle:"Yalnızca Google", onlineYandex:"Yalnızca Yandex",
-    onlineStatus:"Otomatik taramada bulunan adaylar gösteriliyor.",
+    onlineStatus:"Google veya Yandex Images ile arama yap; görseli vurgulanan bırakma alanına sürükle.",
     dropHelp:"Google Images veya Yandex Images'tan görseli buraya sürükle. Sağ tıklayıp Copy image seçerek Ctrl+V yapabilir ya da bilgisayarından seçmek için tıklayabilirsin.",
     previewTitle:"ICON PREVIEW (1:1)", previewDropTitle:"Bu Preview alanına da doğrudan görsel bırakabilirsin", canvasDropTitle:"Önizlemek için görseli buraya bırak", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"URL yükle", cancelSkip:"← İptal / Atla",
         retentionOptions:["Son 10 sürüm","Son 25 sürüm","Son 50 sürüm","Son 100 sürüm","Sınırsız (daha fazla disk alanı kullanır)"],
@@ -2063,9 +2053,6 @@ function applyScreenLanguage(screen) {
   // Artwork and online image studio
   text('#vtGrid', screen.grid);
   text('#vtGallery', screen.gallery);
-  text('.online-search-head b', screen.onlineTitle);
-  text('.online-search-head .sub', screen.onlineDesc);
-  many('.online-search-head .btn-row button', [screen.onlineBoth,screen.onlineGoogle,screen.onlineYandex]);
   text('#onlineSearchStatus', screen.onlineStatus);
   text('#customDropZone > div:nth-child(3)', screen.dropHelp);
   text('#customPreviewDropZone > div:first-child', screen.previewTitle);
@@ -4090,8 +4077,7 @@ function openYandexSearch(){
 // Backwards-compatible name used by existing buttons in other screens.
 function reopenGoogleSearch(){ openGoogleSearch(); }
 
-// TOP 5 FETCH intentionally removed: external image search stays in the user's browser.
-// The editor provides direct Google/Yandex search buttons plus native drag & drop, paste and local file input.
+// Manual image search stays in the user's browser; the editor accepts drag & drop, paste and local files.
 
 function clearCustomCanvas(){
   var c=$('customCanvas');if(c){var ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);}
