@@ -24,7 +24,7 @@ foreach ($languageCode in @('en','tr','ar')) {
     }
 }
 if ($webAppText -notmatch "var currentLang = 'en';" -or
-    $webAppText -notmatch "localStorage\.getItem\('gis-lang-v2'\)" -or
+    $webAppText -notmatch "localStorage\.getItem\('gis-lang-v3'\)" -or
     $webAppText -match "localStorage\.getItem\('gis-lang'\)") {
     throw 'Fresh installs must default to English and use the current language preference key.'
 }
