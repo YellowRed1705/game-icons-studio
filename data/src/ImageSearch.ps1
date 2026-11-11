@@ -120,7 +120,7 @@ function Get-IconifyBrandIconCandidates {
     try {
         $client = [System.Net.Http.HttpClient]::new()
         $client.Timeout = [TimeSpan]::FromSeconds(4)
-        $null = $client.DefaultRequestHeaders.UserAgent.TryParseAdd('Game-Icons-Studio/6.45 (local desktop utility)')
+        $null = $client.DefaultRequestHeaders.UserAgent.TryParseAdd('Game-Icons-Studio/6.46 (local desktop utility)')
         foreach ($q in $queries) {
             try {
                 $url = 'https://api.iconify.design/search?query=' + [uri]::EscapeDataString($q) + '&limit=64&prefixes=' + [uri]::EscapeDataString($prefixes)
@@ -436,5 +436,16 @@ function Get-OnlineProgramIconCandidates {
         if ([string]::IsNullOrWhiteSpace($key) -or $dedup.ContainsKey($key)) { continue }
         $dedup[$key] = $item
     }
-    return @($dedup.Values | Sort-Object -Property @{Expression='Score';Descending=$true}, @{Expression={if ($_.Width -gt 0 -and $_.Height -gt 0) {$_.Width * $_.Height} else {0}};Descending=$true} | Select-Object -First ([Math]::Max(1,$MaxResults)))
+    $ranked = @($dedup.Values | Sort-Object -Property @{Expression='Score';Descending=$true}, @{Expression={if ($_.Width -gt 0 -and $_.Height -gt 0) {$_.Width * $_.Height} else {0}};Descending=$true})
+    if ($Provider -eq 'both') {
+        # Reserve a fair Top 5 from each image provider before filling the
+        # remaining list with Iconify/other candidates. One provider must not
+        # crowd the other out of the shared result cap.
+        $googleTop = @($ranked | Where-Object { [string]$_.Source -eq 'Google Images' } | Select-Object -First 5)
+        $yandexTop = @($ranked | Where-Object { [string]$_.Source -eq 'Yandex Images' } | Select-Object -First 5)
+        $otherTop = @($ranked | Where-Object { [string]$_.Source -notin @('Google Images','Yandex Images') })
+        $balanced = @($googleTop) + @($yandexTop) + @($otherTop)
+        return @($balanced | Select-Object -First ([Math]::Max(1,$MaxResults)))
+    }
+    return @($ranked | Select-Object -First ([Math]::Max(1,$MaxResults)))
 }
