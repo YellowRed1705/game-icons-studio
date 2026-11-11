@@ -1520,6 +1520,11 @@ function Start-WebScanGameFolder {
 
     Write-Log "Game folder scan: $($files.Count) entries, $includedExecutables EXE, $includedScripts scripts, $convertedUrls URL converted, $alreadyLinked already linked, $excludedHelpers helper installers skipped." 'INFO'
     $result = Start-WebScanFiles -Session $Session -Files @($files.ToArray()) -IconSearchOnly $false
+    # Start-WebScanFiles normally remembers the parent of the first picked file.
+    # In this folder-wide mode, keep the actual parent folder selected by the user.
+    $Session.Ctx.Folder = $Folder
+    $Session.Ctx.Settings.LastFolder = $Folder
+    try { Save-Settings -Root $Session.Root -Settings $Session.Ctx.Settings } catch { }
     if ($result.ok) {
         $result.sourceFiles = $files.Count
         $result.includedExecutables = $includedExecutables
