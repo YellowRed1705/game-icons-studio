@@ -4,7 +4,6 @@
 
 function Get-DefaultSettings {
     [PSCustomObject]@{
-        ApiKey               = ''
         LastFolder           = ''
         PreferredArtwork     = 'square'   # square | icon | grid | hero
         ParallelDownloads    = 6
@@ -77,11 +76,23 @@ function Get-Settings {
         return $defaults
     }
 
+    # Remove the legacy disk-based API key. Browser keys belong to each
+    # user's own browser localStorage; CLI keys are session-only.
+    $legacyApiKeyRemoved = $false
+    if ($loaded.PSObject.Properties.Name -contains 'ApiKey') {
+        $loaded.PSObject.Properties.Remove('ApiKey')
+        $legacyApiKeyRemoved = $true
+    }
+
     # Merge: make sure every expected property exists
     foreach ($prop in $defaults.PSObject.Properties) {
         if (-not ($loaded.PSObject.Properties.Name -contains $prop.Name)) {
             $loaded | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value
         }
+    }
+    if ($legacyApiKeyRemoved) {
+        Save-Settings -Root $Root -Settings $loaded
+        Write-Log 'Removed legacy API key from settings.json; browser storage is now the only persistent key store.' 'INFO'
     }
     return $loaded
 }
@@ -105,13 +116,10 @@ function Get-ApiKey {
         [Parameter(Mandatory)]$Settings
     )
 
-    if (-not [string]::IsNullOrWhiteSpace($Settings.ApiKey)) {
-        return $Settings.ApiKey
-    }
-
     Write-Host ''
-    Write-Host '  A SteamGridDB API key is required (one-time setup).' -ForegroundColor Cyan
+    Write-Host '  A SteamGridDB API key is required for this CMD session.' -ForegroundColor Cyan
     Write-Host '  Get yours for free at: https://www.steamgriddb.com/profile/preferences/api' -ForegroundColor Cyan
+    Write-Host '  This key is kept in memory for this run only and is never written to disk.' -ForegroundColor DarkGray
     Write-Host ''
 
     $key = ''
@@ -120,9 +128,6 @@ function Get-ApiKey {
         $key = $key.Trim()
     }
 
-    $Settings.ApiKey = $key
-    Save-Settings -Root $Root -Settings $Settings
-    Write-Log 'API key saved to settings.json' 'OK'
     return $key
 }
 

@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.41) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.42) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio v6.41</title>
+<title>Game Icons Studio v6.42</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {
@@ -490,7 +490,8 @@ function Get-WebAppHtml {
       </div>
     </div>
 
-    <input class="input-path" id="keyInput" placeholder="Paste your API key here" autocomplete="off" />
+    <input class="input-path" id="keyInput" type="password" placeholder="Paste your API key here" autocomplete="off" spellcheck="false" />
+    <p class="sub" id="keyStorageNotice" style="max-width:620px;">Your API Key is stored only in this browser's local storage. It is never written to settings.json or GitHub.</p>
     <div class="btn-row">
       <button class="big-btn btn-good" onclick="pasteKey()">&#128203; Paste &amp; continue</button>
       <button class="ghost" onclick="saveKey()">Continue</button>
@@ -1265,6 +1266,7 @@ var screenI18n = {
     keySteps:["Open SteamGridDB and click Login (top right).","Sign in with Steam — this creates your free account instantly.","Come back and use the other button to get your key.","Open your API settings with the button below.","Click Create API Key, then Copy it.","Paste it here and you're ready to go."],
     keyCreate:"Create a SteamGridDB account", keyGet:"Get my API key", keyPlaceholder:"Paste your API key here",
     keyPaste:"📋 Paste & continue", keyContinue:"Continue", keyNoKey:"Continue with Program & App Icons (no API key)",
+    keyStorageNotice:"Your API Key is stored only in this browser's localStorage. It is never written to settings.json or GitHub.", keyRequiredMessage:"A valid SteamGridDB API Key is required for game artwork matching. You can still use Program & App Icons without a key.",
     noArtTitle:"No cover art for this one",
     noArtDescription:"SteamGridDB doesn't have artwork for this game yet. Game Icons Studio can create a clean placeholder Icon with the game's name, matching your other Icons.",
     historyTitle:"Your Icon History", historySubtitle:"The most recent Icon changes you have made.", historyPlaceholder:"🔍 Search History...",
@@ -1312,6 +1314,7 @@ var screenI18n = {
     keySteps:["SteamGridDB'yi aç ve sağ üstten Login'e tıkla.","Steam ile Sign in yap; ücretsiz hesabın hemen oluşturulur.","Geri dön ve API Key almak için diğer düğmeyi kullan.","Aşağıdaki düğmeyle API ayarlarını aç.","Create API Key'e, ardından Copy'ye tıkla.","Key'i buraya yapıştır; hazırsın."],
     keyCreate:"SteamGridDB hesabı oluştur", keyGet:"API Key'imi al", keyPlaceholder:"API Key'ini buraya yapıştır",
     keyPaste:"📋 Yapıştır ve devam et", keyContinue:"Devam et", keyNoKey:"Program & App Icons ile devam et (API Key gerekmez)",
+    keyStorageNotice:"API Key'in yalnızca bu tarayıcının localStorage alanında saklanır. settings.json dosyasına veya GitHub'a yazılmaz.", keyRequiredMessage:"Oyun Artwork eşleştirmesi için geçerli bir SteamGridDB API Key gerekir. API Key olmadan Program & App Icons özelliğini kullanabilirsin.",
     noArtTitle:"Bu oyun için Cover bulunamadı",
     noArtDescription:"SteamGridDB'de bu oyun için henüz Artwork yok. Game Icons Studio, diğer Icon'larınla uyumlu, oyunun adını taşıyan sade bir Placeholder Icon oluşturabilir.",
     historyTitle:"Icon History", historySubtitle:"Şimdiye kadar yaptığın en son Icon değişiklikleri.", historyPlaceholder:"🔍 History içinde ara...",
@@ -1359,6 +1362,7 @@ var screenI18n = {
     keySteps:["افتح SteamGridDB واضغط Login في أعلى اليمين.","سجّل الدخول باستخدام Steam لإنشاء حسابك المجاني فوراً.","ارجع إلى هنا واستخدم الزر الآخر للحصول على المفتاح.","افتح إعدادات API باستخدام الزر أدناه.","اضغط Create API Key ثم Copy.","الصق المفتاح هنا وأنت جاهز."],
     keyCreate:"إنشاء حساب SteamGridDB", keyGet:"الحصول على API Key", keyPlaceholder:"الصق API Key هنا",
     keyPaste:"📋 لصق ومتابعة", keyContinue:"متابعة", keyNoKey:"المتابعة باستخدام Program & App Icons (من دون API Key)",
+    keyStorageNotice:"يُحفظ API Key في localStorage لهذا المتصفح فقط. ولا تتم كتابته في settings.json أو GitHub.", keyRequiredMessage:"يلزم SteamGridDB API Key صالح لمطابقة صور الألعاب. يمكنك استخدام Program & App Icons من دون مفتاح.",
     noArtTitle:"لا يوجد غلاف لهذه اللعبة",
     noArtDescription:"لا تتوفر Artwork لهذه اللعبة في SteamGridDB بعد. يمكن لـ Game Icons Studio إنشاء Placeholder Icon بسيط باسم اللعبة ليتناسق مع بقية الأيقونات.",
     historyTitle:"سجل الأيقونات", historySubtitle:"أحدث تغييرات الأيقونات التي أجريتها.", historyPlaceholder:"🔍 البحث في السجل...",
@@ -1866,6 +1870,7 @@ function applyScreenLanguage(screen) {
   many('#step-key .tut-step span:not(.tut-num)', screen.keySteps);
   many('#step-key .key-col .big-btn', [screen.keyCreate,screen.keyGet]);
   placeholder('#keyInput', screen.keyPlaceholder);
+  text('#keyStorageNotice', screen.keyStorageNotice);
   many('#step-key .btn-row button', [screen.keyPaste,screen.keyContinue,screen.keyNoKey]);
 
   // No-art, History and About
@@ -2145,7 +2150,14 @@ document.addEventListener('fullscreenchange', function(){
 });
 
 function api(path, body){
-  return fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{}) })
+  var headers = {'Content-Type':'application/json'};
+  // Each browser profile supplies its own SteamGridDB key to the local server.
+  // The key is never embedded in the application or written to settings.json.
+  try {
+    var localApiKey = localStorage.getItem('gis-sgdb-api-key') || '';
+    if (localApiKey) headers['X-GIS-API-Key'] = localApiKey;
+  } catch(e) {}
+  return fetch(path, { method:'POST', headers:headers, body: JSON.stringify(body||{}) })
     .then(function(r){ return r.json(); });
 }
 function shutdownMessage(){
@@ -2179,9 +2191,35 @@ function preloadAround(pos){
 }
 
 // ---- API KEY ----
+function showKeySetup(message){
+  show('step-key');
+  if (message) $('keyMsg').textContent = message;
+  setTimeout(function(){ $('keyInput').focus(); }, 100);
+}
+function getLocalApiKey(){
+  try { return (localStorage.getItem('gis-sgdb-api-key') || '').trim(); }
+  catch(e){ return ''; }
+}
+function requireApiKeyForGameArtwork(){
+  if (getLocalApiKey()) return true;
+  showKeySetup((screenI18n[currentLang] || screenI18n.en).keyRequiredMessage);
+  return false;
+}
 function checkKey(){
-  api('/api/key-status', {}).then(function(res){
-    if (res.hasKey){ showHome(); } else { show('step-key'); setTimeout(function(){ $('keyInput').focus(); }, 100); }
+  var savedKey = getLocalApiKey();
+  if (!savedKey){ showKeySetup(); return; }
+  $('keyMsg').textContent = statusText('checkingKey');
+  api('/api/save-key', { key: savedKey }).then(function(res){
+    if (res && res.ok){
+      $('keyMsg').textContent = '';
+      showHome();
+    } else {
+      try { localStorage.removeItem('gis-sgdb-api-key'); } catch(e){}
+      $('keyInput').value = '';
+      showKeySetup((res && res.error) || statusText('invalidKey'));
+    }
+  }).catch(function(){
+    showKeySetup(statusText('localServerError'));
   });
 }
 function openUrl(u){ try { window.open(u, '_blank'); } catch(e){} }
@@ -2196,8 +2234,7 @@ function pasteKey(){
   }
 }
 function continueWithoutKey(){
-  // SteamGridDB is optional for the dedicated Google/Yandex app-icon workflow.
-  state.iconSearchOnly = false;
+  // Keyless access is limited to the dedicated Google/Yandex app-icon workflows.
   showHome();
 }
 function saveKey(){
@@ -2205,8 +2242,20 @@ function saveKey(){
   if (!key){ $('keyMsg').textContent = statusText('needKey'); return; }
   $('keyMsg').textContent = statusText('checkingKey');
   api('/api/save-key', { key: key }).then(function(res){
-    if (res.ok){ $('keyMsg').textContent = ''; goHome(); }
-    else { $('keyMsg').textContent = res.error || statusText('invalidKey'); }
+    if (res && res.ok){
+      try {
+        localStorage.setItem('gis-sgdb-api-key', key);
+        $('keyInput').value = '';
+        $('keyMsg').textContent = '';
+        goHome();
+      } catch(e){
+        $('keyMsg').textContent = 'Browser storage is unavailable. Enable site storage for localhost and try again.';
+      }
+    } else {
+      $('keyMsg').textContent = (res && res.error) || statusText('invalidKey');
+    }
+  }).catch(function(){
+    $('keyMsg').textContent = statusText('localServerError');
   });
 }
 
@@ -2448,6 +2497,7 @@ function repairIconCache(){
 
 // ---- FULL SCAN flow ----
 function startFullScan(iconSearchOnly){
+  if (!iconSearchOnly && !requireApiKeyForGameArtwork()) return;
   state.gameFilesSummary = '';
   state.mode = 'full';
   state.targetMode = 'shortcuts';
@@ -2501,6 +2551,7 @@ function updateFolderScreenLabels(){
   }
 }
 function startGameFilesFolder(){
+  if (!requireApiKeyForGameArtwork()) return;
   state.mode = 'change';
   state.iconSearchOnly = false;
   state.targetMode = 'game_files';
@@ -2515,6 +2566,7 @@ function startGameFilesFolder(){
 }
 
 function startFolderMode(type){
+  if (!requireApiKeyForGameArtwork()) return;
   state.gameFilesSummary = '';
   state.mode = 'full';
   state.iconSearchOnly = false;
@@ -2755,6 +2807,7 @@ function scanAllInstead(){
 
 // ---- CHANGE ICONS flow ----
 function startChangeIcons(anyFiles){
+  if (!anyFiles && !requireApiKeyForGameArtwork()) return;
   state.gameFilesSummary = '';
   state.mode = 'change';
   state.iconSearchOnly = !!anyFiles;

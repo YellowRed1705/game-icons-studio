@@ -27,3 +27,11 @@ desktop.ini
 
 # Local release build output
 release-output/
+
+# Additional credential sources — never commit local secrets or exports
+.env
+.env.*
+*.env
+**/settings.json
+**/*api-key*.txt
+**/*apikey*.txt

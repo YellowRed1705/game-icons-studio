@@ -1,5 +1,5 @@
 # ============================================================
-#  Main.ps1 - Game Icons Studio (v6.41)
+#  Main.ps1 - Game Icons Studio (v6.42)
 #  Menu: Full Auto | Smart Auto | Manual | Selected Files Only
 #        Revision | Manual Search | Rebuild | Cache
 # ============================================================
@@ -38,7 +38,7 @@ if ([string]::IsNullOrWhiteSpace($Root)) { $Root = $ScriptDir }
 function Show-Banner {
     Write-Host ''
     Write-Host '  ============================================================' -ForegroundColor DarkCyan
-    Write-Host '   GAME ICONS STUDIO  v6.41' -ForegroundColor Cyan
+    Write-Host '   GAME ICONS STUDIO  v6.42' -ForegroundColor Cyan
     Write-Host '   Game and app icons, with safe restore history.' -ForegroundColor Gray
     Write-Host '   Find game covers and app icons. Modernize your shortcuts.' -ForegroundColor DarkGray
     Write-Host '  ============================================================' -ForegroundColor DarkCyan
@@ -64,10 +64,11 @@ function Get-RunContext {
 
     $settings = Get-Settings -Root $Root
 
-    # Browser mode handles the API key inside the web UI, so we skip
-    # the console key prompt and connection test here when asked.
+    # Browser mode starts with an empty server-side key context. The browser
+    # validates its own localStorage key and supplies it per request.
+    # Classic CMD mode prompts for a session-only key on every run.
     if ($SkipKeyPrompt) {
-        $apiKey = [string]$settings.ApiKey
+        $apiKey = ''
     } else {
         $apiKey = Get-ApiKey -Root $Root -Settings $settings
         try {
@@ -76,10 +77,8 @@ function Get-RunContext {
                 return $null
             }
         } catch [System.UnauthorizedAccessException] {
-            Write-Log 'Your SteamGridDB API key was rejected (HTTP 401).' 'ERROR'
-            $settings.ApiKey = ''
-            Save-Settings -Root $Root -Settings $settings
-            Write-Log 'The stored key was cleared. Run the tool again and enter a valid key.' 'WARN'
+            Write-Log 'Your SteamGridDB API key was rejected (HTTP 401). No API key is stored on disk.' 'ERROR'
+            Write-Log 'Run the tool again and enter a valid key.' 'WARN'
             return $null
         }
         Write-Log 'SteamGridDB connection OK.' 'OK'

@@ -1,5 +1,5 @@
 # ============================================================
-#  WebServer.ps1 (v6.41) - Local browser-driven mode
+#  WebServer.ps1 (v6.42) - Local browser-driven mode
 #  A tiny HttpListener server on http://localhost:PORT that
 #  serves a single-page web app and a small JSON API. The whole
 #  workflow (folder pick, scan, match, cover choice, apply, live
@@ -248,6 +248,12 @@ function Invoke-WebRoute {
     $path = $req.Url.AbsolutePath.ToLowerInvariant()
     $method = $req.HttpMethod.ToUpperInvariant()
 
+    # Browser profile supplies its own key on each local API request.
+    # GET / clears stale in-memory credentials before browser boot.
+    if ($path -ne '/api/save-key') {
+        $Session.Ctx.ApiKey = ([string]$req.Headers['X-GIS-API-Key']).Trim()
+    }
+
     if ($path -eq '/' -and $method -eq 'GET') {
         # Force state reset on page load to prevent state-locking
         try {
@@ -327,13 +333,14 @@ function Invoke-WebRoute {
         catch [System.UnauthorizedAccessException] { $valid = $false }
         catch { $valid = $false }
         if (-not $valid) {
+            $Session.Ctx.ApiKey = ''
             Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'That key did not work. Double-check and try again.' })
             return
         }
         $Session.Ctx.ApiKey = $key
-        $Session.Ctx.Settings.ApiKey = $key
-        Save-Settings -Root $Session.Root -Settings $Session.Ctx.Settings
-        Write-Log 'API key saved from the browser.' 'OK'
+        # Persistent storage is exclusively the user's browser localStorage.
+        # Never copy a browser key into settings.json, logs, or repository files.
+        Write-Log 'SteamGridDB API key validated for this browser session; no disk copy was made.' 'OK'
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true })
         return
     }
@@ -415,6 +422,10 @@ function Invoke-WebRoute {
         $files = @()
         if ($body -and $body.files) { $files = @($body.files | ForEach-Object { [string]$_ }) }
         $iconSearchOnly = [bool]($body -and $body.iconSearchOnly)
+        if (-not $iconSearchOnly -and [string]::IsNullOrWhiteSpace([string]$Session.Ctx.ApiKey)) {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'A valid SteamGridDB API key is required for game artwork matching.' })
+            return
+        }
         $result = Start-WebScanFiles -Session $Session -Files $files -IconSearchOnly $iconSearchOnly
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe $result)
         return
@@ -425,6 +436,10 @@ function Invoke-WebRoute {
         $body = $null
         try { $body = $bodyText | ConvertFrom-Json } catch { }
         $folder = if ($body -and $body.folder) { [string]$body.folder } else { '' }
+        if ([string]::IsNullOrWhiteSpace([string]$Session.Ctx.ApiKey)) {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'A valid SteamGridDB API key is required for game artwork matching.' })
+            return
+        }
         $result = Start-WebScanGameFolder -Session $Session -Folder $folder
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe $result)
         return
@@ -542,6 +557,10 @@ function Invoke-WebRoute {
         $onlyNew  = if ($body -and $body.onlyNew)  { [bool]$body.onlyNew }    else { $false }
         $targetMode = if ($body -and $body.targetMode) { [string]$body.targetMode } else { 'shortcuts' }
         $Session.IconSearchOnly = [bool]($body -and $body.iconSearchOnly)
+        if (-not $Session.IconSearchOnly -and [string]::IsNullOrWhiteSpace([string]$Session.Ctx.ApiKey)) {
+            Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'A valid SteamGridDB API key is required for game artwork matching.' })
+            return
+        }
 
         $result = Start-WebScan -Session $Session -OnlyNew $onlyNew -TargetMode $targetMode
 
