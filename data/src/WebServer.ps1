@@ -1,5 +1,5 @@
 # ============================================================
-#  WebServer.ps1 (v6.42) - Local browser-driven mode
+#  WebServer.ps1 (v6.43) - Local browser-driven mode
 #  A tiny HttpListener server on http://localhost:PORT that
 #  serves a single-page web app and a small JSON API. The whole
 #  workflow (folder pick, scan, match, cover choice, apply, live
@@ -204,6 +204,7 @@ function Start-IconWebApp {
         Running    = $true
         Dialog     = $dialog
         CoverCache = @{}    # gameId -> covers, to avoid repeat API calls
+        ProgramIconNames = @{} # normalized names routed through Program & App Icons within mixed scans
     }
 
     # Serve until quit. Use async GetContext so we can poll Q key.
@@ -273,6 +274,7 @@ function Invoke-WebRoute {
         $Session.Shortcuts     = @()
         $Session.Names         = @()
         $Session.Pending       = @()
+        $Session.ProgramIconNames = @{}
 
         Send-HttpResponse -Context $Context -Body (Get-WebAppHtml) -ContentType 'text/html; charset=utf-8'
         return
@@ -883,6 +885,7 @@ function Start-WebScan {
 
     $ctx = $Session.Ctx
     $Session.CoverCache = @{}
+    $Session.ProgramIconNames = @{}
     Write-Log "Web scan: $($ctx.Folder) (OnlyNew=$OnlyNew, TargetMode=$TargetMode, IconSearchOnly=$($Session.IconSearchOnly))" 'INFO'
 
     $shortcuts = @()
@@ -1076,8 +1079,10 @@ function Step-WebScan {
     }
 
     $name = [string]$names[$Index]
+    $isProgramIcon = [bool]$Session.IconSearchOnly
+    if (-not $isProgramIcon -and $Session.ProgramIconNames -and $Session.ProgramIconNames.ContainsKey($name)) { $isProgramIcon = $true }
     $fast = $null
-    if ($Session.IconSearchOnly) {
+    if ($isProgramIcon) {
         # Program/App mode performs automatic software-icon matching when an
         # API key is configured. Without a key, leave the item unmatched so it
         # can be handled from the review grid with Google/Yandex/local images.
@@ -1121,7 +1126,7 @@ function Step-WebScan {
         # stop for borderline-but-likely matches.
         if (@($fast.candidateGames).Count -gt 0) { $topScore = [int]([double]$fast.candidateGames[0].Score * 100) }
         if (@($fast.best.Covers).Count -gt 0 -and $topScore -ge 55) { $autoConfident = $true }
-        if ($Session.IconSearchOnly -and @($fast.best.Covers).Count -gt 0) {
+        if ($isProgramIcon -and @($fast.best.Covers).Count -gt 0) {
             # The app-icon workflow is batch-first: choose the best-ranked
             # candidate automatically and expose the full preview grid after
             # the scan, where the user can change selected items.
@@ -1145,7 +1150,7 @@ function Step-WebScan {
         }
     }
 
-    if ($Session.IconSearchOnly) {
+    if ($isProgramIcon) {
         # v6.35: real web-image candidates complement the sparse SteamGridDB software catalogue.
         # Google/Yandex are queried in parallel; the merged results are ranked by square ratio,
         # available dimensions, file type and likely image relevance before the preview grid appears.
@@ -1199,7 +1204,7 @@ function Step-WebScan {
         }
     }
 
-    if ($Session.IconSearchOnly -and $onlineCandidates.Count -eq 0) {
+    if ($isProgramIcon -and $onlineCandidates.Count -eq 0) {
         # If the web providers return no parseable candidates, do not let a
         # possibly unrelated game-catalog result outrank the program's own icon.
         # Prefer the embedded EXE/ICO icon first, keeping SGDB results only as
@@ -1234,6 +1239,7 @@ function Step-WebScan {
         Safe     = [string]$safe
         IcoPath  = [string]$icoPath
         Sections = $jsonSections   # filled/extended by the browser as needed
+        IsProgramIcon = [bool]$isProgramIcon
     }
     $Session.Pending += $itemObj
 
@@ -1245,7 +1251,7 @@ function Step-WebScan {
         confident      = $confident
         autoConfident  = $autoConfident
         topScore       = $topScore
-        iconSearchOnly = [bool]$Session.IconSearchOnly
+        iconSearchOnly = [bool]$isProgramIcon
     }
 
     # Remembered choice? Mark it so the browser can offer to skip /
@@ -1254,7 +1260,7 @@ function Step-WebScan {
         if ($ctx.SavedChoices.ContainsKey($name)) {
             $sc = $ctx.SavedChoices[$name]
             $savedKind = if ($sc.PSObject.Properties.Name -contains 'Kind') { [string]$sc.Kind } else { '' }
-            $kindMatches = if ($Session.IconSearchOnly) { $savedKind -eq 'icon' } else { $savedKind -ne 'icon' }
+            $kindMatches = if ($isProgramIcon) { $savedKind -eq 'icon' } else { $savedKind -ne 'icon' }
             $savedUrl = [string]$sc.Url
             $savedSourceExists = $true
             if ($savedUrl -match '^/cache/') {
@@ -1327,6 +1333,7 @@ function Step-WebApply {
                     Url      = [string]$p.url
                     GameId   = [int]$p.gameId
                     GameName = [string]$p.gameName
+                    IsProgramIcon = [bool]$p.isProgramIcon
                 }
             }
         }
@@ -1340,17 +1347,17 @@ function Step-WebApply {
         if (-not $pickMap.ContainsKey($key) -or [string]::IsNullOrWhiteSpace($pickMap[$key].Url)) {
             # In app/file mode, never overwrite an unresolved target with a fake
             # placeholder. The normal apply engine reports it as Skipped.
-            if ($Session.IconSearchOnly) { continue }
+            if ($Session.IconSearchOnly -or [bool]$entry.IsProgramIcon) { continue }
             $resolutions[$nm] = @{ Placeholder = $true; IcoPath = [string]$entry.IcoPath; GameName = $nm; Failed = $false; Cached = $false }
             continue
         }
 
         $pick = $pickMap[$key]
-        $kind = if ($Session.IconSearchOnly) { 'icon' } else { [string]$ctx.Category }
+        $kind = if ($Session.IconSearchOnly -or [bool]$pick.IsProgramIcon) { 'icon' } else { [string]$ctx.Category }
         $resolutions[$nm] = New-ArtworkResolution -Ctx $ctx -Name $nm -Safe ([string]$entry.Safe) -IcoPath ([string]$entry.IcoPath) `
             -Url ([string]$pick.Url) -Kind $kind -GameName ([string]$pick.GameName) -Score 1.0 -DeleteRaw ([string]$pick.Url -notlike '/cache/*')
 
-        if (-not $Session.IconSearchOnly) {
+        if (-not $Session.IconSearchOnly -and -not [bool]$pick.IsProgramIcon) {
             if ($pick.GameId -gt 0) { $ctx.Overrides[$nm] = [int]$pick.GameId }
         }
         $ctx.SavedChoices[$nm] = [PSCustomObject]@{
@@ -1464,11 +1471,523 @@ function Start-WebScanGameFolder {
     $existingLinkPaths = @{}
     $urlSourceByLink = @{}
     $launchConfigBySource = @{}
+    $programIconPaths = @{}
+    $includedProgramIconShortcuts = 0
     $wsh = Get-WshShell
 
     $emulatorProfiles = @(
         @{ Family='cemu'; Pattern='^(?i:cemu)(?:[-_].*)?$'; Extensions=@('.wud','.wux','.wua','.rpx'); Prefix='-g' },
-        @{ Family='ryujinx'; Pattern='^(?i:ryujinx)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
+        @{ Family='ryujinx'; Pattern='^(?i:ryujinx|ryubing),
+        @{ Family='eden'; Pattern='^(?i:eden)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
+        @{ Family='yuzu'; Pattern='^(?i:yuzu)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
+        @{ Family='dolphin'; Pattern='^(?i:dolphin)(?:-qt)?$'; Extensions=@('.wbfs','.rvz','.gcm','.gcz'); Prefix='-e' },
+        @{ Family='mgba'; Pattern='^(?i:mgba)$'; Extensions=@('.gba','.gbc','.gb'); Prefix='' },
+        @{ Family='melonds'; Pattern='^(?i:melonds)$'; Extensions=@('.nds','.dsi'); Prefix='' },
+        @{ Family='azahar'; Pattern='^(?i:azahar)$'; Extensions=@('.3ds','.cia','.cxi','.3dsx'); Prefix='' },
+        @{ Family='citra'; Pattern='^(?i:citra)(?:-qt)?$'; Extensions=@('.3ds','.cia','.cxi','.3dsx'); Prefix='' },
+        @{ Family='pcsx2'; Pattern='^(?i:pcsx2)(?:-qt)?$'; Extensions=@('.chd'); Prefix='' }
+    )
+    $emulatorTargets = @{}
+
+    $romExtensions = @(
+        '.gb','.gbc','.gba','.nds','.dsi','.3ds','.cia','.cxi','.3dsx',
+        '.n64','.z64','.v64','.nes','.fds','.sfc','.smc','.md','.gen',
+        '.wud','.wux','.wua','.rpx','.nsp','.xci','.nca',
+        '.iso','.chd','.cso','.pbp','.wbfs','.rvz','.gcm','.gcz','.cdi','.gdi','.rom'
+    )
+    $scanExtensions = @('.lnk','.url','.exe','.bat','.cmd') + $romExtensions
+    $allFiles = @()
+    try {
+        $allFiles = @(Get-ChildItem -LiteralPath $Folder -Recurse -File -Force -ErrorAction SilentlyContinue |
+            Where-Object { $scanExtensions -contains $_.Extension.ToLowerInvariant() })
+    } catch {
+        Write-Log "Could not enumerate game folder '$Folder': $($_.Exception.Message)" 'WARN'
+        return @{ ok = $false; error = "The selected folder could not be read: $($_.Exception.Message)" }
+    }
+    $existingLinks = @($allFiles | Where-Object { $_.Extension -ieq '.lnk' })
+
+    # Inspect all existing links first. Their target and argument paths are
+    # used both for duplicate detection and emulator-ROM launch templates.
+    foreach ($linkFile in $existingLinks) {
+        $linkPathKey = ([string]$linkFile.FullName).ToLowerInvariant()
+        $existingLinkPaths[$linkPathKey] = $true
+        $existingLinkNames[[System.IO.Path]::GetFileNameWithoutExtension($linkFile.Name).ToLowerInvariant()] = $true
+        try {
+            $link = $wsh.CreateShortcut($linkFile.FullName)
+            $target = [string]$link.TargetPath
+            $targetLeaf = ''
+            if (-not [string]::IsNullOrWhiteSpace($target)) {
+                try { $target = [System.IO.Path]::GetFullPath($target) } catch { }
+                $existingLinkTargets[$target.ToLowerInvariant()] = $true
+                $targetLeaf = [System.IO.Path]::GetFileNameWithoutExtension($target)
+                foreach ($profile in $emulatorProfiles) {
+                    if ($targetLeaf -match $profile.Pattern -and (Test-Path -LiteralPath $target -PathType Leaf)) {
+                        if (-not $emulatorTargets.ContainsKey($profile.Family)) {
+                            $emulatorTargets[$profile.Family] = [PSCustomObject]@{
+                                TargetPath = $target
+                                WorkingDirectory = [System.IO.Path]::GetDirectoryName($target)
+                                Arguments = [string]$link.Arguments
+                            }
+                        }
+                    }
+                }
+            }
+            $arguments = [string]$link.Arguments
+            if (-not [string]::IsNullOrWhiteSpace($arguments)) {
+                foreach ($candidate in @($arguments -split '"')) {
+                    if (-not [string]::IsNullOrWhiteSpace($candidate) -and
+                        (Test-Path -LiteralPath $candidate -PathType Leaf -ErrorAction SilentlyContinue)) {
+                        try { $candidate = [System.IO.Path]::GetFullPath($candidate) } catch { }
+                        $existingLinkTargets[$candidate.ToLowerInvariant()] = $true
+                    }
+                }
+            }
+        } catch {
+            Write-Log "Existing shortcut could not be inspected: $($linkFile.FullName) ($($_.Exception.Message))" 'DEBUG'
+        }
+    }
+
+    $includedShortcuts = 0
+    $excludedLauncherApps = 0
+    foreach ($linkFile in $existingLinks) {
+        if ($files.Count -ge $maxTargets) { $truncated++; continue }
+        $skipAsLauncherUtility = $false
+        $isEmulatorAppShortcut = $false
+        try {
+            $link = $wsh.CreateShortcut($linkFile.FullName)
+            $target = [string]$link.TargetPath
+            $targetLeaf = [System.IO.Path]::GetFileNameWithoutExtension($target)
+            $arguments = [string]$link.Arguments
+            if ([string]::IsNullOrWhiteSpace($arguments)) {
+                # Keep emulator executable links available both as ROM launch
+                # profiles and as application-icon artwork targets.
+                foreach ($profile in $emulatorProfiles) {
+                    if ($targetLeaf -match $profile.Pattern) { $isEmulatorAppShortcut = $true; break }
+                }
+                $launcherClientNames = @('steam','steamwebhelper','epicgameslauncher','epiconlineservices','ubisoftconnect','ubisoftgamelauncher','upc','uplay','battle.net','eadesktop','origin','goggalaxy','galaxyclient','xbox','gamingservicesui','playnite','amazongames','heroic')
+                if (-not $isEmulatorAppShortcut -and $launcherClientNames -contains $targetLeaf.ToLowerInvariant()) {
+                    $skipAsLauncherUtility = $true
+                }
+            }
+        } catch { }
+        if ($skipAsLauncherUtility) {
+            $excludedLauncherApps++
+            continue
+        }
+        $key = ([string]$linkFile.FullName).ToLowerInvariant()
+        if (-not $seenPaths.ContainsKey($key)) {
+            $seenPaths[$key] = $true
+            $files.Add([string]$linkFile.FullName)
+            $includedShortcuts++
+            if ($isEmulatorAppShortcut) {
+                $programIconPaths[$key] = $true
+                $includedProgramIconShortcuts++
+            }
+        }
+    }
+
+    # URL game launchers (Steam, Ubisoft Connect, Epic, EA, Battle.net, Xbox,
+    # and registered custom URI handlers). Keep the original until apply has
+    # created a restorable transaction and verified the replacement .lnk.
+    $convertedUrls = 0
+    $failedUrls = 0
+    $urlFallbacks = New-Object System.Collections.Generic.List[string]
+    foreach ($internetShortcut in @(Get-InternetShortcuts -Folder $Folder)) {
+        if ($files.Count -ge $maxTargets) { $truncated++; continue }
+        $alreadyRepresented = $false
+        foreach ($existingLink in $existingLinks) {
+            try {
+                $existing = $wsh.CreateShortcut($existingLink.FullName)
+                if ([string]$existing.TargetPath -ieq (Join-Path $env:WINDIR 'explorer.exe') -and
+                    ([string]$existing.Arguments).IndexOf([string]$internetShortcut.Url,[System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                    $alreadyRepresented = $true
+                    break
+                }
+                if (([string]$existing.TargetPath).IndexOf([string]$internetShortcut.Url,[System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                    $alreadyRepresented = $true
+                    break
+                }
+            } catch { }
+        }
+        if ($alreadyRepresented) { continue }
+
+        $newLink = Convert-InternetShortcut -Shortcut $internetShortcut -RemoveOriginal:$false
+        if (-not [string]::IsNullOrWhiteSpace([string]$newLink) -and (Test-Path -LiteralPath $newLink -PathType Leaf)) {
+            $newKey = ([string]$newLink).ToLowerInvariant()
+            if (-not $seenPaths.ContainsKey($newKey)) {
+                $seenPaths[$newKey] = $true
+                $files.Add([string]$newLink)
+            }
+            $wasAlreadyThere = $existingLinkPaths.ContainsKey($newKey)
+            $urlSourceByLink[$newKey] = [PSCustomObject]@{
+                SourceUrlPath = [string]$internetShortcut.Path
+                CreatedNow = (-not $wasAlreadyThere)
+            }
+            $convertedUrls++
+        } else {
+            $failedUrls++
+            # Keep source intact. The standard file-association link builder can
+            # still create a launchable companion for the .url file itself.
+            $urlFallbacks.Add([string]$internetShortcut.Path)
+        }
+    }
+    foreach ($fallback in $urlFallbacks) {
+        $key = $fallback.ToLowerInvariant()
+        if ($files.Count -ge $maxTargets) { $truncated++; continue }
+        if (-not $seenPaths.ContainsKey($key)) {
+            $seenPaths[$key] = $true
+            $files.Add($fallback)
+        }
+    }
+
+    $includedExecutables = 0
+    $includedScripts = 0
+    $includedRoms = 0
+    $excludedHelpers = 0
+    $alreadyLinked = 0
+    $helperNamePattern = '^(?i:setup|install|unins\d*|uninstall|crashreportclient|unitycrashhandler(?:64)?|eosoverlayrenderer|easyanticheat|battleye|vc_redist.*|dxsetup|ueprereqsetup|reportcrash|werfault|patcher|updater)(?:$|[-_. ])'
+    $helperPathPattern = '[\\/](?i:_commonredist|redist|redistributables|directx|easyanticheat|battleye|crashreporter|crashreports)[\\/]'
+    $candidateFiles = @($allFiles | Where-Object {
+        $_.Extension -in @('.exe','.bat','.cmd') -or $_.Extension.ToLowerInvariant() -in $romExtensions
+    })
+
+    foreach ($candidate in $candidateFiles) {
+        $extension = [string]$candidate.Extension.ToLowerInvariant()
+        $baseName = [System.IO.Path]::GetFileNameWithoutExtension($candidate.Name)
+        if ($extension -eq '.exe' -and ($baseName -match $helperNamePattern -or $candidate.FullName -match $helperPathPattern)) {
+            $excludedHelpers++
+            continue
+        }
+
+        $fullPath = [System.IO.Path]::GetFullPath($candidate.FullName)
+        $targetKey = $fullPath.ToLowerInvariant()
+        if ($existingLinkTargets.ContainsKey($targetKey)) {
+            $alreadyLinked++
+            continue
+        }
+        $pathKey = $fullPath.ToLowerInvariant()
+        if ($seenPaths.ContainsKey($pathKey)) { continue }
+        if ($files.Count -ge $maxTargets) { $truncated++; continue }
+
+        $seenPaths[$pathKey] = $true
+        $files.Add($fullPath)
+        if ($extension -eq '.exe') {
+            $includedExecutables++
+        } elseif ($extension -in @('.bat','.cmd')) {
+            $includedScripts++
+        } else {
+            $includedRoms++
+            # If a known emulator launcher already exists in this folder,
+            # use it for ROM links. Otherwise use the Windows file association.
+            $familyOrder = @()
+            switch ($extension) {
+                { $_ -in @('.wud','.wux','.wua','.rpx') } { $familyOrder = @('cemu') }
+                { $_ -in @('.nsp','.xci','.nca') } { $familyOrder = @('ryujinx','eden','yuzu') }
+                { $_ -in @('.wbfs','.rvz','.gcm','.gcz') } { $familyOrder = @('dolphin') }
+                { $_ -in @('.gba','.gbc','.gb') } { $familyOrder = @('mgba') }
+                { $_ -in @('.nds','.dsi') } { $familyOrder = @('melonds') }
+                { $_ -in @('.3ds','.cia','.cxi','.3dsx') } { $familyOrder = @('azahar','citra') }
+                { $_ -eq '.chd' } { $familyOrder = @('pcsx2') }
+            }
+            foreach ($family in $familyOrder) {
+                if ($emulatorTargets.ContainsKey($family)) {
+                    $emulator = $emulatorTargets[$family]
+                    $argument = '"' + $fullPath + '"'
+                    if ($family -eq 'cemu') { $argument = '-g "' + $fullPath + '"' }
+                    elseif ($family -eq 'dolphin') { $argument = '-e "' + $fullPath + '"' }
+                    $launchConfigBySource[$pathKey] = [PSCustomObject]@{
+                        TargetPath = [string]$emulator.TargetPath
+                        Arguments = $argument
+                        WorkingDirectory = [string]$emulator.WorkingDirectory
+                    }
+                    break
+                }
+            }
+        }
+    }
+
+    if ($truncated -gt 0) {
+        Write-Log "Game folder scan capped at $maxTargets entries; $truncated additional entries were left untouched." 'WARN'
+    }
+    if ($files.Count -eq 0) {
+        return @{
+            ok = $false
+            error = 'No shortcuts, launcher links, game executables, scripts or supported ROM files were found.'
+            convertedUrls = $convertedUrls; failedUrls = $failedUrls
+            excludedHelpers = $excludedHelpers; alreadyLinked = $alreadyLinked
+        }
+    }
+
+    Write-Log "Game library scan: $($files.Count) entries, $includedShortcuts existing shortcuts, $convertedUrls launcher URLs, $includedExecutables EXE, $includedScripts scripts, $includedRoms ROMs, $alreadyLinked already linked, $excludedHelpers helper files skipped." 'INFO'
+    $result = Start-WebScanFiles -Session $Session -Files @($files.ToArray()) -IconSearchOnly $false
+
+    # Re-tag recognized emulator launcher links as Program & App Icons items
+    # after Start-WebScanFiles has built the common shortcut/name queue. Their
+    # executable targets remain available in $emulatorTargets for ROM links.
+    $Session.ProgramIconNames = @{}
+    if ($result.ok) {
+        foreach ($shortcut in @($Session.Shortcuts)) {
+            $shortcutKey = ([string]$shortcut.Path).ToLowerInvariant()
+            if ($programIconPaths.ContainsKey($shortcutKey)) {
+                $programName = ([string]$shortcut.Name -replace '^\s*[-–—]+\s*','').Trim()
+                if ([string]::IsNullOrWhiteSpace($programName)) { $programName = [string]$shortcut.Name }
+                $shortcut.NormalizedName = $programName
+                $shortcut | Add-Member -NotePropertyName IsProgramIconShortcut -NotePropertyValue $true -Force
+                $Session.ProgramIconNames[$programName] = $true
+            }
+        }
+        $Session.Names = @($Session.Shortcuts | Where-Object { $_.Status -ne 'Failed' } | ForEach-Object { [string]$_.NormalizedName } | Sort-Object -Unique)
+    }
+
+    # Start-WebScanFiles remembers the parent of its first item. Restore the
+    # exact user-selected root so later scans, backup UI and folder actions
+    # continue to point at the game library rather than a child directory.
+    $Session.Ctx.Folder = $Folder
+    $Session.Ctx.Settings.LastFolder = $Folder
+    try { Save-Settings -Root $Session.Root -Settings $Session.Ctx.Settings } catch { }
+
+    if ($result.ok) {
+        foreach ($shortcut in @($Session.Shortcuts)) {
+            $linkKey = ([string]$shortcut.Path).ToLowerInvariant()
+            if ($urlSourceByLink.ContainsKey($linkKey)) {
+                $urlInfo = $urlSourceByLink[$linkKey]
+                $shortcut | Add-Member -NotePropertyName SourceUrlPath -NotePropertyValue ([string]$urlInfo.SourceUrlPath) -Force
+                $shortcut | Add-Member -NotePropertyName IsNewlyConvertedUrlShortcut -NotePropertyValue ([bool]$urlInfo.CreatedNow) -Force
+                $shortcut.Detail = 'Converted launcher URL; Undo restores the original .url file.'
+            }
+            if ($shortcut.PSObject.Properties.Name -contains 'SourcePath') {
+                $sourceKey = ([string]$shortcut.SourcePath).ToLowerInvariant()
+                if ($launchConfigBySource.ContainsKey($sourceKey)) {
+                    $launch = $launchConfigBySource[$sourceKey]
+                    $shortcut | Add-Member -NotePropertyName LaunchTargetPath -NotePropertyValue ([string]$launch.TargetPath) -Force
+                    $shortcut | Add-Member -NotePropertyName LaunchArguments -NotePropertyValue ([string]$launch.Arguments) -Force
+                    $shortcut | Add-Member -NotePropertyName LaunchWorkingDirectory -NotePropertyValue ([string]$launch.WorkingDirectory) -Force
+                    $shortcut.Detail = 'ROM shortcut will open with the detected emulator.'
+                }
+            }
+        }
+        $result.sourceFiles = $files.Count
+        $result.includedShortcuts = $includedShortcuts
+        $result.includedProgramIconShortcuts = $includedProgramIconShortcuts
+        $result.includedExecutables = $includedExecutables
+        $result.includedScripts = $includedScripts
+        $result.includedRoms = $includedRoms
+        $result.convertedUrls = $convertedUrls
+        $result.failedUrls = $failedUrls
+        $result.excludedHelpers = $excludedHelpers
+        $result.excludedLauncherApps = $excludedLauncherApps
+        $result.alreadyLinked = $alreadyLinked
+        $result.truncated = $truncated
+    }
+    return $result
+}
+
+function Start-WebScanFiles {
+    <#
+        Change Icons: begins a chunked scan limited to the explicit
+        list of .lnk files the user picked. Same step protocol as the
+        full scan (scan-step drives the rest), so the browser code is
+        shared. Returns the unique-name total.
+    #>
+    param(
+        [Parameter(Mandatory)]$Session,
+        [Parameter(Mandatory)][string[]]$Files,
+        [bool]$IconSearchOnly = $false
+    )
+
+    $Session.IconSearchOnly = [bool]$IconSearchOnly
+    $Session.ProgramIconNames = @{}
+    $Session.CoverCache = @{}
+    if ($Files.Count -eq 0) {
+        return @{ ok = $false; error = 'No files selected.' }
+    }
+
+    $shortcuts = @(Get-ShortcutsFromPaths -Paths $Files)
+    if ($shortcuts.Count -eq 0) {
+        return @{ ok = $false; error = 'No supported files or shortcuts were selected.' }
+    }
+    foreach ($s in $shortcuts) {
+        if ($s.Status -ne 'Failed') { $s.NormalizedName = Get-NormalizedGameName -Name $s.Name }
+    }
+
+    # Remember the folder of the first picked file
+    try {
+        $folder = Split-Path -Parent $Files[0]
+        if (Test-Path $folder) {
+            $Session.Ctx.Folder = $folder
+            $Session.Ctx.Settings.LastFolder = $folder
+            Save-Settings -Root $Session.Root -Settings $Session.Ctx.Settings
+        }
+    } catch { }
+
+    $Session.Shortcuts = $shortcuts
+    $uniqueNames = @($shortcuts | Where-Object { $_.Status -ne 'Failed' } |
+        ForEach-Object { [string]$_.NormalizedName } | Sort-Object -Unique)
+    $Session.Names = $uniqueNames
+    $Session.Pending = @()
+
+    return @{
+        ok    = $true
+        count = $shortcuts.Count
+        total = $uniqueNames.Count
+    }
+}
+
+# ---------------- v6.4: async native dialogs (non-blocking) ----------------
+
+function Start-AsyncDialog {
+    <#
+        Launches a native folder or file picker on its OWN STA thread
+        so the HTTP server thread is never blocked. The result lands
+        in $Dialog (synchronized) which the browser polls via
+        /api/dialog-status. This fixes the "everything freezes then
+        all windows open at once" bug: the server keeps answering
+        requests while the Windows dialog is open.
+
+        $Kind = 'folder' or 'files'.
+    #>
+    param(
+        [Parameter(Mandatory)]$Dialog,
+        [Parameter(Mandatory)][ValidateSet('folder','files')][string]$Kind,
+        [string]$InitialFolder = '',
+        [string]$Title = '',
+        [IntPtr]$OwnerHwnd = [IntPtr]::Zero
+    )
+
+    if ($Dialog.status -eq 'running') {
+        Write-Log 'Previous dialog thread was stuck. Forcing cleanup...' 'WARN'
+        try {
+            if ($null -ne $Dialog.ps) {
+                $Dialog.ps.Stop()
+                $Dialog.ps.Runspace.Close()
+                $Dialog.ps.Dispose()
+                $Dialog.ps = $null
+            }
+        } catch { }
+        $Dialog.status = 'idle'
+    }
+
+    $Dialog.status = 'running'
+    $Dialog.kind   = $Kind
+    $Dialog.folder = ''
+    $Dialog.files  = @()
+    $Dialog.error  = ''
+
+    $worker = {
+        param($Dialog, $Kind, $InitialFolder, $Title, $OwnerHwnd)
+
+        try {
+            # Native IFileOpenDialog: the modern Windows 10/11 Explorer picker.
+            # The picker is hosted on this STA runspace so it never blocks HTTP.
+            $dialogTitle = [string]$Title
+            if ([string]::IsNullOrWhiteSpace($dialogTitle)) {
+                $dialogTitle = if ($Kind -eq 'folder') { 'Select your game library or shortcuts folder' } else { 'Choose shortcuts, launchers, game files, or ROMs' }
+            }
+            if ($Kind -eq 'folder') {
+                $selectedFolder = [GIS.NativeFileDialog]::PickFolder(
+                    $OwnerHwnd,
+                    $dialogTitle,
+                    [string]$InitialFolder
+                )
+                if (-not [string]::IsNullOrWhiteSpace([string]$selectedFolder)) {
+                    $Dialog.folder = [string]$selectedFolder
+                }
+            } else {
+                $selectedFiles = [GIS.NativeFileDialog]::PickFiles(
+                    $OwnerHwnd,
+                    $dialogTitle,
+                    [string]$InitialFolder
+                )
+                $Dialog.files = @($selectedFiles | ForEach-Object { [string]$_ })
+            }
+        } catch {
+            $Dialog.error = $_.Exception.Message
+            Write-Log "Modern Windows picker failed: $($_.Exception.Message)" 'WARN'
+        } finally {
+            $Dialog.status = 'done'
+        }
+    }
+
+    $ps = [PowerShell]::Create()
+    $rs = [RunspaceFactory]::CreateRunspace()
+    $rs.ApartmentState = 'STA'
+    $rs.ThreadOptions = 'ReuseThread'
+    $rs.Open()
+    $ps.Runspace = $rs
+    [void]$ps.AddScript($worker).AddArgument($Dialog).AddArgument($Kind).AddArgument($InitialFolder).AddArgument($Title).AddArgument($OwnerHwnd)
+    $Dialog.handle = $ps.BeginInvoke()
+    $Dialog.ps = $ps
+}
+
+function Open-FolderLargeIcons {
+    <#
+        Opens the processed folder in a real, maximized Explorer window.
+        The matching Explorer HWND is restored/maximized and brought to the
+        foreground after its Large Icons view is initialized.
+    #>
+    param([Parameter(Mandatory)][string]$Folder)
+
+    if ([string]::IsNullOrWhiteSpace($Folder) -or -not (Test-Path -LiteralPath $Folder -PathType Container)) { return }
+
+    $targetFolder = [System.IO.Path]::GetFullPath($Folder).TrimEnd([System.IO.Path]::DirectorySeparatorChar)
+    $shell = $null
+    try {
+        $shell = New-Object -ComObject Shell.Application
+        $shell.Open($targetFolder)
+
+        # Shell.Open may return before Explorer has created its folder window.
+        # Poll its real window list instead of guessing a fixed startup delay.
+        for ($attempt = 0; $attempt -lt 30; $attempt++) {
+            foreach ($window in @($shell.Windows())) {
+                try {
+                    $location = [string]$window.Document.Folder.Self.Path
+                    if ([string]::Equals(
+                        $location.TrimEnd([System.IO.Path]::DirectorySeparatorChar),
+                        $targetFolder,
+                        [System.StringComparison]::OrdinalIgnoreCase
+                    )) {
+                        try {
+                            $window.Document.CurrentViewMode = 1 # Icons view
+                            $window.Document.IconSize = 96       # Large Icons
+                        } catch { }
+
+                        $hwnd = [IntPtr]([long]$window.HWND)
+                        if ($hwnd -ne [IntPtr]::Zero) {
+                            [GIS.NativeWindowTools]::ShowMaximizedAndForeground($hwnd)
+                            Start-Sleep -Milliseconds 180
+                            [GIS.NativeWindowTools]::ShowMaximizedAndForeground($hwnd)
+                            Write-Log "Explorer folder opened maximized and focused: $targetFolder" 'OK'
+                            return
+                        }
+                    }
+                } catch { }
+            }
+            Start-Sleep -Milliseconds 150
+        }
+
+        # Fallback in case Explorer has not exposed its shell window yet.
+        Start-Process -FilePath 'explorer.exe' -ArgumentList ('/n "' + $targetFolder + '"') -ErrorAction Stop | Out-Null
+        Start-Sleep -Milliseconds 350
+        foreach ($window in @($shell.Windows())) {
+            try {
+                $location = [string]$window.Document.Folder.Self.Path
+                if ([string]::Equals($location.TrimEnd([System.IO.Path]::DirectorySeparatorChar),$targetFolder,[System.StringComparison]::OrdinalIgnoreCase)) {
+                    try { $window.Document.CurrentViewMode = 1; $window.Document.IconSize = 96 } catch { }
+                    [GIS.NativeWindowTools]::ShowMaximizedAndForeground([IntPtr]([long]$window.HWND))
+                    break
+                }
+            } catch { }
+        }
+    } catch {
+        Write-Log "Could not maximize the Explorer folder window: $($_.Exception.Message)" 'WARN'
+        try { Start-Process -FilePath 'explorer.exe' -ArgumentList ('/n "' + $targetFolder + '"') -ErrorAction SilentlyContinue | Out-Null } catch { }
+    } finally {
+        if ($null -ne $shell -and [System.Runtime.InteropServices.Marshal]::IsComObject($shell)) {
+            try { [System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) | Out-Null } catch { }
+        }
+    }
+}
+; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
         @{ Family='eden'; Pattern='^(?i:eden)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
         @{ Family='yuzu'; Pattern='^(?i:yuzu)$'; Extensions=@('.nsp','.xci','.nca'); Prefix='' },
         @{ Family='dolphin'; Pattern='^(?i:dolphin)(?:-qt)?$'; Extensions=@('.wbfs','.rvz','.gcm','.gcz'); Prefix='-e' },
@@ -1761,6 +2280,7 @@ function Start-WebScanFiles {
     )
 
     $Session.IconSearchOnly = [bool]$IconSearchOnly
+    $Session.ProgramIconNames = @{}
     $Session.CoverCache = @{}
     if ($Files.Count -eq 0) {
         return @{ ok = $false; error = 'No files selected.' }
