@@ -24,7 +24,6 @@ if ([string]::IsNullOrWhiteSpace($Root)) { $Root = $ScriptDir }
 . (Join-Path $ScriptDir 'Settings.ps1')
 . (Join-Path $ScriptDir 'ShortcutTools.ps1')
 . (Join-Path $ScriptDir 'SteamGridDB.ps1')
-. (Join-Path $ScriptDir 'ImageSearch.ps1')
 . (Join-Path $ScriptDir 'IconTools.ps1')
 . (Join-Path $ScriptDir 'ExplorerRefresh.ps1')
 . (Join-Path $ScriptDir 'IconBackup.ps1')
