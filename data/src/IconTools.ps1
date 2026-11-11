@@ -21,6 +21,181 @@ function Test-IsIcoFile {
     }
 }
 
+function Get-Sha256TextHash {
+    param([Parameter(Mandatory)][string]$Value)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Value)
+        return [System.BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-','').ToLowerInvariant()
+    } finally {
+        $sha.Dispose()
+    }
+}
+
+function Get-ContentAddressedIconCachePath {
+    <#
+        Returns the newest valid immutable ICO for one logical identity.
+        IdentityKey prevents two names that sanitize to the same filename
+        from accidentally sharing each other's cached artwork.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$IconsDir,
+        [Parameter(Mandatory)][string]$SafeName,
+        [string]$IdentityKey = ''
+    )
+
+    if (-not (Test-Path -LiteralPath $IconsDir -PathType Container)) { return $null }
+    $safe = Get-SafeFileName -Name $SafeName
+    if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'icon' }
+    $prefix = $safe + '--'
+    if (-not [string]::IsNullOrWhiteSpace($IdentityKey)) {
+        $identityHash = (Get-Sha256TextHash -Value $IdentityKey).Substring(0,12)
+        $prefix += $identityHash + '--'
+    }
+
+    $files = @()
+    try {
+        $files = @(Get-ChildItem -LiteralPath $IconsDir -File -Force -ErrorAction Stop |
+            Where-Object {
+                $_.Extension -ieq '.ico' -and
+                $_.BaseName.StartsWith($prefix,[System.StringComparison]::OrdinalIgnoreCase)
+            } |
+            Sort-Object LastWriteTimeUtc -Descending)
+    } catch { return $null }
+
+    foreach ($file in $files) {
+        if (Test-ValidIcoFile -Path $file.FullName) { return $file.FullName }
+    }
+    return $null
+}
+
+function Publish-ContentAddressedIco {
+    <#
+        Publishes a completed ICO under an immutable identity + SHA-256 path.
+        Existing files are never overwritten. Same identity and same bytes
+        reuse a path; changed bytes or another identity get a new path.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$StagingPath,
+        [Parameter(Mandatory)][string]$IconsDir,
+        [Parameter(Mandatory)][string]$SafeName,
+        [string]$IdentityKey = ''
+    )
+
+    if (-not (Test-ValidIcoFile -Path $StagingPath)) {
+        throw "The staged ICO is missing or invalid: $StagingPath"
+    }
+    if (-not (Test-Path -LiteralPath $IconsDir -PathType Container)) {
+        New-Item -ItemType Directory -Path $IconsDir -Force -ErrorAction Stop | Out-Null
+    }
+
+    $safe = Get-SafeFileName -Name $SafeName
+    if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'icon' }
+    if ([string]::IsNullOrWhiteSpace($IdentityKey)) { $IdentityKey = $SafeName }
+    $identityHash = (Get-Sha256TextHash -Value $IdentityKey).Substring(0,12)
+    $hash = (Get-FileHash -LiteralPath $StagingPath -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
+    $shortHash = $hash.Substring(0,20)
+    $namePrefix = $safe + '--' + $identityHash + '--'
+    $candidates = @(
+        (Join-Path $IconsDir ($namePrefix + $shortHash + '.ico')),
+        (Join-Path $IconsDir ($namePrefix + $hash + '.ico'))
+    )
+
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            if ((Test-ValidIcoFile -Path $candidate) -and
+                ((Get-FileHash -LiteralPath $candidate -Algorithm SHA256 -ErrorAction Stop).Hash -ieq $hash)) {
+                Remove-Item -LiteralPath $StagingPath -Force -ErrorAction SilentlyContinue
+                return $candidate
+            }
+            continue
+        }
+
+        try {
+            [System.IO.File]::Move($StagingPath,$candidate)
+            if (-not (Test-ValidIcoFile -Path $candidate)) { throw "Published ICO failed validation: $candidate" }
+            $publishedHash = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256 -ErrorAction Stop).Hash
+            if ($publishedHash -ine $hash) { throw "Published ICO hash verification failed: $candidate" }
+            return $candidate
+        } catch {
+            # A concurrent process may have published the exact same bytes.
+            if ((Test-Path -LiteralPath $candidate -PathType Leaf) -and
+                (Test-ValidIcoFile -Path $candidate)) {
+                $existingHash = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256 -ErrorAction Stop).Hash
+                if ($existingHash -ieq $hash) {
+                    Remove-Item -LiteralPath $StagingPath -Force -ErrorAction SilentlyContinue
+                    return $candidate
+                }
+            }
+            if (-not (Test-Path -LiteralPath $StagingPath -PathType Leaf)) { throw }
+        }
+    }
+
+    # Extremely unlikely short/full hash conflict: keep the content immutable
+    # and use a unique name rather than replacing any existing file.
+    $uniquePath = Join-Path $IconsDir ($namePrefix + $hash + '--' + [guid]::NewGuid().ToString('N') + '.ico')
+    [System.IO.File]::Move($StagingPath,$uniquePath)
+    if (-not (Test-ValidIcoFile -Path $uniquePath) -or
+        (Get-FileHash -LiteralPath $uniquePath -Algorithm SHA256 -ErrorAction Stop).Hash -ine $hash) {
+        throw "Published ICO failed final validation: $uniquePath"
+    }
+    return $uniquePath
+}
+
+function Set-FolderCustomIcon {
+    <#
+        Applies a content-addressed folder icon. It never overwrites a
+        previously referenced folder_icon.ico, so Windows can distinguish
+        a newly selected artwork by its changed IconResource path.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$FolderPath,
+        [Parameter(Mandatory)][string]$IcoPath
+    )
+
+    if (-not (Test-Path -LiteralPath $FolderPath -PathType Container)) { throw "Folder not found: $FolderPath" }
+    if (-not (Test-ValidIcoFile -Path $IcoPath)) { throw "Icon file not found or invalid: $IcoPath" }
+
+    $desktopIniPath = Join-Path $FolderPath 'desktop.ini'
+    $stagingPath = Join-Path $FolderPath ('.gis-folder-icon-' + [guid]::NewGuid().ToString('N') + '.tmp')
+    try {
+        Copy-Item -LiteralPath $IcoPath -Destination $stagingPath -Force -ErrorAction Stop
+        $publishedPath = Publish-ContentAddressedIco -StagingPath $stagingPath -IconsDir $FolderPath -SafeName 'folder_icon' -IdentityKey 'folder_icon'
+        $iconItem = Get-Item -LiteralPath $publishedPath -Force -ErrorAction Stop
+        $iconItem.Attributes = [System.IO.FileAttributes]::Hidden -bor [System.IO.FileAttributes]::System
+
+        $iconName = [System.IO.Path]::GetFileName($publishedPath)
+        $desktopIniContent = "[.ShellClassInfo]" + [Environment]::NewLine + "IconResource=$iconName,0" + [Environment]::NewLine
+        [System.IO.File]::WriteAllText($desktopIniPath,$desktopIniContent,[System.Text.Encoding]::Unicode)
+        $iniItem = Get-Item -LiteralPath $desktopIniPath -Force -ErrorAction Stop
+        $iniItem.Attributes = [System.IO.FileAttributes]::Hidden -bor [System.IO.FileAttributes]::System
+
+        $folderItem = Get-Item -LiteralPath $FolderPath -Force -ErrorAction Stop
+        $folderItem.Attributes = $folderItem.Attributes -bor [System.IO.FileAttributes]::ReadOnly
+
+        try {
+            if (-not ('Win32.Shell' -as [type])) {
+                Add-Type -Namespace Win32 -Name Shell -MemberDefinition @'
+[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+public static extern void SHChangeNotify(int wEventId, uint uFlags, string dwItem1, IntPtr dwItem2);
+'@
+            }
+            $flags = [uint32](0x0005 -bor 0x3000) # SHCNF_PATHW | SHCNF_FLUSHNOWAIT
+            [Win32.Shell]::SHChangeNotify(0x00000800,$flags,$FolderPath,[IntPtr]::Zero) # ATTRIBUTES
+            [Win32.Shell]::SHChangeNotify(0x00002000,$flags,$FolderPath,[IntPtr]::Zero) # UPDATEITEM
+            [Win32.Shell]::SHChangeNotify(0x00001000,$flags,$FolderPath,[IntPtr]::Zero) # UPDATEDIR
+        } catch {
+            Write-Log "SHChangeNotify failed for folder '$FolderPath': $($_.Exception.Message)" 'WARN'
+        }
+
+        Write-Log "Folder icon set: $FolderPath -> $publishedPath" 'OK' $true
+        return $publishedPath
+    } catch {
+        try { if (Test-Path -LiteralPath $stagingPath -PathType Leaf) { Remove-Item -LiteralPath $stagingPath -Force -ErrorAction SilentlyContinue } } catch { }
+        throw
+    }
+}
+
 function New-RoundedRectPath {
     param(
         [Parameter(Mandatory)][double]$X,

@@ -256,17 +256,36 @@ function Resolve-Shortcuts {
         ForEach-Object { $_.NormalizedName } | Sort-Object -Unique)
     Write-Log "Unique game names to resolve: $($uniqueNames.Count)" 'INFO'
 
+    $safeNameCounts = @{}
+    foreach ($candidateName in $uniqueNames) {
+        $candidateSafe = Get-SafeFileName -Name ([string]$candidateName)
+        if (-not $safeNameCounts.ContainsKey($candidateSafe)) { $safeNameCounts[$candidateSafe] = 0 }
+        $safeNameCounts[$candidateSafe]++
+    }
+
     $idx = 0
     foreach ($nameRaw in $uniqueNames) {
         $name = [string]$nameRaw
         $idx++
         $safe = Get-SafeFileName -Name $name
-        $icoPath = Join-Path $Ctx.IconsDir "$safe.ico"
+        # Only immutable, content-addressed ICOs are trusted as a cache hit.
+        # Legacy <safe>.ico files are left untouched and rebuilt once after
+        # upgrading so Explorer no longer depends on an overwritten path.
+        $cachedIcoPath = Get-ContentAddressedIconCachePath -IconsDir $Ctx.IconsDir -SafeName $safe
+        $icoPath = Join-Path $Ctx.IconsDir "$safe.ico" # legacy backup/compatibility path
         $tag = "[$idx/$($uniqueNames.Count)]"
 
-        if (-not $Force -and (Test-Path $icoPath)) {
+        if (-not $Force -and -not [string]::IsNullOrWhiteSpace([string]$cachedIcoPath)) {
+            $resolutions[$name] = @{ IcoPath = $cachedIcoPath; Cached = $true; Failed = $false; GameName = $name; Score = 1.0 }
+            Write-Log "$tag '$name' -> immutable cached icon reused: $cachedIcoPath" 'DEBUG'
+            continue
+        }
+        # Preserve the legacy cache when the sanitized name is unambiguous.
+        # If two different items collapse to the same safe name, rebuild both
+        # into identity-specific paths rather than sharing a legacy ICO.
+        if (-not $Force -and $safeNameCounts[$safe] -le 1 -and (Test-ValidIcoFile -Path $icoPath)) {
             $resolutions[$name] = @{ IcoPath = $icoPath; Cached = $true; Failed = $false; GameName = $name; Score = 1.0 }
-            Write-Log "$tag '$name' -> cached icon reused." 'DEBUG'
+            Write-Log "$tag '$name' -> legacy cached icon preserved until an explicit Rebuild." 'DEBUG'
             continue
         }
 
@@ -435,82 +454,6 @@ function Invoke-CoverSelection {
 # ============================================================
 #  FOLDER ICON CUSTOMIZATION
 # ============================================================
-
-function Set-FolderCustomIcon {
-    <#
-        Sets a custom icon for a folder using desktop.ini.
-        1. Removes ReadOnly, System, Hidden from existing desktop.ini and folder_icon.ico
-        2. Copies IcoPath to FolderPath\folder_icon.ico (Hidden+System)
-        3. Creates/overwrites desktop.ini with Unicode encoding (Hidden+System)
-        4. Sets folder attribute to ReadOnly (required for Windows to read desktop.ini)
-        5. Calls SHChangeNotify to refresh the shell
-    #>
-    param(
-        [Parameter(Mandatory)][string]$FolderPath,
-        [Parameter(Mandatory)][string]$IcoPath
-    )
-
-    if (-not (Test-Path -LiteralPath $FolderPath -PathType Container)) { throw "Folder not found: $FolderPath" }
-    if (-not (Test-Path -LiteralPath $IcoPath -PathType Leaf))         { throw "Icon file not found: $IcoPath" }
-
-    $desktopIniPath = Join-Path $FolderPath 'desktop.ini'
-    $folderIconPath = Join-Path $FolderPath 'folder_icon.ico'
-
-    # Remove attributes from existing files to prevent Access Denied errors.
-    # -Force is required: Get-Item does not see Hidden/System files otherwise.
-    $protectedMask = [System.IO.FileAttributes]::ReadOnly -bor [System.IO.FileAttributes]::System -bor [System.IO.FileAttributes]::Hidden
-    foreach ($existing in @($desktopIniPath, $folderIconPath)) {
-        if (Test-Path -LiteralPath $existing) {
-            try {
-                $item = Get-Item -LiteralPath $existing -Force -ErrorAction Stop
-                $item.Attributes = [System.IO.FileAttributes]::Normal
-            } catch {
-                Write-Log "Could not clear attributes on '$existing': $($_.Exception.Message)" 'WARN' $true
-            }
-        }
-    }
-
-    # Copy icon file to folder
-    Copy-Item -LiteralPath $IcoPath -Destination $folderIconPath -Force -ErrorAction Stop
-    # Set the copied icon as Hidden+System
-    $iconItem = Get-Item -LiteralPath $folderIconPath -Force
-    $iconItem.Attributes = [System.IO.FileAttributes]::Hidden -bor [System.IO.FileAttributes]::System
-
-    # Create/overwrite desktop.ini with Unicode encoding
-    $desktopIniContent = "[.ShellClassInfo]`r`nIconResource=folder_icon.ico,0`r`n"
-    [System.IO.File]::WriteAllText($desktopIniPath, $desktopIniContent, [System.Text.Encoding]::Unicode)
-    # Set desktop.ini as Hidden+System
-    $iniItem = Get-Item -LiteralPath $desktopIniPath -Force
-    $iniItem.Attributes = [System.IO.FileAttributes]::Hidden -bor [System.IO.FileAttributes]::System
-
-    # Set folder attribute to ReadOnly (vital for Windows to read desktop.ini)
-    $folderItem = Get-Item -LiteralPath $FolderPath -Force
-    $folderItem.Attributes = $folderItem.Attributes -bor [System.IO.FileAttributes]::ReadOnly
-
-    # Notify Windows shell of the change
-    try {
-        if (-not ('Win32.Shell' -as [type])) {
-            Add-Type -Namespace Win32 -Name Shell -MemberDefinition '
-                [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-                public static extern void SHChangeNotify(int wEventId, uint uFlags, string dwItem1, IntPtr dwItem2);
-            '
-        }
-        $SHCNE_UPDATEDIR = 0x00001000
-        $SHCNE_UPDATEITEM = 0x00002000
-        $SHCNE_ATTRIBUTES = 0x00000800
-        $SHCNF_PATHW = 0x0005
-        $SHCNF_FLUSHNOWAIT = 0x3000
-        $flags = [uint32]($SHCNF_PATHW -bor $SHCNF_FLUSHNOWAIT)
-        [Win32.Shell]::SHChangeNotify($SHCNE_ATTRIBUTES, $flags, $FolderPath, [IntPtr]::Zero)
-        [Win32.Shell]::SHChangeNotify($SHCNE_UPDATEITEM, $flags, $FolderPath, [IntPtr]::Zero)
-        [Win32.Shell]::SHChangeNotify($SHCNE_UPDATEDIR, $flags, $FolderPath, [IntPtr]::Zero)
-    } catch {
-        # If SHChangeNotify fails, the icon may not refresh immediately but will appear after Explorer restart
-        Write-Log "SHChangeNotify failed: $($_.Exception.Message)" 'WARN' $true
-    }
-
-    Write-Log "Folder icon set: $FolderPath -> $IcoPath" 'OK' $true
-}
 
 # ============================================================
 #  APPLY PIPELINE (download -> build -> backup -> apply -> report)
@@ -713,31 +656,47 @@ function Invoke-ApplyPipeline {
         Show-InlineProgress -Current $buildDone -Total $buildKeys.Count -Label 'Building' -Item $name
         Send-ApplyProgress -Callback $ProgressCallback -Phase 'build' -Current $buildDone -Total $buildKeys.Count -Label 'Building Windows icons' -Item $name -Status 'running'
 
+        $stagingIcoPath = Join-Path $Ctx.CacheDir ('.ico-stage-' + [guid]::NewGuid().ToString('N') + '.tmp')
         try {
             $contain = ($r.Kind -eq 'logo')
             if ($r.Placeholder) {
                 $safe = Get-SafeFileName -Name $name
-                $pngPath = Join-Path $Ctx.CacheDir "$safe`_placeholder.png"
+                $pngPath = Join-Path $Ctx.CacheDir ($safe + '_placeholder.png')
                 $null = New-PlaceholderCover -GameName $r.GameName -OutputPath $pngPath
-                $null = ConvertTo-Ico -SourcePath $pngPath -OutputPath $r.IcoPath `
-                    -CornerRadiusPercent $style.CornerRadiusPercent `
-                    -BorderWidthPercent $style.BorderWidthPercent `
-                    -BorderColor $style.BorderColor `
-                    -ShadowEnabled $style.ShadowEnabled
-                Write-Log "Placeholder cover built: $([System.IO.Path]::GetFileName($r.IcoPath))" 'DEBUG' $true
+                $convertParams = @{
+                    SourcePath = $pngPath
+                    OutputPath = $stagingIcoPath
+                    CornerRadiusPercent = $style.CornerRadiusPercent
+                    BorderWidthPercent = $style.BorderWidthPercent
+                    BorderColor = $style.BorderColor
+                    ShadowEnabled = $style.ShadowEnabled
+                }
+                $null = ConvertTo-Ico @convertParams
             } else {
-                $null = ConvertTo-Ico -SourcePath $r.RawPath -OutputPath $r.IcoPath `
-                    -CornerRadiusPercent $style.CornerRadiusPercent `
-                    -BorderWidthPercent $style.BorderWidthPercent `
-                    -BorderColor $style.BorderColor `
-                    -ShadowEnabled $style.ShadowEnabled `
-                    -Contain $contain
-                Write-Log "ICO ready: $([System.IO.Path]::GetFileName($r.IcoPath))" 'DEBUG' $true
+                $convertParams = @{
+                    SourcePath = $r.RawPath
+                    OutputPath = $stagingIcoPath
+                    CornerRadiusPercent = $style.CornerRadiusPercent
+                    BorderWidthPercent = $style.BorderWidthPercent
+                    BorderColor = $style.BorderColor
+                    ShadowEnabled = $style.ShadowEnabled
+                    Contain = $contain
+                }
+                $null = ConvertTo-Ico @convertParams
             }
+
+            # Publish only after the complete ICO has been written and validated.
+            # The destination is immutable and derived from the actual output
+            # bytes, not merely the shortcut name or source URL.
+            $safeForIcon = Get-SafeFileName -Name $name
+            $publishedIcoPath = Publish-ContentAddressedIco -StagingPath $stagingIcoPath -IconsDir $Ctx.IconsDir -SafeName $safeForIcon -IdentityKey $name
+            $r.IcoPath = $publishedIcoPath
+            Write-Log "Content-addressed ICO ready: $([System.IO.Path]::GetFileName($publishedIcoPath))" 'DEBUG' $true
         } catch {
+            try { if (Test-Path -LiteralPath $stagingIcoPath -PathType Leaf) { Remove-Item -LiteralPath $stagingIcoPath -Force -ErrorAction SilentlyContinue } } catch { }
             $r.Failed = $true
-            $r.Reason = "ICO conversion failed: $($_.Exception.Message)"
-            Write-Log "ICO conversion failed for '$name': $($_.Exception.Message)" 'ERROR' $true
+            $r.Reason = "ICO conversion or publish failed: $($_.Exception.Message)"
+            Write-Log "ICO conversion/publish failed for '$name': $($_.Exception.Message)" 'ERROR' $true
         }
     }
     Complete-InlineProgress

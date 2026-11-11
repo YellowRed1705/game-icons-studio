@@ -165,8 +165,12 @@ function Repair-ShortcutIcons {
             foreach ($base in $baseNames) {
                 $safe = Get-SafeFileName -Name $base
                 if ([string]::IsNullOrWhiteSpace($safe)) { continue }
+                # First honor an exact path-derived legacy entry, then
+                # look for an immutable content-addressed icon for this name.
                 $candidateIco = Join-Path $IconsDir ($safe + '.ico')
                 if (Test-ValidIcoFile -Path $candidateIco) { $resolvedIco = $candidateIco; break }
+                $versionedIco = Get-ContentAddressedIconCachePath -IconsDir $IconsDir -SafeName $safe
+                if (-not [string]::IsNullOrWhiteSpace([string]$versionedIco)) { $resolvedIco = $versionedIco; break }
                 $rawMatches = @()
                 try { $rawMatches = @(Get-ChildItem -LiteralPath $CacheDir -File -Force -ErrorAction SilentlyContinue | Where-Object { $_.BaseName -ieq $safe -and $_.Extension.ToLowerInvariant() -in $allowedRaw } | Sort-Object Length -Descending) } catch { }
                 foreach ($raw in $rawMatches) {

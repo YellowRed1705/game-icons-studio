@@ -56,6 +56,35 @@ function Add-IconBackupFile {
     }
 }
 
+function Get-FolderIconResourcePath {
+    <#
+        Resolves the ICO currently referenced by a folder's desktop.ini.
+        Relative IconResource/IconFile entries are relative to the target
+        folder. Returns only an existing .ico file; never guesses a path.
+    #>
+    param([Parameter(Mandatory)][string]$FolderPath)
+
+    if (-not (Test-Path -LiteralPath $FolderPath -PathType Container)) { return $null }
+    $desktopIniPath = Join-Path $FolderPath 'desktop.ini'
+    if (-not (Test-Path -LiteralPath $desktopIniPath -PathType Leaf)) { return $null }
+
+    try { $content = [System.IO.File]::ReadAllText($desktopIniPath) } catch { return $null }
+    $match = [regex]::Match($content,'(?im)^\s*IconResource\s*=\s*(?:"(?<quoted>[^"]+)"|(?<plain>[^,\r\n]+))')
+    if (-not $match.Success) {
+        $match = [regex]::Match($content,'(?im)^\s*IconFile\s*=\s*(?:"(?<quoted>[^"]+)"|(?<plain>[^,\r\n]+))')
+    }
+    if (-not $match.Success) { return $null }
+
+    $value = if ($match.Groups['quoted'].Success) { $match.Groups['quoted'].Value } else { $match.Groups['plain'].Value }
+    $value = ([string]$value).Trim().Trim('"')
+    if ([string]::IsNullOrWhiteSpace($value)) { return $null }
+    $candidate = if ([System.IO.Path]::IsPathRooted($value)) { $value } else { Join-Path $FolderPath $value }
+    try { $candidate = [System.IO.Path]::GetFullPath($candidate) } catch { return $null }
+    if ([System.IO.Path]::GetExtension($candidate) -ine '.ico') { return $null }
+    if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { return $null }
+    return $candidate
+}
+
 function New-IconBackupTransaction {
     <#
       Snapshots all targets before phase 3 creates ICO files. This is
@@ -122,9 +151,11 @@ function New-IconBackupTransaction {
                 if (-not (Test-Path -LiteralPath $targetPath -PathType Container)) { throw "Folder no longer exists: $targetPath" }
                 $folderItem = Get-Item -LiteralPath $targetPath -Force -ErrorAction Stop
                 $entry.PreviousFolderAttributes = [int]$folderItem.Attributes
+                $previousFolderIcon = Get-FolderIconResourcePath -FolderPath $targetPath
                 foreach ($filePath in @(
                     (Join-Path $targetPath 'desktop.ini'),
-                    (Join-Path $targetPath 'folder_icon.ico'),
+                    (Join-Path $targetPath 'folder_icon.ico'), # legacy installation compatibility
+                    $previousFolderIcon,
                     [string]$resolution.IcoPath
                 )) {
                     if ([string]::IsNullOrWhiteSpace($filePath)) { continue }
