@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version without the v prefix; must match the checked-in README and CHANGELOG (for example 6.38)'
+        description: 'Release version without the v prefix; must match the checked-in README and CHANGELOG (for example 6.39)'
         required: true
         type: string
       reply_to_issues:
@@ -57,6 +57,12 @@ jobs:
           }
           Write-Host "Syntax validation passed for $($scriptFiles.Count) PowerShell scripts."
 
+      - name: Run Windows shortcut and modern picker regression tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & .\scripts\Test-ShortcutCompatibility.ps1
+
       - name: Validate release version and ensure tag is unused
         id: version
         shell: pwsh
@@ -79,7 +85,7 @@ jobs:
             $version = ($env:RELEASE_VERSION -as [string]).Trim()
           }
 
-          if ($version -notmatch '^\d+\.\d+$') { throw "Version must be numeric like 6.38 without a leading v; got '$version'." }
+          if ($version -notmatch '^\d+\.\d+$') { throw "Version must be numeric like 6.39 without a leading v; got '$version'." }
           $tag = "v$version"
           $remote = git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}"
           if ($LASTEXITCODE -notin @(0, 2)) { throw 'Could not check remote tags.' }
