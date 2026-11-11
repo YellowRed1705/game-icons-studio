@@ -1260,7 +1260,7 @@ var i18n = {
 };
 var screenI18n = {
   en: {
-    keyTitle:"Let's get you set up",
+    refresh:"Refresh", keyTitle:"Let's get you set up",
     keyIntro:"Game Icons Studio finds game covers through SteamGridDB. A free API key is needed for automatic game matching, but not for Program & App Icons.",
     keyNew:"New here?", keyExisting:"Already have an account?",
     keySteps:["Open SteamGridDB and click Login (top right).","Sign in with Steam — this creates your free account instantly.","Come back and use the other button to get your key.","Open your API settings with the button below.","Click Create API Key, then Copy it.","Paste it here and you're ready to go."],
@@ -1304,7 +1304,7 @@ var screenI18n = {
     repairSummary:"Icon repair results"
   },
   tr: {
-    keyTitle:"Kuruluma başlayalım",
+    refresh:"Yenile", keyTitle:"Kuruluma başlayalım",
     keyIntro:"Game Icons Studio, oyun Cover'larını SteamGridDB üzerinden bulur. Otomatik game eşleştirmesi için ücretsiz API Key gerekir; Program & App Icons modu için gerekmez.",
     keyNew:"Yeni misin?", keyExisting:"Zaten hesabın var mı?",
     keySteps:["SteamGridDB'yi aç ve sağ üstten Login'e tıkla.","Steam ile Sign in yap; ücretsiz hesabın hemen oluşturulur.","Geri dön ve API Key almak için diğer düğmeyi kullan.","Aşağıdaki düğmeyle API ayarlarını aç.","Create API Key'e, ardından Copy'ye tıkla.","Key'i buraya yapıştır; hazırsın."],
@@ -1348,7 +1348,7 @@ var screenI18n = {
     repairSummary:"Icon onarım sonuçları"
   },
   ar: {
-    keyTitle:"لنبدأ إعداد التطبيق",
+    refresh:"تحديث", keyTitle:"لنبدأ إعداد التطبيق",
     keyIntro:"يعثر Game Icons Studio على أغلفة الألعاب عبر SteamGridDB. يلزم API Key مجاني للمطابقة التلقائية للألعاب، ولا يلزم ذلك لميزة Program & App Icons.",
     keyNew:"هل أنت جديد هنا؟", keyExisting:"هل لديك حساب بالفعل؟",
     keySteps:["افتح SteamGridDB واضغط Login في أعلى اليمين.","سجّل الدخول باستخدام Steam لإنشاء حسابك المجاني فوراً.","ارجع إلى هنا واستخدم الزر الآخر للحصول على المفتاح.","افتح إعدادات API باستخدام الزر أدناه.","اضغط Create API Key ثم Copy.","الصق المفتاح هنا وأنت جاهز."],
@@ -1579,10 +1579,102 @@ function applyLang() {
 
   // Footer Home Buttons (navigational "Home" buttons with the house icon)
   document.querySelectorAll('.back-btn').forEach(function(b) {
-    if (b.textContent.includes('Home') || b.textContent.includes('الرئيسية')) {
+    if (b.textContent.includes('Home') || b.textContent.includes('Ana Sayfa') || b.textContent.includes('الرئيسية')) {
       b.innerHTML = '&#8962; ' + t.btnHomeNav;
     }
   });
+
+  applyScreenLanguage(screen);
+}
+
+function applyScreenLanguage(screen) {
+  var text = function(selector, value) {
+    var node = document.querySelector(selector);
+    if (node && typeof value === 'string') node.textContent = value;
+  };
+  var many = function(selector, values) {
+    var nodes = document.querySelectorAll(selector);
+    (values || []).forEach(function(value,index) {
+      if (nodes[index] && typeof value === 'string') nodes[index].textContent = value;
+    });
+  };
+
+  // Header controls
+  text('#homeBtn', screen.homeHeader);
+  text('#aboutBtn', screen.aboutHeader);
+  text('#summaryBtn', screen.summaryHeader);
+  text('#fsBtn', screen.fullScreen);
+  text('header .ghost[onclick="quitApp()"]', screen.quit);
+
+  // Setup / API key
+  text('#step-key h2', screen.keyTitle);
+  text('#step-key > p.sub', screen.keyIntro);
+  many('#step-key .key-col-title', [screen.keyNew,screen.keyExisting]);
+  many('#step-key .tut-step span:not(.tut-num)', screen.keySteps);
+  many('#step-key .key-col .big-btn', [screen.keyCreate,screen.keyGet]);
+  text('#keyInput', screen.keyPlaceholder);
+  many('#step-key .btn-row button', [screen.keyPaste,screen.keyContinue,screen.keyNoKey]);
+
+  // No-art, History and About
+  text('#step-noart h2', screen.noArtTitle);
+  text('#step-noart p[style*="max-width"]', screen.noArtDescription);
+  text('#step-history h2', screen.historyTitle);
+  text('#step-history p.sub', screen.historySubtitle);
+  text('#historySearch', screen.historyPlaceholder);
+  text('#step-history .btn-row button', screen.historyBack);
+  text('#step-about h2', screen.aboutTitle);
+  text('#step-about > p.sub', screen.aboutSubtitle);
+  many('#step-about .about-h', screen.aboutHeadings);
+  many('#step-about .about-card p', screen.aboutBodies);
+  text('#step-about .btn-row button', screen.aboutHome);
+
+  // Conversion, repair and health
+  text('#step-convert-ok h2', screen.convertSuccessTitle);
+  text('#step-convert-ok p[style*="max-width"]', screen.convertSuccessBody);
+  text('#step-convert-ok .btn-row button', screen.convertContinue);
+  text('#step-restore-ok h2', screen.doneTitle);
+  text('#step-restore-ok .btn-row button', screen.doneHome);
+  text('#step-health h2', screen.healthTitle);
+  text('#step-health > p.sub', screen.healthSubtitle);
+  many('#step-health .btn-row button', [screen.healthContinue,screen.cancel]);
+
+  // New games and URL conversion
+  text('#step-newgames h2', screen.newGamesTitle);
+  text('#step-newgames p[style*="max-width"]', screen.newGamesPrompt);
+  many('#step-newgames .btn-row button', [screen.newGamesOnly,screen.newGamesAll]);
+  text('#step-convert h2', screen.convertTitle);
+  many('#step-convert p.sub', [screen.convertBody1,screen.convertBody2]);
+  many('#step-convert .btn-row button', [screen.convertProceed,screen.convertSkip]);
+
+  // Folder picker screen and progress screen
+  text('#step-folder > button.big-btn', screen.folderBrowse);
+  text('#folderInput', screen.folderPlaceholder);
+  text('#loadingMsg', screen.loadingWorking);
+  text('#loadCounter', screen.loadingWait);
+
+  // Artwork and online image studio
+  text('#vtGrid', screen.grid);
+  text('#vtGallery', screen.gallery);
+  text('.online-search-head b', screen.onlineTitle);
+  text('.online-search-head .sub', screen.onlineDesc);
+  many('.online-search-head .btn-row button', [screen.onlineBoth,screen.onlineGoogle,screen.onlineYandex]);
+  text('#onlineSearchStatus', screen.onlineStatus);
+  text('#customDropZone > div:nth-child(3)', screen.dropHelp);
+  text('#customPreviewDropZone > div:first-child', screen.previewTitle);
+  text('#fitCrop', screen.crop);
+  text('#fitContain', screen.fit);
+  text('#fitStretch', screen.stretch);
+  text('#fitCrop[title]', screen.crop);
+  text('#fitContain[title]', screen.fit);
+  text('#fitStretch[title]', screen.stretch);
+  text('#customUrlInput + button', screen.loadUrl);
+  text('#customSkipBtn', '← ' + screen.cancelSkip.replace(/^←\s*/, ''));
+
+  // Keep document controls and their accessible names in the selected language.
+  var chooser = document.querySelector('#step-folder > button.big-btn');
+  if (chooser) chooser.setAttribute('aria-label', screen.folderBrowse);
+  var progress = document.getElementById('loadBar');
+  if (progress) progress.setAttribute('aria-label', screen.loadingWorking);
 }
 
 var state = {
