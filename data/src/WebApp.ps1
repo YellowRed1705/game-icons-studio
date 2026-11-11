@@ -400,7 +400,10 @@ function Get-WebAppHtml {
   #step-custom #yandexImagesBtn { background:linear-gradient(135deg,#ffcc00,#f59e0b); color:#171717; border:1px solid rgba(255,204,0,.8); font-weight:700; }
   #step-custom #googleImagesBtn:hover, #step-custom #yandexImagesBtn:hover { filter:brightness(1.08); transform:translateY(-1px); }
   #step-custom .custom-layout { display:grid; grid-template-columns:minmax(280px,1fr) 240px; gap:14px; align-items:stretch; }
-  #step-custom .drop-zone { min-height:250px; height:100%; }
+  #step-custom #customDropZone { grid-column:1; grid-row:1; min-height:250px; height:100%; }
+  #step-custom #customPreviewDropZone { grid-column:2; grid-row:1; }
+  #step-custom #customCropEditor { display:none; grid-column:1 / -1; grid-row:2; }
+  #step-custom #customCropEditor.visible { display:block; }
   #step-custom .drop-zone.drop-ready {
     border-color:var(--good); background:linear-gradient(135deg,rgba(52,211,153,.15),rgba(56,189,248,.08));
     box-shadow:0 0 0 2px rgba(52,211,153,.16),0 12px 32px rgba(0,0,0,.18);
@@ -412,6 +415,9 @@ function Get-WebAppHtml {
   #step-custom .preview-box { min-width:0; }
   @media(max-width:760px) {
     #step-custom .custom-layout { grid-template-columns:1fr; }
+    #step-custom #customDropZone { grid-column:1; grid-row:1; }
+    #step-custom #customCropEditor { grid-column:1; grid-row:2; }
+    #step-custom #customPreviewDropZone { grid-column:1; grid-row:3; }
     #step-custom .preview-box { flex-basis:auto; }
     #step-custom #customImageSearchButtons { flex-wrap:wrap; }
   }
@@ -4018,6 +4024,8 @@ function openGoogleCustom(autoOpenSearch){
     : 'Waiting for an image (drag & drop, Ctrl+V, URL, or local file)...';
   $('customApplyBtn').disabled = true;
   customImageObj = null;
+  var cropEditor=$('customCropEditor');
+  if(cropEditor)cropEditor.classList.remove('visible');
   resetCustomCropState();
   clearCustomCanvas();
   show('step-custom');
@@ -4114,7 +4122,10 @@ function renderCustomCanvas(){
 function loadDataUrlIntoCustomCanvas(dataUrl,onReady,onError){
   var img=new Image();
   img.onload=function(){
-    customImageObj=img;resetCustomCropState();setCustomFitMode('crop');renderCustomCanvas();
+    customImageObj=img;
+    var cropEditor=$('customCropEditor');
+    if(cropEditor)cropEditor.classList.add('visible');
+    resetCustomCropState();setCustomFitMode('crop');renderCustomCanvas();
     if(typeof onReady==='function')onReady();
   };
   img.onerror=function(){
