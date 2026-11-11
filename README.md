@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.45
+# Game Icons Studio v6.46
 
 ### From generic icons to a game shelf.
 
@@ -66,6 +66,18 @@ These release notes are an addition to the original introduction above. The logo
 <details>
 <details>
 <details>
+<details>
+<summary><strong>v6.46 — automatic Top 5 image selection and interactive crop editor</strong></summary>
+
+- Fetches the top five candidate images from Google Images and the top five from Yandex Images in separate result groups.
+- Balances the merged search queue so one provider cannot crowd the other out.
+- Adds one-click Fetch & Apply: download the original image through the local app endpoint, prepare a square preview and add it to the current item.
+- Adds Crop first for manual review before applying an image.
+- Adds an interactive square crop selector with mouse/touch drag selection, move, zoom in/out and reset.
+- Sends the selected square crop through the existing ICO conversion and shared CornerRadius/Border/Shadow styling pipeline.
+
+</details>
+
 <summary><strong>v6.45 — compact, no-scroll home dashboard</strong></summary>
 
 - Reworks the eight primary home actions into a consistent four-column, two-row desktop dashboard.
@@ -221,7 +233,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.43.md](CHANGELOG-v6.45.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.43.md](CHANGELOG-v6.46.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 
