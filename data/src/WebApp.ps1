@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.38) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.39) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio v6.38</title>
+<title>Game Icons Studio v6.39</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {
@@ -497,10 +497,10 @@ function Get-WebAppHtml {
       <p>Download covers. Replace icons. Modernize your Games folder.</p>
     </div>
     <div class="home-grid">
-      <button class="home-btn" data-home="0" onclick="startFullScan()">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18"/><path d="M8 14h2M12 14h4"/></svg>
-        <div class="t">Shortcuts Folder</div>
-        <div class="d">Scan every shortcut in your games folder and replace their icons.</div>
+      <button class="home-btn home-btn-primary" data-home="0" onclick="startGameFilesFolder()">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><path d="M8 13h8M12 9v8"/></svg>
+        <div class="t">Game Library Folder</div>
+        <div class="d">Recommended. Scan .lnk, .url, Steam/Epic/Ubisoft launchers, EXE files and emulator ROMs. Create working Windows shortcuts and match game art.</div>
       </button>
       <button class="home-btn" data-home="1" onclick="startFolderMode('all')">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="M12 11v6"/><path d="M9 14l3 3 3-3"/></svg>
@@ -532,10 +532,10 @@ function Get-WebAppHtml {
         <div class="t">Any Files &amp; Scripts</div>
         <div class="d">Choose .exe, .bat, .cmd, .ps1 and other files. Custom icon shortcuts are created beside regular files.</div>
       </button>
-      <button class="home-btn" data-home="7" onclick="startGameFilesFolder()">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><path d="M8 13h8M12 9v8"/></svg>
-        <div class="t">Game Files Folder</div>
-        <div class="d">Scan a game folder for EXE files and launchers. Prepare working .lnk shortcuts and match game covers automatically.</div>
+      <button class="home-btn" data-home="7" onclick="startFullScan()">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="1.6"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18"/><path d="M8 14h2M12 14h4"/></svg>
+        <div class="t">Shortcuts Only</div>
+        <div class="d">Legacy mode. Scan only existing Windows .lnk shortcuts in a folder.</div>
       </button>
     </div>
     <div class="home-tools">
@@ -908,8 +908,10 @@ var i18n = {
   ar: {
     langBtn: "🌐 English",
     homeSubtitle: "اعثر على أغلفة الألعاب وأيقونات التطبيقات وطوّر اختصاراتك.",
-    btnShortcuts: "مجلد الاختصارات",
-    descShortcuts: "فحص جميع اختصارات الألعاب (.lnk) في المجلد واستبدال أيقوناتها.",
+    btnShortcuts: "مجلد مكتبة الألعاب",
+    descShortcuts: "موصى به. افحص ملفات .lnk و.url وروابط Steam وEpic وUbisoft وملفات EXE وROM، وأنشئ اختصارات Windows قابلة للتشغيل.",
+    btnShortcutsOnly: "الاختصارات فقط",
+    descShortcutsOnly: "الوضع القديم: افحص اختصارات Windows القياسية .lnk فقط.",
     btnAllFolders: "جميع المجلدات الفرعية",
     descAllFolders: "فحص جميع المجلدات الفرعية للألعاب داخل مسار رئيسي وتخصيص أيقوناتها.",
     btnSingleFolder: "مجلد محدد",
@@ -1008,8 +1010,10 @@ var i18n = {
   en: {
     langBtn: "🌐 عربي",
     homeSubtitle: "Find game covers and app icons. Modernize your shortcuts.",
-    btnShortcuts: "Shortcuts Folder",
-    descShortcuts: "Scan all game shortcuts (.lnk) in a folder and replace their icons.",
+    btnShortcuts: "Game Library Folder",
+    descShortcuts: "Recommended. Scan .lnk, .url, Steam/Epic/Ubisoft links, EXE files and emulator ROMs. Build working Windows shortcuts and match game art.",
+    btnShortcutsOnly: "Shortcuts Only",
+    descShortcutsOnly: "Legacy mode. Scan only existing standard Windows .lnk shortcuts in a folder.",
     btnAllFolders: "All Sub-Folders",
     descAllFolders: "Scan all game folders inside a directory and set their folder icons.",
     btnSingleFolder: "Specific Folder",
@@ -1162,6 +1166,10 @@ function applyLang() {
     if (homeBtns.length >= 7) {
       homeBtns[6].querySelector('.t').textContent = t.btnAnyFiles || i18n.en.btnAnyFiles;
       homeBtns[6].querySelector('.d').textContent = t.descAnyFiles || i18n.en.descAnyFiles;
+    }
+    if (homeBtns.length >= 8) {
+      homeBtns[7].querySelector('.t').textContent = t.btnShortcutsOnly || i18n.en.btnShortcutsOnly;
+      homeBtns[7].querySelector('.d').textContent = t.descShortcutsOnly || i18n.en.descShortcutsOnly;
     }
     if (homeBtns.length >= 8) {
       homeBtns[7].querySelector('.t').textContent = t.btnGameFiles || i18n.en.btnGameFiles;
@@ -1903,8 +1911,11 @@ function scanGameFilesFolder(folder){
     details.push((res.sourceFiles||0) + ' launchable entries found');
     details.push((res.includedExecutables||0) + ' EXE');
     if (res.includedScripts) details.push(res.includedScripts + ' BAT/CMD');
-    if (res.convertedUrls) details.push(res.convertedUrls + ' .url converted to .lnk');
-    if (res.alreadyLinked) details.push(res.alreadyLinked + ' already had a shortcut');
+    if (res.includedShortcuts) details.push(res.includedShortcuts + ' existing shortcuts');
+    if (res.convertedUrls) details.push(res.convertedUrls + ' launcher URLs prepared as .lnk');
+    if (res.includedRoms) details.push(res.includedRoms + ' emulator ROMs');
+    if (res.alreadyLinked) details.push(res.alreadyLinked + ' already had a working shortcut');
+    if (res.excludedLauncherApps) details.push(res.excludedLauncherApps + ' emulator utility shortcuts left alone');
     if (res.excludedHelpers) details.push(res.excludedHelpers + ' installer/helper files skipped');
     if (res.failedUrls) details.push(res.failedUrls + ' URL conversion(s) kept as source files');
     if (res.truncated) details.push('safety limit: ' + res.truncated + ' extra entries left untouched');
