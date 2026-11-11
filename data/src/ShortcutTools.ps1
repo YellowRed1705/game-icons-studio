@@ -62,53 +62,85 @@ function Get-Shortcuts {
     return $results
 }
 
+function Test-ValidIcoFile {
+    param([Parameter(Mandatory)][string]$Path)
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+    try {
+        $stream = [System.IO.File]::OpenRead($Path)
+        try {
+            if ($stream.Length -lt 22) { return $false }
+            $header = New-Object byte[] 6
+            if ($stream.Read($header,0,6) -ne 6) { return $false }
+            $count = [BitConverter]::ToUInt16($header,4)
+            return ($header[0] -eq 0 -and $header[1] -eq 0 -and $header[2] -eq 1 -and $header[3] -eq 0 -and $count -gt 0)
+        } finally { $stream.Dispose() }
+    } catch { return $false }
+}
+
 function Set-ShortcutIcon {
     <#
-        Changes ONLY the icon of a shortcut.
-        Target, arguments, working directory and all other
-        properties are preserved (the COM object keeps them as-is;
-        we only touch IconLocation before saving).
+        Changes ONLY IconLocation. Target, arguments and working directory
+        remain untouched. A valid persistent ICO is required before saving.
     #>
     param(
         [Parameter(Mandatory)][string]$ShortcutPath,
         [Parameter(Mandatory)][string]$IcoPath
     )
 
-    if (-not (Test-Path $ShortcutPath)) { throw "Shortcut not found: $ShortcutPath" }
-    if (-not (Test-Path $IcoPath))      { throw "Icon file not found: $IcoPath" }
+    if (-not (Test-Path -LiteralPath $ShortcutPath -PathType Leaf)) { throw "Shortcut not found: $ShortcutPath" }
+    if (-not (Test-ValidIcoFile -Path $IcoPath)) { throw "Icon file is missing or invalid: $IcoPath" }
 
+    $fullIco = [System.IO.Path]::GetFullPath($IcoPath)
     $wsh = Get-WshShell
     $lnk = $wsh.CreateShortcut($ShortcutPath)
-
-    # Preserve everything: only IconLocation is modified.
-    $lnk.IconLocation = "$IcoPath,0"
+    $originalTarget = [string]$lnk.TargetPath
+    $originalArguments = [string]$lnk.Arguments
+    $originalWorkingDirectory = [string]$lnk.WorkingDirectory
+    $lnk.IconLocation = "$fullIco,0"
     $lnk.Save()
+
+    $verify = $wsh.CreateShortcut($ShortcutPath)
+    if ([string]$verify.TargetPath -ne $originalTarget -or
+        [string]$verify.Arguments -ne $originalArguments -or
+        [string]$verify.WorkingDirectory -ne $originalWorkingDirectory) {
+        throw "Shortcut launch settings changed unexpectedly while updating its icon: $ShortcutPath"
+    }
+    if (([string]$verify.IconLocation -split ',')[0].Trim('"') -ine $fullIco) {
+        throw "Windows did not persist the new icon location: $ShortcutPath"
+    }
 }
 
 function Set-FileCustomIconShortcut {
     <#
-        Windows Explorer does not expose a per-file icon property for every
-        arbitrary file type. For regular files, create/update an adjacent
-        companion .lnk with a custom icon, leaving the original file untouched.
-        .ps1 files are launched through PowerShell; .bat/.cmd through cmd.exe;
-        other file types open via their normal shell association.
+        Creates a standard Windows .lnk beside an executable, script, ROM or
+        other file whose Explorer icon cannot be individually customized.
+        ROMs use their registered Windows emulator association by default.
+        A detected emulator profile can override the launch target/arguments.
     #>
     param(
         [Parameter(Mandatory)][string]$FilePath,
         [Parameter(Mandatory)][string]$ShortcutPath,
-        [Parameter(Mandatory)][string]$IcoPath
+        [Parameter(Mandatory)][string]$IcoPath,
+        [string]$LaunchTargetPath = '',
+        [string]$LaunchArguments = '',
+        [string]$LaunchWorkingDirectory = ''
     )
     if (-not (Test-Path -LiteralPath $FilePath -PathType Leaf)) { throw "Source file not found: $FilePath" }
-    if (-not (Test-Path -LiteralPath $IcoPath -PathType Leaf)) { throw "Icon file not found: $IcoPath" }
+    if (-not (Test-ValidIcoFile -Path $IcoPath)) { throw "Icon file is missing or invalid: $IcoPath" }
 
     $fullFile = [System.IO.Path]::GetFullPath($FilePath)
+    $fullIco = [System.IO.Path]::GetFullPath($IcoPath)
     $extension = [System.IO.Path]::GetExtension($fullFile).ToLowerInvariant()
     $directory = [System.IO.Path]::GetDirectoryName($fullFile)
     $shell = Get-WshShell
     $link = $shell.CreateShortcut($ShortcutPath)
-    $link.WorkingDirectory = $directory
 
-    if ($extension -in @('.ps1','.psm1','.psd1')) {
+    if (-not [string]::IsNullOrWhiteSpace($LaunchTargetPath)) {
+        if (-not (Test-Path -LiteralPath $LaunchTargetPath -PathType Leaf)) { throw "Configured emulator or launcher was not found: $LaunchTargetPath" }
+        $link.TargetPath = [System.IO.Path]::GetFullPath($LaunchTargetPath)
+        $link.Arguments = [string]$LaunchArguments
+        $link.WorkingDirectory = if (-not [string]::IsNullOrWhiteSpace($LaunchWorkingDirectory)) { $LaunchWorkingDirectory } else { [System.IO.Path]::GetDirectoryName($LaunchTargetPath) }
+    } elseif ($extension -in @('.ps1','.psm1','.psd1')) {
         $psExe = $null
         try { $psExe = (Get-Command pwsh.exe -ErrorAction Stop).Source } catch { }
         if ([string]::IsNullOrWhiteSpace($psExe)) {
@@ -117,18 +149,37 @@ function Set-FileCustomIconShortcut {
         if ([string]::IsNullOrWhiteSpace($psExe)) { throw 'PowerShell executable was not found.' }
         $link.TargetPath = $psExe
         $link.Arguments = '-NoLogo -NoProfile -ExecutionPolicy Bypass -File "' + $fullFile + '"'
+        $link.WorkingDirectory = $directory
     } elseif ($extension -in @('.bat','.cmd')) {
         $cmdExe = [string]$env:ComSpec
         if ([string]::IsNullOrWhiteSpace($cmdExe)) { $cmdExe = Join-Path $env:SystemRoot 'System32\cmd.exe' }
         $link.TargetPath = $cmdExe
         $link.Arguments = '/d /c ""' + $fullFile + '""'
+        $link.WorkingDirectory = $directory
     } else {
+        # ShellExecute opens ROMs and other registered document/file types
+        # with their Windows default application (e.g. an installed emulator).
         $link.TargetPath = $fullFile
         $link.Arguments = ''
+        $link.WorkingDirectory = $directory
     }
 
-    $link.IconLocation = "$IcoPath,0"
+    $link.IconLocation = "$fullIco,0"
     $link.Save()
+
+    if (-not (Test-Path -LiteralPath $ShortcutPath -PathType Leaf)) { throw "Windows did not create the shortcut: $ShortcutPath" }
+    $verify = $shell.CreateShortcut($ShortcutPath)
+    if (([string]$verify.IconLocation -split ',')[0].Trim('"') -ine $fullIco) {
+        throw "Windows did not persist the custom icon on: $ShortcutPath"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($LaunchTargetPath)) {
+        if ([string]$verify.TargetPath -ine [System.IO.Path]::GetFullPath($LaunchTargetPath) -or
+            [string]$verify.Arguments -ne [string]$LaunchArguments) {
+            throw "The emulator launch command was not saved correctly: $ShortcutPath"
+        }
+    } elseif ($extension -notin @('.ps1','.psm1','.psd1','.bat','.cmd')) {
+        if ([string]$verify.TargetPath -ine $fullFile) { throw "The file association target was not saved correctly: $ShortcutPath" }
+    }
 }
 
 function Get-CurrentIconFile {
@@ -319,9 +370,10 @@ function Select-ShortcutFiles {
 
 function Get-ShortcutsFromPaths {
     <#
-        Builds scan targets from explicitly selected items. Existing .lnk
-        files are edited directly. For any other file, a companion shortcut
-        is created beside the file during apply; the source stays untouched.
+        Builds scan targets from selected shortcut/file paths. Existing .lnk
+        files are edited in place. Other launchable files get a clean, standard
+        sibling .lnk; if that name is occupied by an unrelated shortcut, a
+        clearly labelled companion name is used.
     #>
     param([Parameter(Mandatory)][string[]]$Paths)
 
@@ -352,14 +404,16 @@ function Get-ShortcutsFromPaths {
 
             $dir = [System.IO.Path]::GetDirectoryName($fullPath)
             $stem = [System.IO.Path]::GetFileNameWithoutExtension($fullPath)
-            $shortcutPath = Join-Path $dir ($stem + ' (Custom Icon).lnk')
+            $shortcutPath = Join-Path $dir ($stem + '.lnk')
             $suffix = 2
+            $reuseExisting = $false
             while (Test-Path -LiteralPath $shortcutPath -PathType Leaf) {
                 $existing = $wsh.CreateShortcut($shortcutPath)
                 $isSame = ([string]$existing.TargetPath -ieq $fullPath) -or
                     ([string]$existing.Arguments).IndexOf($fullPath,[System.StringComparison]::OrdinalIgnoreCase) -ge 0
-                if ($isSame) { break }
-                $shortcutPath = Join-Path $dir ($stem + ' (Custom Icon ' + $suffix + ').lnk')
+                if ($isSame) { $reuseExisting = $true; break }
+                if ($suffix -eq 2) { $shortcutPath = Join-Path $dir ($stem + ' (Custom Icon).lnk') }
+                else { $shortcutPath = Join-Path $dir ($stem + ' (Custom Icon ' + $suffix + ').lnk') }
                 $suffix++
             }
 
@@ -372,9 +426,12 @@ function Get-ShortcutsFromPaths {
                 IconLocation = ''
                 NormalizedName = $null
                 Status = 'Pending'
-                Detail = 'Custom icon will be applied to a companion shortcut; the source file will remain unchanged.'
-                IsGeneratedFileShortcut = $true
+                Detail = if ($reuseExisting) { 'An existing matching shortcut will be updated.' } else { 'A standard Windows .lnk will be created beside the original file; the source remains untouched.' }
+                IsGeneratedFileShortcut = (-not $reuseExisting)
                 SourcePath = $fullPath
+                LaunchTargetPath = ''
+                LaunchArguments = ''
+                LaunchWorkingDirectory = $dir
             })
         } catch {
             Write-Log "File target skipped: $p ($($_.Exception.Message))" 'WARN'
