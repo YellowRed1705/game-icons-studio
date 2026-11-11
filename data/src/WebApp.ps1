@@ -1502,7 +1502,7 @@ function applyLang() {
   if (cBtns.length >= 4) {
     cBtns[0].textContent = t.btnLooksGood;
     cBtns[1].textContent = t.btnDiffCover;
-    cBtns[2].textContent = (typeof state !== 'undefined' && state.iconSearchOnly) ? (currentLang === 'ar' ? 'عرض نتائج أيقونات بديلة' : 'Choose a different match') : t.btnWrongGame;
+    cBtns[2].textContent = (typeof state !== 'undefined' && state.iconSearchOnly) ? (screenI18n[currentLang] || screenI18n.en).altIconMatch : t.btnWrongGame;
     cBtns[3].textContent = t.googleSearchBtn;
   }
   var autoBtn = document.querySelector('.auto-btn');
@@ -2220,15 +2220,10 @@ function updateFolderScreenLabels(){
     fs.textContent = t.fsSingle;
     if (sb) sb.textContent = t.btnScanSingle;
   } else if (state.targetMode === 'game_files'){
-    if (currentLang === 'ar') {
-      ft.textContent = 'ابحث عن الألعاب داخل مجلد';
-      fs.textContent = 'افحص روابط التشغيل وملفات الألعاب وROM داخل المجلدات الفرعية، مع الحفاظ على الملفات الأصلية.';
-      if (sb) sb.textContent = 'افحص مجلد الألعاب';
-    } else {
-      ft.textContent = 'Find games inside a folder';
-      fs.textContent = 'Scan launcher links, game files and ROMs recursively. Existing shortcuts are kept; original files stay untouched.';
-      if (sb) sb.textContent = 'Scan game library';
-    }
+    var screen = screenI18n[currentLang] || screenI18n.en;
+    ft.textContent = screen.gameFilesTitle;
+    fs.textContent = screen.gameFilesDesc;
+    if (sb) sb.textContent = screen.gameFilesButton;
   } else {
     ft.textContent = t.folderTitle;
     fs.textContent = t.folderSub;
@@ -2264,11 +2259,12 @@ function isFolderMode(){
   return (state.targetMode === 'folders_all' || state.targetMode === 'folders_single');
 }
 function browseFolder(){
-  var detail = 'A Windows folder window will appear in front. Pick your games folder and click OK.';
-  if (state.targetMode === 'folders_all'){ detail = 'A Windows folder window will appear in front. Pick the parent folder that holds your game folders and click OK.'; }
-  if (state.targetMode === 'folders_single'){ detail = 'A Windows folder window will appear in front. Pick the game folder you want to customize and click OK.'; }
-  if (state.targetMode === 'game_files'){ detail = (currentLang === 'ar') ? 'اختر مجلد تثبيت اللعبة أو مكتبتها. سأبحث عن ملفات التشغيل وروابط المنصات وملفات ROM داخله.' : 'Choose a game installation or library folder. I will find playable EXE files, launcher links and ROMs inside it.'; }
-  setLoading('Opening the folder window...', detail, null);
+  var screen = screenI18n[currentLang] || screenI18n.en;
+  var detail = screen.browseFolderGeneric;
+  if (state.targetMode === 'folders_all'){ detail = screen.browseFolderAll || screen.browseFolderGeneric; }
+  if (state.targetMode === 'folders_single'){ detail = screen.browseFolderSingle || screen.browseFolderGeneric; }
+  if (state.targetMode === 'game_files'){ detail = screen.browseFolderDetail; }
+  setLoading(screen.openingFolder || 'Opening the folder window...', detail, null);
   api('/api/browse-folder', {}).then(function(){
     pollDialog(function(res){
       if (res.ok && res.folder){
@@ -2754,21 +2750,19 @@ function renderConfirm(){
   if (state.autoAll){ $('autoBanner').innerHTML = i18n[currentLang].autoBannerText; }
   var tc = i18n[currentLang];
   $('confirmTitle').textContent = state.iconSearchOnly
-    ? (currentLang === 'ar' ? 'راجع أيقونة البرنامج / الملف' : 'Review this program / file icon')
+    ? ((screenI18n[currentLang] || screenI18n.en).iconReviewTitle)
     : (state.autoAll ? tc.confirmAutoTitle : tc.confirmTitle);
   $('confirmShortcut').textContent = formatStr(tc.shortcutProgress, [state.pos+1, state.items.length, it.name]);
   $('confirmCover').src = cover ? cover.thumb : '';
   $('confirmGame').textContent = sec.gameName;
   var confirmHint = document.querySelector('#step-confirm .hint');
-  if (confirmHint && state.iconSearchOnly) confirmHint.textContent = currentLang === 'ar'
-    ? 'تحقق من المعاينة. يمكنك اختيار صورة أخرى من Google أو Yandex أو من جهازك.'
-    : 'Review the preview. You can choose a different image from Google, Yandex, or your PC.';
+  if (confirmHint && state.iconSearchOnly) confirmHint.textContent = (screenI18n[currentLang] || screenI18n.en).iconSearchHint;
   var wrongGameButton = document.querySelector('#step-confirm button.g-bad');
   if (wrongGameButton) {
     var hasAlternatives = !!(it.candidateGames && it.candidateGames.length > 0);
     wrongGameButton.style.display = (state.iconSearchOnly && !hasAlternatives) ? 'none' : '';
     wrongGameButton.textContent = state.iconSearchOnly
-      ? (currentLang === 'ar' ? 'عرض نتائج أيقونات بديلة' : 'Choose a different match')
+      ? (screenI18n[currentLang] || screenI18n.en).altIconMatch
       : tc.btnWrongGame;
   }
   var autoChooseButton = document.querySelector('#step-confirm .auto-btn');
@@ -2812,7 +2806,7 @@ function showArtwork(){
   var sec = it.sections[pick.game-1] || it.sections[0];
   var artworkTitle = document.querySelector('#step-artwork h2');
   if (artworkTitle) artworkTitle.textContent = state.iconSearchOnly
-    ? (currentLang === 'ar' ? 'اختر أيقونة البرنامج' : 'Choose a program icon')
+    ? (screenI18n[currentLang] || screenI18n.en).programIconTitle
     : i18n[currentLang].titleArtwork;
   $('artworkGame').textContent = sec.gameName + (sec.year>0?(' ('+sec.year+')'):'');
   var grid = $('artworkGrid'); grid.innerHTML = '';
@@ -2840,11 +2834,11 @@ function showArtwork(){
 function showOtherMatches(){
   var it = currentItem();
   $('matchesShortcut').textContent = state.iconSearchOnly
-    ? ((currentLang === 'ar' ? 'نتائج الأيقونات البديلة لـ ' : 'Alternative icon results for ') + it.name)
+    ? ((screenI18n[currentLang] || screenI18n.en).altIconResults + it.name)
     : formatStr(i18n[currentLang].whichGame, [it.name]);
   var matchTitle = document.querySelector('#step-matches h2');
   if (matchTitle) matchTitle.textContent = state.iconSearchOnly
-    ? (currentLang === 'ar' ? 'اختر نتيجة أيقونة بديلة' : 'Choose an alternative icon result')
+    ? (screenI18n[currentLang] || screenI18n.en).altIconTitle
     : i18n[currentLang].titleMatches;
   var grid = $('matchesGrid'); grid.innerHTML = '';
   var cands = it.candidateGames || [];
