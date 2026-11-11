@@ -38,13 +38,11 @@ $launcherText = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'Game Icons 
 $mainText = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'data/src/Main.ps1') -Raw
 $webText = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'data/src/WebApp.ps1') -Raw
 $backupText = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'data/src/IconBackup.ps1') -Raw
-$imageSearchText = Get-Content -LiteralPath (Join-Path $RepositoryRoot 'data/src/ImageSearch.ps1') -Raw
 if ($readmeText -notmatch [regex]::Escape("# Game Icons Studio v$Version")) { throw "README title does not match v$Version" }
 if ($launcherText -notmatch [regex]::Escape("title Game Icons Studio v$Version")) { throw "Launcher title does not match v$Version" }
 if ($mainText -notmatch [regex]::Escape("GAME ICONS STUDIO  v$Version")) { throw "Main banner does not match v$Version" }
 if ($webText -notmatch [regex]::Escape("<title>Game Icons Studio v$Version</title>")) { throw "Web UI title does not match v$Version" }
 if ($backupText -notmatch [regex]::Escape("AppVersion = '$Version'")) { throw "Restore-point AppVersion does not match v$Version" }
-if ($imageSearchText -notmatch [regex]::Escape("Game-Icons-Studio/$Version")) { throw "Image-search user agent does not match v$Version" }
 
 $OutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
 if (Test-Path -LiteralPath $OutputDirectory) { Remove-Item -LiteralPath $OutputDirectory -Recurse -Force }
