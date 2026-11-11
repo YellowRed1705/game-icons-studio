@@ -1842,34 +1842,69 @@ function Start-AsyncDialog {
 
 function Open-FolderLargeIcons {
     <#
-        Opens a folder in Explorer and switches its view to Large
-        Icons so the user sees their new game shelf right away.
+        Opens the processed folder in a real, maximized Explorer window.
+        The matching Explorer HWND is restored/maximized and brought to the
+        foreground after its Large Icons view is initialized.
     #>
     param([Parameter(Mandatory)][string]$Folder)
 
-    if ([string]::IsNullOrWhiteSpace($Folder) -or -not (Test-Path $Folder)) { return }
+    if ([string]::IsNullOrWhiteSpace($Folder) -or -not (Test-Path -LiteralPath $Folder -PathType Container)) { return }
 
+    $targetFolder = [System.IO.Path]::GetFullPath($Folder).TrimEnd([System.IO.Path]::DirectorySeparatorChar)
+    $shell = $null
     try {
         $shell = New-Object -ComObject Shell.Application
-        $shell.Open($Folder)
-        Start-Sleep -Milliseconds 700
+        $shell.Open($targetFolder)
 
-        # Find the just-opened window and set its view to Large Icons.
-        foreach ($w in @($shell.Windows())) {
+        # Shell.Open may return before Explorer has created its folder window.
+        # Poll its real window list instead of guessing a fixed startup delay.
+        for ($attempt = 0; $attempt -lt 30; $attempt++) {
+            foreach ($window in @($shell.Windows())) {
+                try {
+                    $location = [string]$window.Document.Folder.Self.Path
+                    if ([string]::Equals(
+                        $location.TrimEnd([System.IO.Path]::DirectorySeparatorChar),
+                        $targetFolder,
+                        [System.StringComparison]::OrdinalIgnoreCase
+                    )) {
+                        try {
+                            $window.Document.CurrentViewMode = 1 # Icons view
+                            $window.Document.IconSize = 96       # Large Icons
+                        } catch { }
+
+                        $hwnd = [IntPtr]([long]$window.HWND)
+                        if ($hwnd -ne [IntPtr]::Zero) {
+                            [GIS.NativeWindowTools]::ShowMaximizedAndForeground($hwnd)
+                            Start-Sleep -Milliseconds 180
+                            [GIS.NativeWindowTools]::ShowMaximizedAndForeground($hwnd)
+                            Write-Log "Explorer folder opened maximized and focused: $targetFolder" 'OK'
+                            return
+                        }
+                    }
+                } catch { }
+            }
+            Start-Sleep -Milliseconds 150
+        }
+
+        # Fallback in case Explorer has not exposed its shell window yet.
+        Start-Process -FilePath 'explorer.exe' -ArgumentList @('/n', $targetFolder) -ErrorAction Stop | Out-Null
+        Start-Sleep -Milliseconds 350
+        foreach ($window in @($shell.Windows())) {
             try {
-                $loc = [string]$w.Document.Folder.Self.Path
-                if ($loc -eq $Folder) {
-                    # IconSize 96 = Large Icons (48 = medium, 256 = extra large)
-                    $w.Document.CurrentViewMode = 1   # 1 = icons view
-                    $w.Document.IconSize = 96
+                $location = [string]$window.Document.Folder.Self.Path
+                if ([string]::Equals($location.TrimEnd([System.IO.Path]::DirectorySeparatorChar),$targetFolder,[System.StringComparison]::OrdinalIgnoreCase)) {
+                    try { $window.Document.CurrentViewMode = 1; $window.Document.IconSize = 96 } catch { }
+                    [GIS.NativeWindowTools]::ShowMaximizedAndForeground([IntPtr]([long]$window.HWND))
                     break
                 }
             } catch { }
         }
-        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null
     } catch {
-        # Fallback: plain open
-        try { Start-Process explorer.exe -ArgumentList "`"$Folder`"" } catch { }
+        Write-Log "Could not maximize the Explorer folder window: $($_.Exception.Message)" 'WARN'
+        try { Start-Process -FilePath 'explorer.exe' -ArgumentList @('/n', $targetFolder) -ErrorAction SilentlyContinue | Out-Null } catch { }
+    } finally {
+        if ($null -ne $shell -and [System.Runtime.InteropServices.Marshal]::IsComObject($shell)) {
+            try { [System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) | Out-Null } catch { }
+        }
     }
 }
-
