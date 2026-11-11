@@ -775,9 +775,33 @@ function Invoke-ApplyPipeline {
             if ($isFolder) {
                 Set-FolderCustomIcon -FolderPath $s.Path -IcoPath $r.IcoPath
             } elseif ($s.PSObject.Properties.Name -contains 'IsGeneratedFileShortcut' -and [bool]$s.IsGeneratedFileShortcut) {
-                Set-FileCustomIconShortcut -FilePath ([string]$s.SourcePath) -ShortcutPath $s.Path -IcoPath $r.IcoPath
+                $shortcutParams = @{
+                    FilePath = [string]$s.SourcePath
+                    ShortcutPath = [string]$s.Path
+                    IcoPath = [string]$r.IcoPath
+                }
+                if ($s.PSObject.Properties.Name -contains 'LaunchTargetPath' -and -not [string]::IsNullOrWhiteSpace([string]$s.LaunchTargetPath)) {
+                    $shortcutParams.LaunchTargetPath = [string]$s.LaunchTargetPath
+                    $shortcutParams.LaunchArguments = [string]$s.LaunchArguments
+                    $shortcutParams.LaunchWorkingDirectory = [string]$s.LaunchWorkingDirectory
+                }
+                Set-FileCustomIconShortcut @shortcutParams
             } else {
                 Set-ShortcutIcon -ShortcutPath $s.Path -IcoPath $r.IcoPath
+            }
+
+            # A converted .url source is deleted only after the new .lnk has
+            # been safely backed up and its custom icon has been persisted.
+            if ($s.PSObject.Properties.Name -contains 'IsNewlyConvertedUrlShortcut' -and
+                [bool]$s.IsNewlyConvertedUrlShortcut -and
+                $s.PSObject.Properties.Name -contains 'SourceUrlPath' -and
+                (Test-Path -LiteralPath ([string]$s.SourceUrlPath) -PathType Leaf)) {
+                try {
+                    Remove-Item -LiteralPath ([string]$s.SourceUrlPath) -Force -ErrorAction Stop
+                    Write-Log "Converted launcher source removed after verified .lnk update: $($s.SourceUrlPath)" 'INFO'
+                } catch {
+                    Write-Log "The new .lnk is ready, but the original .url could not be removed: $($s.SourceUrlPath)" 'WARN'
+                }
             }
 
             $s.Status = 'Updated'
