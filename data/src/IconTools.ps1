@@ -21,19 +21,38 @@ function Test-IsIcoFile {
     }
 }
 
+function Get-Sha256TextHash {
+    param([Parameter(Mandatory)][string]$Value)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Value)
+        return [System.BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-','').ToLowerInvariant()
+    } finally {
+        $sha.Dispose()
+    }
+}
+
 function Get-ContentAddressedIconCachePath {
     <#
-        Returns the newest valid immutable ICO for a logical safe name.
-        Legacy <name>.ico files are intentionally not treated as immutable
-        cache entries because overwriting them can leave stale Explorer icons.
+        Returns the newest valid immutable ICO for one logical identity.
+        IdentityKey prevents two names that sanitize to the same filename
+        from accidentally sharing each other's cached artwork.
     #>
     param(
         [Parameter(Mandatory)][string]$IconsDir,
-        [Parameter(Mandatory)][string]$SafeName
+        [Parameter(Mandatory)][string]$SafeName,
+        [string]$IdentityKey = ''
     )
 
     if (-not (Test-Path -LiteralPath $IconsDir -PathType Container)) { return $null }
-    $prefix = $SafeName + '--'
+    $safe = Get-SafeFileName -Name $SafeName
+    if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'icon' }
+    $prefix = $safe + '--'
+    if (-not [string]::IsNullOrWhiteSpace($IdentityKey)) {
+        $identityHash = (Get-Sha256TextHash -Value $IdentityKey).Substring(0,12)
+        $prefix += $identityHash + '--'
+    }
+
     $files = @()
     try {
         $files = @(Get-ChildItem -LiteralPath $IconsDir -File -Force -ErrorAction Stop |
@@ -52,14 +71,15 @@ function Get-ContentAddressedIconCachePath {
 
 function Publish-ContentAddressedIco {
     <#
-        Publishes a completed ICO under an immutable SHA-256-derived filename.
-        Existing files are never overwritten. Repeated identical bytes reuse
-        the same path, while different bytes always receive a different path.
+        Publishes a completed ICO under an immutable identity + SHA-256 path.
+        Existing files are never overwritten. Same identity and same bytes
+        reuse a path; changed bytes or another identity get a new path.
     #>
     param(
         [Parameter(Mandatory)][string]$StagingPath,
         [Parameter(Mandatory)][string]$IconsDir,
-        [Parameter(Mandatory)][string]$SafeName
+        [Parameter(Mandatory)][string]$SafeName,
+        [string]$IdentityKey = ''
     )
 
     if (-not (Test-ValidIcoFile -Path $StagingPath)) {
@@ -71,11 +91,14 @@ function Publish-ContentAddressedIco {
 
     $safe = Get-SafeFileName -Name $SafeName
     if ([string]::IsNullOrWhiteSpace($safe)) { $safe = 'icon' }
+    if ([string]::IsNullOrWhiteSpace($IdentityKey)) { $IdentityKey = $SafeName }
+    $identityHash = (Get-Sha256TextHash -Value $IdentityKey).Substring(0,12)
     $hash = (Get-FileHash -LiteralPath $StagingPath -Algorithm SHA256 -ErrorAction Stop).Hash.ToLowerInvariant()
     $shortHash = $hash.Substring(0,20)
+    $namePrefix = $safe + '--' + $identityHash + '--'
     $candidates = @(
-        (Join-Path $IconsDir ($safe + '--' + $shortHash + '.ico')),
-        (Join-Path $IconsDir ($safe + '--' + $hash + '.ico'))
+        (Join-Path $IconsDir ($namePrefix + $shortHash + '.ico')),
+        (Join-Path $IconsDir ($namePrefix + $hash + '.ico'))
     )
 
     foreach ($candidate in $candidates) {
@@ -108,9 +131,9 @@ function Publish-ContentAddressedIco {
         }
     }
 
-    # Extremely unlikely short/full hash path conflict: keep the content
-    # immutable and use a unique name rather than replacing any existing file.
-    $uniquePath = Join-Path $IconsDir ($safe + '--' + $hash + '--' + [guid]::NewGuid().ToString('N') + '.ico')
+    # Extremely unlikely short/full hash conflict: keep the content immutable
+    # and use a unique name rather than replacing any existing file.
+    $uniquePath = Join-Path $IconsDir ($namePrefix + $hash + '--' + [guid]::NewGuid().ToString('N') + '.ico')
     [System.IO.File]::Move($StagingPath,$uniquePath)
     if (-not (Test-ValidIcoFile -Path $uniquePath) -or
         (Get-FileHash -LiteralPath $uniquePath -Algorithm SHA256 -ErrorAction Stop).Hash -ine $hash) {
@@ -137,7 +160,7 @@ function Set-FolderCustomIcon {
     $stagingPath = Join-Path $FolderPath ('.gis-folder-icon-' + [guid]::NewGuid().ToString('N') + '.tmp')
     try {
         Copy-Item -LiteralPath $IcoPath -Destination $stagingPath -Force -ErrorAction Stop
-        $publishedPath = Publish-ContentAddressedIco -StagingPath $stagingPath -IconsDir $FolderPath -SafeName 'folder_icon'
+        $publishedPath = Publish-ContentAddressedIco -StagingPath $stagingPath -IconsDir $FolderPath -SafeName 'folder_icon' -IdentityKey 'folder_icon'
         $iconItem = Get-Item -LiteralPath $publishedPath -Force -ErrorAction Stop
         $iconItem.Attributes = [System.IO.FileAttributes]::Hidden -bor [System.IO.FileAttributes]::System
 
