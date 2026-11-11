@@ -47,7 +47,7 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 - 🪟 **Maximized, focused Windows dialogs** — native folder/file pickers and post-apply Explorer windows are restored, maximized, and brought to the foreground; Explorer opens in Large Icons view.
 - 🌐 **Three-language interface** — switch between English, Türkçe and العربية with a compact selector using bundled SVG flags. Fresh installs default to English; the selected language is remembered.
 - 🗺️ **Localized workflow** — setup, scans, restore, repair, image search, progress, help and picker captions are translated throughout the interface.
-- 🧩 **Program & app icons** — search brand/software icon candidates and discover images for application shortcuts.
+- 🧩 **Program & app icons** — keep the embedded application icon as a safe fallback, or open Google Images / Yandex Images and drop your chosen image into the custom editor.
 - 🔎 **Image search shortcuts** — open Google Images or Yandex Images for additional options.
 - 🖼️ **Use your own artwork** — select an image from disk, drag and drop it, paste it with Ctrl+V, or load it from an image URL.
 - ✨ **High-quality Windows icons** — convert artwork into multi-size `.ico` files.
