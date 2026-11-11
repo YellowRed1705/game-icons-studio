@@ -1,0 +1,19 @@
+Game Icons Studio v6.44 — Upgrade Instructions
+
+1. Close Game Icons Studio completely.
+2. Download Game-Icons-Studio-v6.44-Upgrade.zip from GitHub Releases.
+3. Extract the ZIP contents over the existing application folder and approve replacement of application files.
+4. Start Game Icons Studio.bat.
+5. Scan your game folder as usual.
+
+New language control
+- Only the current flag is shown.
+- Click it to cycle English → Turkish → Arabic → English.
+
+Change a wrong game
+- On the review grid, click Change Game under the game you want to correct.
+- Choose one of the built-in alternatives, or type a title and press Search SteamGridDB.
+- For a title that is not in SteamGridDB, use the custom title action and choose artwork through Google Images, Yandex Images, a URL, clipboard, drag/drop or a local image.
+- The artwork's display title is updated, but the original Shortcut filename, target and launch arguments are preserved.
+
+Your SteamGridDB API key remains in this browser's localStorage. It is not committed to GitHub.
