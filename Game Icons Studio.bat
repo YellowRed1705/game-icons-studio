@@ -1,10 +1,10 @@
 @echo off
-title Game Icons Studio v6.43
+title Game Icons Studio v6.44
 setlocal
 cd /d "%~dp0"
 
 rem ============================================================
-rem  Game Icons Studio v6.43 - Launcher
+rem  Game Icons Studio v6.44 - Launcher
 rem  From generic icons to a game shelf.
 rem  Everything lives under data\ ; only this launcher and the
 rem  shortcut sit in the main folder.
