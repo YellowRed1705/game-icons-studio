@@ -396,8 +396,19 @@ function Get-WebAppHtml {
   #step-custom .search-tip { margin:0; }
   #step-custom #customImageSearchButtons { width:100%; max-width:760px; margin:0 auto; gap:12px; }
   #step-custom #customImageSearchButtons button { flex:1 1 220px; min-height:48px; margin:0; }
+  #step-custom #googleImagesBtn { background:linear-gradient(135deg,#2563eb,#0ea5e9); color:#fff; border:1px solid rgba(96,165,250,.6); }
+  #step-custom #yandexImagesBtn { background:linear-gradient(135deg,#ffcc00,#f59e0b); color:#171717; border:1px solid rgba(255,204,0,.8); font-weight:700; }
+  #step-custom #googleImagesBtn:hover, #step-custom #yandexImagesBtn:hover { filter:brightness(1.08); transform:translateY(-1px); }
   #step-custom .custom-layout { display:grid; grid-template-columns:minmax(280px,1fr) 240px; gap:14px; align-items:stretch; }
   #step-custom .drop-zone { min-height:250px; height:100%; }
+  #step-custom .drop-zone.drop-ready {
+    border-color:var(--good); background:linear-gradient(135deg,rgba(52,211,153,.15),rgba(56,189,248,.08));
+    box-shadow:0 0 0 2px rgba(52,211,153,.16),0 12px 32px rgba(0,0,0,.18);
+  }
+  #step-custom .drop-zone.drop-ready::before {
+    content:'DROP AREA READY'; color:var(--good); font-size:.7rem; font-weight:800;
+    letter-spacing:.12em; margin-bottom:2px;
+  }
   #step-custom .preview-box { min-width:0; }
   @media(max-width:760px) {
     #step-custom .custom-layout { grid-template-columns:1fr; }
@@ -1390,7 +1401,7 @@ var screenI18n = {
     grid:"▦ Grid", gallery:"▤ Gallery", onlineTitle:"Smart online Icon candidates",
     onlineDesc:"Google and Yandex results ranked by square shape, resolution and likely Icon relevance.",
     onlineBoth:"Find more from both", onlineGoogle:"Google only", onlineYandex:"Yandex only",
-    onlineStatus:"Showing candidates discovered during the automatic scan.",
+    onlineStatus:"Choose Google or Yandex Images, then drag the image into the highlighted drop area.",
     dropHelp:"Drag an image from Google Images or Yandex Images here. You can also right-click it and choose Copy image, then press Ctrl+V, or click to browse your PC.",
     previewTitle:"ICON PREVIEW (1:1)", previewDropTitle:"You can also drop an image directly onto this Preview", canvasDropTitle:"Drop an image here to Preview it", crop:"Crop 1:1", fit:"Fit", stretch:"Stretch", loadUrl:"Load URL", cancelSkip:"← Cancel / Skip",
         retentionOptions:["Last 10 versions","Last 25 versions","Last 50 versions","Last 100 versions","Unlimited (uses more disk space)"],
@@ -1960,9 +1971,6 @@ function applyLang() {
       b.innerHTML = '&#8962; ' + t.btnHomeNav;
     }
   });
-
-  updateOnlineTopLabels();
-  updateOnlineTopLabels();
   applyScreenLanguage(screen);
 
   // Rebuild the currently visible data-driven screen after a language change.
@@ -4038,8 +4046,11 @@ function openGoogleCustom(autoOpenSearch){
 function setCustomSearchKind(kind){
   customSearchKind = (kind === 'program') ? 'program' : 'game';
   updateCustomSearchKindUi();
-  if ($('onlineSearchPanel')) $('onlineSearchPanel').style.display = (customSearchKind === 'program') ? '' : 'none';
-  if (customSearchKind === 'program') searchOnlineImageCandidates('both', true);
+  if ($('onlineSearchStatus')) {
+    $('onlineSearchStatus').textContent = customSearchKind === 'program'
+      ? 'Choose Google or Yandex Images, then drag the app icon into the drop area.'
+      : 'Choose Google or Yandex Images, then drag the game artwork into the drop area.';
+  }
 }
 
 function updateCustomSearchKindUi(){
@@ -4057,13 +4068,24 @@ function getCustomSearchQuery(){
     : name + ' game cover official box art high resolution square';
 }
 
+function prepareCustomDropTarget(provider){
+  var zone=$('customDropZone');
+  if(zone){
+    zone.classList.add('drop-ready');
+    zone.setAttribute('aria-label','Ready to receive an image from '+provider);
+  }
+  var status=$('onlineSearchStatus');
+  if(status)status.textContent='Ready for '+provider+': drag an image from the new tab and drop it into the highlighted area here.';
+  var hint=$('customSearchHint');
+  if(hint)hint.textContent='The drop area is ready. Keep this app open, switch to the image-search tab, then drag the image back into the highlighted area. No scrolling is needed.';
+}
 function openGoogleSearch(){
   var q = encodeURIComponent(getCustomSearchQuery());
-  if (q) openUrl('https://www.google.com/search?tbm=isch&q=' + q);
+  if (q) { prepareCustomDropTarget('Google Images'); openUrl('https://www.google.com/search?tbm=isch&q=' + q); }
 }
 function openYandexSearch(){
   var q = encodeURIComponent(getCustomSearchQuery());
-  if (q) openUrl('https://yandex.com/images/search?text=' + q);
+  if (q) { prepareCustomDropTarget('Yandex Images'); openUrl('https://yandex.com/images/search?text=' + q); }
 }
 // Backwards-compatible name used by existing buttons in other screens.
 function reopenGoogleSearch(){ openGoogleSearch(); }
