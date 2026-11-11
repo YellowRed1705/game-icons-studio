@@ -440,44 +440,64 @@ function Get-ShortcutsFromPaths {
     return $results
 }
 
+function Test-SupportedLauncherUri {
+    param([Parameter(Mandatory)][string]$Url)
+    if ([string]::IsNullOrWhiteSpace($Url) -or $Url -match '[\r\n\x00"]') { return $false }
+    $parsed = $null
+    if (-not [Uri]::TryCreate($Url,[UriKind]::Absolute,[ref]$parsed)) { return $false }
+    $scheme = ([string]$parsed.Scheme).ToLowerInvariant()
+    if ($scheme -in @('http','https','steam','uplay','battlenet','origin2','link2ea','eaapp',
+        'com.epicgames.launcher','ms-xbox','ms-xboxgamepass','ms-xbox-gamepass','xbox',
+        'roblox-player','minecraft','discord','spotify','goggalaxy')) { return $true }
+    # Also allow other protocols only when Windows has a registered URL handler.
+    try {
+        $protocolKey = "Registry::HKEY_CLASSES_ROOT\$scheme"
+        if (-not (Test-Path -LiteralPath $protocolKey)) { return $false }
+        $item = Get-Item -LiteralPath $protocolKey -ErrorAction Stop
+        return ($item.GetValueNames() -contains 'URL Protocol')
+    } catch { return $false }
+}
+
 function Get-InternetShortcuts {
     <#
-        Scans a folder for Internet Shortcut files (.url) which some
-        game launchers create instead of standard .lnk files. Returns
-        a list with the parsed URL and the icon the .url references.
-        Read-only: nothing is modified here.
+        Recursively reads Windows Internet Shortcuts using literal folder paths.
+        Supports Steam, Epic, Ubisoft, Battle.net, EA, Xbox and other registered
+        application URI protocols. The discovery operation is read-only.
     #>
     param([Parameter(Mandatory)][string]$Folder)
 
     $found = New-Object System.Collections.Generic.List[object]
+    if ([string]::IsNullOrWhiteSpace($Folder) -or -not (Test-Path -LiteralPath $Folder -PathType Container)) { return $found }
     $files = @()
     try {
-        $files = Get-ChildItem -Path $Folder -Filter '*.url' -Recurse -File -ErrorAction SilentlyContinue
-    } catch {
-        return $found
-    }
+        $files = @(Get-ChildItem -LiteralPath $Folder -Recurse -File -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.Extension -ieq '.url' })
+    } catch { return $found }
 
     foreach ($file in $files) {
         try {
             $url = ''
             $iconFile = ''
             $iconIndex = 0
-            foreach ($line in (Get-Content -LiteralPath $file.FullName -ErrorAction Stop)) {
-                if ($line -match '^\s*URL\s*=\s*(.+)$')        { $url = $Matches[1].Trim() }
-                elseif ($line -match '^\s*IconFile\s*=\s*(.+)$') { $iconFile = $Matches[1].Trim() }
-                elseif ($line -match '^\s*IconIndex\s*=\s*(\d+)') { $iconIndex = [int]$Matches[1] }
+            foreach ($line in [System.IO.File]::ReadAllLines($file.FullName)) {
+                if ($line -match '^\s*URL\s*=\s*(.*?)\s*$') { $url = $Matches[1].Trim() }
+                elseif ($line -match '^\s*IconFile\s*=\s*(.*?)\s*$') { $iconFile = [Environment]::ExpandEnvironmentVariables($Matches[1].Trim().Trim('"')) }
+                elseif ($line -match '^\s*IconIndex\s*=\s*(-?\d+)') { $iconIndex = [int]$Matches[1] }
             }
-            if (-not [string]::IsNullOrWhiteSpace($url)) {
+            if (Test-SupportedLauncherUri -Url $url) {
                 $found.Add([PSCustomObject]@{
-                    Path      = $file.FullName
-                    Name      = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
-                    Url       = $url
-                    IconFile  = $iconFile
+                    Path = $file.FullName
+                    Name = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+                    Url = $url
+                    IconFile = $iconFile
                     IconIndex = $iconIndex
+                    Scheme = ([Uri]$url).Scheme.ToLowerInvariant()
                 })
+            } elseif (-not [string]::IsNullOrWhiteSpace($url)) {
+                Write-Log "Unsupported or unregistered launcher protocol in '$($file.FullName)': $url" 'WARN'
             }
         } catch {
-            Write-Log "Could not read .url shortcut: $($file.FullName)" 'WARN'
+            Write-Log "Could not read .url shortcut: $($file.FullName) ($($_.Exception.Message))" 'WARN'
         }
     }
     return $found
@@ -485,18 +505,10 @@ function Get-InternetShortcuts {
 
 function Convert-InternetShortcut {
     <#
-        Converts a single Internet Shortcut (.url) into a standard
-        .lnk file in the SAME folder, preserving the launch URL by
-        starting it through explorer.exe (which honours protocol
-        handlers like com.epicgames.launcher://). The .lnk gets the
-        same display name.
-
-        SAFE BY DESIGN:
-          - Creates the .lnk first and verifies it exists.
-          - Only then (if -RemoveOriginal) deletes the .url.
-          - On any failure, the original .url is left untouched.
-
-        Returns the new .lnk path, or '' on failure.
+        Converts a .url launcher into a standard, verified .lnk that delegates
+        its URI to Windows Explorer and the registered protocol handler.
+        The source URL is removed only when requested and only after verifying
+        the destination shortcut can be read back with the original URI.
     #>
     param(
         [Parameter(Mandatory)]$Shortcut,
@@ -504,35 +516,45 @@ function Convert-InternetShortcut {
     )
 
     try {
+        if (-not (Test-SupportedLauncherUri -Url ([string]$Shortcut.Url))) {
+            throw "Unsupported or unregistered launcher URI: $([string]$Shortcut.Url)"
+        }
         $dir = Split-Path -Parent $Shortcut.Path
-        $lnkPath = Join-Path $dir ($Shortcut.Name + '.lnk')
-
-        # Avoid clobbering an existing .lnk with the same name.
-        if (Test-Path $lnkPath) {
-            $lnkPath = Join-Path $dir ($Shortcut.Name + ' (converted).lnk')
+        $stem = [string]$Shortcut.Name
+        $lnkPath = Join-Path $dir ($stem + '.lnk')
+        $suffix = 2
+        $wsh = Get-WshShell
+        while (Test-Path -LiteralPath $lnkPath -PathType Leaf) {
+            $existing = $wsh.CreateShortcut($lnkPath)
+            $sameUri = ([string]$existing.Arguments).IndexOf([string]$Shortcut.Url,[System.StringComparison]::OrdinalIgnoreCase) -ge 0
+            if ([string]$existing.TargetPath -ieq (Join-Path $env:WINDIR 'explorer.exe') -and $sameUri) {
+                if ($RemoveOriginal -and (Test-Path -LiteralPath $Shortcut.Path -PathType Leaf)) {
+                    Remove-Item -LiteralPath $Shortcut.Path -Force -ErrorAction Stop
+                }
+                return $lnkPath
+            }
+            if ($suffix -eq 2) { $lnkPath = Join-Path $dir ($stem + ' (converted).lnk') }
+            else { $lnkPath = Join-Path $dir ($stem + ' (converted ' + $suffix + ').lnk') }
+            $suffix++
         }
 
-        $wsh = Get-WshShell
         $lnk = $wsh.CreateShortcut($lnkPath)
-        # explorer.exe launches the protocol URL exactly like a double
-        # click on the .url would, so the game still starts normally.
-        $lnk.TargetPath = "$env:WINDIR\explorer.exe"
-        $lnk.Arguments  = '"' + $Shortcut.Url + '"'
+        $lnk.TargetPath = Join-Path $env:WINDIR 'explorer.exe'
+        $lnk.Arguments = '"' + [string]$Shortcut.Url + '"'
         $lnk.WorkingDirectory = $env:WINDIR
-        if (-not [string]::IsNullOrWhiteSpace($Shortcut.IconFile) -and (Test-Path $Shortcut.IconFile)) {
-            $lnk.IconLocation = "$($Shortcut.IconFile),$($Shortcut.IconIndex)"
+        if (-not [string]::IsNullOrWhiteSpace([string]$Shortcut.IconFile) -and
+            (Test-Path -LiteralPath ([string]$Shortcut.IconFile) -PathType Leaf)) {
+            $lnk.IconLocation = '"' + [string]$Shortcut.IconFile + '",' + [int]$Shortcut.IconIndex
         }
         $lnk.Save()
 
-        if (-not (Test-Path $lnkPath)) {
-            Write-Log "Conversion failed (no .lnk produced) for: $($Shortcut.Path)" 'WARN'
-            return ''
+        if (-not (Test-Path -LiteralPath $lnkPath -PathType Leaf)) { throw 'Windows did not create the converted .lnk.' }
+        $verify = $wsh.CreateShortcut($lnkPath)
+        if ([string]$verify.TargetPath -ine (Join-Path $env:WINDIR 'explorer.exe') -or
+            ([string]$verify.Arguments).IndexOf([string]$Shortcut.Url,[System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
+            throw 'The converted shortcut did not preserve the original launcher URI.'
         }
-
-        if ($RemoveOriginal) {
-            try { Remove-Item -LiteralPath $Shortcut.Path -Force -ErrorAction Stop }
-            catch { Write-Log "Converted but could not remove original .url: $($Shortcut.Path)" 'WARN' }
-        }
+        if ($RemoveOriginal) { Remove-Item -LiteralPath $Shortcut.Path -Force -ErrorAction Stop }
         return $lnkPath
     } catch {
         Write-Log "Failed to convert .url shortcut '$($Shortcut.Path)': $($_.Exception.Message)" 'WARN'
@@ -542,27 +564,30 @@ function Convert-InternetShortcut {
 
 function Get-FolderHealth {
     <#
-        Quick pre-scan health report for a folder: how many .lnk, how
-        many look broken (missing target), and how many .url launcher
-        shortcuts exist. Read-only. Returns a hashtable.
+        Read-only recursive health summary. Uses LiteralPath + Force so
+        folders containing wildcard characters and hidden entries are handled.
     #>
     param([Parameter(Mandatory)][string]$Folder)
 
     $lnk = 0; $broken = 0; $url = 0
     try {
-        $lnkFiles = @(Get-ChildItem -Path $Folder -Filter '*.lnk' -Recurse -File -ErrorAction SilentlyContinue)
+        $allFiles = @(Get-ChildItem -LiteralPath $Folder -Recurse -File -Force -ErrorAction SilentlyContinue)
+        $lnkFiles = @($allFiles | Where-Object { $_.Extension -ieq '.lnk' })
+        $urlFiles = @($allFiles | Where-Object { $_.Extension -ieq '.url' })
         $lnk = $lnkFiles.Count
+        $url = $urlFiles.Count
         $wsh = Get-WshShell
-        foreach ($f in $lnkFiles) {
+        foreach ($file in $lnkFiles) {
             try {
-                $s = $wsh.CreateShortcut($f.FullName)
-                $t = [string]$s.TargetPath
-                # Broken if it has a filesystem target that no longer exists.
-                if (-not [string]::IsNullOrWhiteSpace($t) -and ($t -match '^[A-Za-z]:\\') -and -not (Test-Path $t)) { $broken++ }
+                $shortcut = $wsh.CreateShortcut($file.FullName)
+                $target = [string]$shortcut.TargetPath
+                if (-not [string]::IsNullOrWhiteSpace($target) -and
+                    ($target -match '^[A-Za-z]:\\|^\\\\') -and
+                    -not (Test-Path -LiteralPath $target)) { $broken++ }
             } catch { $broken++ }
         }
-    } catch { }
-    try { $url = @(Get-ChildItem -Path $Folder -Filter '*.url' -Recurse -File -ErrorAction SilentlyContinue).Count } catch { }
-
+    } catch {
+        Write-Log "Folder health scan failed for '$Folder': $($_.Exception.Message)" 'WARN'
+    }
     return @{ lnk = $lnk; broken = $broken; url = $url }
 }
