@@ -2361,7 +2361,7 @@ function saveBackupRetention(){
   var value = parseInt($('backupRetention').value, 10);
   if (!Number.isFinite(value) || value < 0) value = 50;
   api('/api/backup-settings', { retention: value }).then(function(res){
-    $('backupSettingStatus').textContent = (res && res.ok) ? (i18n[currentLang].backupSaved) : ((res && res.error) || 'Could not save setting.');
+    $('backupSettingStatus').textContent = (res && res.ok) ? i18n[currentLang].backupSaved : ((res && res.error) || statusText('backupSaveError'));
   }).catch(function(){ $('backupSettingStatus').textContent = statusText('backupSaveError'); });
 }
 function restoreBackup(id, count){
@@ -2387,28 +2387,28 @@ function repairIconCache(){
       setLoading(statusText('repairingIcons'), statusText('repairingDetail'), 0);
       api('/api/repair-shortcut-icons', { folder: dialogResult.folder }).then(function(res){
         if (!res || (!res.ok && !res.cacheRefreshed)) {
-          $('restoreResultMsg').textContent = (res && res.error) || 'The icon repair could not be completed.';
+          $('restoreResultMsg').textContent = (res && res.error) || statusText('repairError');
         } else {
           var parts = [
-            'Shortcuts scanned: ' + (res.scanned||0),
-            'References repaired: ' + (res.repaired||0),
-            'ICO files rebuilt from cache: ' + (res.rebuilt||0),
-            'Already valid: ' + (res.alreadyValid||0),
-            'Unresolved: ' + (res.unresolved||0),
-            'Failed: ' + (res.failed||0)
+            formatStr(statusText('repairScanned'), [res.scanned||0]),
+            formatStr(statusText('repairRepaired'), [res.repaired||0]),
+            formatStr(statusText('repairRebuilt'), [res.rebuilt||0]),
+            formatStr(statusText('repairAlreadyValid'), [res.alreadyValid||0]),
+            formatStr(statusText('repairUnresolved'), [res.unresolved||0]),
+            formatStr(statusText('repairFailed'), [res.failed||0])
           ];
-          if (res.cacheRefreshed) parts.push('Windows icon cache refreshed and Explorer restarted.');
-          if ((res.unresolved||0)>0) parts.push('Some icons could not be rebuilt because matching artwork is no longer in the local cache.');
+          if (res.cacheRefreshed) parts.push(statusText('repairCacheRefreshed'));
+          if ((res.unresolved||0)>0) parts.push(statusText('repairMissingArtwork'));
           $('restoreResultMsg').textContent = parts.join('\n');
         }
         show('step-restore-ok');
       }).catch(function(error){
-        $('restoreResultMsg').textContent = (error && error.message) || 'The icon repair request failed.';
+        $('restoreResultMsg').textContent = (error && error.message) || statusText('repairRequestError');
         show('step-restore-ok');
       });
     });
   }).catch(function(error){
-    $('restoreResultMsg').textContent = (error && error.message) || 'Could not open the Windows folder picker.';
+    $('restoreResultMsg').textContent = (error && error.message) || statusText('pickerError');
     show('step-restore-ok');
   });
 }
@@ -3664,7 +3664,7 @@ function renderOnlineImageCandidates(candidates){
     img.loading = index < 8 ? 'eager' : 'lazy';
     img.referrerPolicy = 'no-referrer';
     img.alt = candidate.title || ((candidate.source || 'Image') + ' candidate');
-    img.onerror = function(){ this.style.opacity = '.2'; this.title = 'Preview unavailable from this host; try another result.'; };
+    img.onerror = function(){ this.style.opacity = '.2'; this.title = statusText('previewUnavailable'); };
     img.onload = function(){
       var iw = this.naturalWidth || 0, ih = this.naturalHeight || 0;
       if (!iw || !ih) return;
@@ -3675,23 +3675,23 @@ function renderOnlineImageCandidates(candidates){
       candidate.clientScore = Math.max(1, Math.min(100, Math.round(rank)));
       tile.dataset.rank = String(candidate.clientScore);
       var qualityLabel = tile.querySelector('.online-candidate-quality');
-      if (qualityLabel) qualityLabel.textContent = 'quality ' + candidate.clientScore + '/100';
+      if (qualityLabel) qualityLabel.textContent = statusText('quality') + ' ' + candidate.clientScore + '/100';
       var realMeta = tile.querySelector('.online-candidate-meta');
-      if (realMeta) realMeta.textContent = (candidate.source || 'Online') + ' · ' + iw + ' × ' + ih + ' · ' + (iw/ih >= .88 && iw/ih <= 1.14 ? 'near-square' : 'not square');
+      if (realMeta) realMeta.textContent = (candidate.source || 'Online') + ' · ' + iw + ' × ' + ih + ' · ' + (iw/ih >= .88 && iw/ih <= 1.14 ? statusText('nearSquare') : statusText('notSquare'));
       var parent = tile.parentNode;
       if (parent) Array.prototype.slice.call(parent.children).sort(function(a,b){ return (+b.dataset.rank||+b.dataset.baseRank||0) - (+a.dataset.rank||+a.dataset.baseRank||0); }).forEach(function(node){ parent.appendChild(node); });
     };
     img.src = candidate.thumb || candidate.url || '';
     var title = document.createElement('div');
     title.className = 'online-candidate-title';
-    title.textContent = candidate.title || ('Candidate ' + (index+1));
+    title.textContent = candidate.title || (statusText('candidate') + ' ' + (index+1));
     var meta = document.createElement('div');
     meta.className = 'online-candidate-meta';
-    var dimensions = (+candidate.width > 0 && +candidate.height > 0) ? (candidate.width + ' × ' + candidate.height) : 'size unknown';
+    var dimensions = (+candidate.width > 0 && +candidate.height > 0) ? (candidate.width + ' × ' + candidate.height) : statusText('sizeUnknown');
     meta.textContent = (candidate.source || 'Online') + ' · ' + dimensions;
     var quality = document.createElement('div');
     quality.className = 'online-candidate-meta online-candidate-quality';
-    quality.textContent = 'quality ' + (candidate.score || '?') + '/100';
+    quality.textContent = statusText('quality') + ' ' + (candidate.score || '?') + '/100';
     tile.dataset.baseRank = String(+candidate.score || 0);
     var use = document.createElement('button');
     use.className = 'online-candidate-use';
@@ -3717,7 +3717,7 @@ function searchOnlineImageCandidates(provider, silent){
   if (status) status.textContent = statusText(provider === 'both' ? 'searchingBoth' : (provider === 'google' ? 'searchingGoogle' : 'searchingYandex'));
   api('/api/search-images', { name: it.name, provider: provider }).then(function(res){
     if (!res || !res.ok) {
-      if (status) status.textContent = (res && res.error) || 'Search could not retrieve online results. Use the search tabs or drag/drop a result.';
+      if (status) status.textContent = (res && res.error) || statusText('onlineFailed');
       return;
     }
     var incoming = res.candidates || [];
