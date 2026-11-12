@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.48
+# Game Icons Studio v6.49
 
 ### From generic icons to a game shelf.
 
@@ -58,9 +58,22 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 - 🧰 **Icon-cache repair** — help refresh blank or stale icons displayed by Windows.
 - 🎨 **Multiple themes** — Aurora Glass is the default theme, with other themes available.
 
-## What's new in v6.30–v6.48
+## What's new in v6.30–v6.49
 
 These release notes are an addition to the original introduction above. The logo, demo, before-and-after image, and original page structure are retained.
+
+<details>
+<summary><strong>v6.49 — remembered artwork defaults, new-file scans and reliable single-icon updates</strong></summary>
+
+- Automatically preselects the exact cover or icon chosen in a previous run. The saved artwork appears in the review grid and can still be changed item by item.
+- Removes the extra "Use my previous choices" decision from the normal scan path. Saved choices are the default; ignoring them for one scan no longer deletes the saved choices.
+- Detects newly added files and shortcuts by full path, including same-named shortcuts and Game Library EXE, URL, script and emulator ROM items.
+- Offers **Only new files / shortcuts** or **Scan everything** for both Shortcuts Only and Game Library Folder scans. Inventory is saved after the apply attempt, and failed paths remain eligible for retry.
+- Fixes manual single-item edits from the review grid so the previous Auto mode cannot auto-accept or skip the item being edited.
+- Makes shortcut icon writes more resilient with fresh Shell COM instances, bounded retries, read-after-write verification and preservation of original launch settings and file attributes.
+- Keeps the v6.48 PowerShell 7.7 embedded-icon fallback fix and existing restore-point workflow.
+
+</details>
 
 <details>
 <summary><strong>v6.48 — PowerShell 7.7 embedded-icon scan crash fix</strong></summary>
@@ -255,7 +268,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.48.md](CHANGELOG-v6.48.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.49.md](CHANGELOG-v6.49.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 

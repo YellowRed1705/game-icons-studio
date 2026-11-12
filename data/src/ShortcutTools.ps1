@@ -102,38 +102,92 @@ function Test-ValidIcoFile {
 
 function Set-ShortcutIcon {
     <#
-        Changes ONLY IconLocation. Target, arguments and working directory
-        remain untouched. A valid persistent ICO is required before saving.
+        Changes only IconLocation and verifies the persisted value.
+        A fresh WScript.Shell COM instance per attempt avoids stale shell state
+        while Explorer, cloud-sync clients or other readers touch the shortcut.
     #>
     param(
         [Parameter(Mandatory)][string]$ShortcutPath,
-        [Parameter(Mandatory)][string]$IcoPath
+        [Parameter(Mandatory)][string]$IcoPath,
+        [ValidateRange(1,6)][int]$MaxAttempts = 4
     )
-
     if (-not (Test-Path -LiteralPath $ShortcutPath -PathType Leaf)) { throw "Shortcut not found: $ShortcutPath" }
     if (-not (Test-ValidIcoFile -Path $IcoPath)) { throw "Icon file is missing or invalid: $IcoPath" }
 
+    $fullShortcut = [System.IO.Path]::GetFullPath($ShortcutPath)
     $fullIco = [System.IO.Path]::GetFullPath($IcoPath)
-    $wsh = Get-WshShell
-    $lnk = $wsh.CreateShortcut($ShortcutPath)
-    $originalTarget = [string]$lnk.TargetPath
-    $originalArguments = [string]$lnk.Arguments
-    $originalWorkingDirectory = [string]$lnk.WorkingDirectory
-    $lnk.IconLocation = "$fullIco,0"
-    $lnk.Save()
+    $lastError = ''
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        $wsh = $null; $link = $null; $verifyShell = $null; $verify = $null
+        $originalAttributes = $null; $wasReadOnly = $false
+        try {
+            if (-not (Test-Path -LiteralPath $fullShortcut -PathType Leaf)) { throw "Shortcut disappeared before icon update: $fullShortcut" }
+            $originalAttributes = [System.IO.File]::GetAttributes($fullShortcut)
+            $wasReadOnly = (($originalAttributes -band [System.IO.FileAttributes]::ReadOnly) -ne 0)
+            if ($wasReadOnly) {
+                [System.IO.File]::SetAttributes($fullShortcut, ($originalAttributes -band (-bnot [System.IO.FileAttributes]::ReadOnly)))
+            }
 
-    $verify = $wsh.CreateShortcut($ShortcutPath)
-    if ([string]$verify.TargetPath -ne $originalTarget -or
-        [string]$verify.Arguments -ne $originalArguments -or
-        [string]$verify.WorkingDirectory -ne $originalWorkingDirectory) {
-        throw "Shortcut launch settings changed unexpectedly while updating its icon: $ShortcutPath"
+            $wsh = New-Object -ComObject WScript.Shell
+            $link = $wsh.CreateShortcut($fullShortcut)
+            $originalTarget = [string]$link.TargetPath
+            $originalArguments = [string]$link.Arguments
+            $originalWorkingDirectory = [string]$link.WorkingDirectory
+            $link.IconLocation = "$fullIco,0"
+            $link.Save()
+
+            if ($null -ne $link -and [System.Runtime.InteropServices.Marshal]::IsComObject($link)) {
+                [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($link)
+            }
+            $link = $null
+            if ($null -ne $wsh -and [System.Runtime.InteropServices.Marshal]::IsComObject($wsh)) {
+                [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($wsh)
+            }
+            $wsh = $null
+
+            Start-Sleep -Milliseconds (100 + (100 * $attempt))
+            $verifyShell = New-Object -ComObject WScript.Shell
+            $verify = $verifyShell.CreateShortcut($fullShortcut)
+            if ([string]$verify.TargetPath -ne $originalTarget -or
+                [string]$verify.Arguments -ne $originalArguments -or
+                [string]$verify.WorkingDirectory -ne $originalWorkingDirectory) {
+                throw "Shortcut launch settings changed unexpectedly while updating its icon: $fullShortcut"
+            }
+            $persistedIcon = ([string]$verify.IconLocation -split ',')[0].Trim().Trim('"')
+            if ($persistedIcon -ine $fullIco) {
+                throw "Windows did not persist the new icon location. Expected '$fullIco', received '$persistedIcon'."
+            }
+            if ($attempt -gt 1) {
+                Write-Log "Shortcut icon update succeeded on retry $attempt/$MaxAttempts: $fullShortcut" 'WARN'
+            }
+            return $true
+        } catch {
+            $lastError = $_.Exception.Message
+            if ($attempt -lt $MaxAttempts) {
+                Write-Log "Shortcut icon update attempt $attempt/$MaxAttempts failed for '$fullShortcut': $lastError. Retrying with a fresh Shell COM object." 'WARN'
+                Start-Sleep -Milliseconds (250 * $attempt)
+            }
+        } finally {
+            foreach ($comObject in @($verify,$verifyShell,$link,$wsh)) {
+                if ($null -ne $comObject) {
+                    try {
+                        if ([System.Runtime.InteropServices.Marshal]::IsComObject($comObject)) {
+                            [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($comObject)
+                        }
+                    } catch { }
+                }
+            }
+            if ($wasReadOnly -and $null -ne $originalAttributes -and (Test-Path -LiteralPath $fullShortcut -PathType Leaf)) {
+                try { [System.IO.File]::SetAttributes($fullShortcut, $originalAttributes) } catch {
+                    Write-Log "Could not restore original file attributes after updating '$fullShortcut': $($_.Exception.Message)" 'WARN'
+                }
+            }
+        }
     }
-    if (([string]$verify.IconLocation -split ',')[0].Trim('"') -ine $fullIco) {
-        throw "Windows did not persist the new icon location: $ShortcutPath"
-    }
+    throw "Could not persist the custom icon after $MaxAttempts attempts: $fullShortcut. Last error: $lastError"
 }
 
-function Set-FileCustomIconShortcut {
+function Set-FileCustomIconShortcut {function Set-FileCustomIconShortcut {
     <#
         Creates a standard Windows .lnk beside an executable, script, ROM or
         other file whose Explorer icon cannot be individually customized.

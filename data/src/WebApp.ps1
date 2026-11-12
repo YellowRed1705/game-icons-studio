@@ -1386,8 +1386,8 @@ var screenI18n = {
     convertSuccessTitle:"Conversion successful!", convertSuccessBody:"Your launcher links are now standard .lnk files, so their Icons can be customized properly. The links keep working as before.", convertContinue:"Continue →",
     doneTitle:"Done", doneHome:"⌂ Back to Home",
     healthTitle:"Here's what I found", healthSubtitle:"A quick look at your folder before we start.", healthContinue:"Continue →", cancel:"Cancel",
-    newGamesTitle:"New games found", newGamesPrompt:"Would you like to set Icons only for the new games, or scan the entire folder?",
-    newGamesOnly:"Just the new games", newGamesAll:"Scan everything",
+    newGamesTitle:"New files and shortcuts found", newGamesPrompt:"New files or shortcuts have appeared since the last completed scan. Process only those items, or scan the entire folder?",
+    newGamesOnly:"Only new files / shortcuts", newGamesAll:"Scan everything",
     convertTitle:"We found some launcher Shortcuts",
     convertBody1:"Some items are Internet Shortcuts (.url), not standard Windows Shortcuts (.lnk). Windows does not let us assign custom Icons to .url files directly.",
     convertBody2:"Game Icons Studio can convert them automatically. Your links keep working the same way; they become standard Shortcuts that can display your new Icons.",
@@ -1434,8 +1434,8 @@ var screenI18n = {
     convertSuccessTitle:"Dönüştürme başarılı!", convertSuccessBody:"Launcher linklerin artık standart .lnk dosyaları. Böylece Icon'ları özelleştirilebilir. Kısayolların eskisi gibi çalışmaya devam eder.", convertContinue:"Devam et →",
     doneTitle:"Tamamlandı", doneHome:"⌂ Ana Sayfaya Dön",
     healthTitle:"Klasöründe bunları buldum", healthSubtitle:"Başlamadan önce klasörüne hızlı bir göz atalım.", healthContinue:"Devam et →", cancel:"İptal",
-    newGamesTitle:"Yeni oyunlar bulundu", newGamesPrompt:"Yalnızca yeni oyunlara Icon atamak mı, yoksa tüm klasörü yeniden taramak mı istersin?",
-    newGamesOnly:"Yalnızca yeni oyunlar", newGamesAll:"Her şeyi tara",
+    newGamesTitle:"Yeni dosya ve kısayollar bulundu", newGamesPrompt:"Son tamamlanan taramadan sonra yeni dosya veya kısayol eklenmiş. Yalnızca yenilerini mi, yoksa tüm klasörü mü taramak istersin?",
+    newGamesOnly:"Yalnızca yeni dosya / kısayollar", newGamesAll:"Her şeyi tara",
     convertTitle:"Bazı Launcher Shortcut'ları bulduk",
     convertBody1:"Bazı öğelerin standart Windows Shortcut'ı (.lnk) yerine Internet Shortcut (.url). Windows, .url dosyalarına doğrudan özel Icon atamamıza izin vermiyor.",
     convertBody2:"Game Icons Studio bunları otomatik dönüştürebilir. Linklerin aynı şekilde çalışır; yalnızca yeni Icon gösterebilen standart Shortcut'lara dönüşür.",
@@ -1482,8 +1482,8 @@ var screenI18n = {
     convertSuccessTitle:"تم التحويل بنجاح!", convertSuccessBody:"أصبحت روابط Launcher ملفات .lnk قياسية، ويمكن الآن تخصيص أيقوناتها. ستستمر الروابط في العمل كما كانت.", convertContinue:"متابعة →",
     doneTitle:"تم", doneHome:"⌂ العودة إلى الرئيسية",
     healthTitle:"هذه هي العناصر التي وجدتها", healthSubtitle:"نظرة سريعة على المجلد قبل البدء.", healthContinue:"متابعة →", cancel:"إلغاء",
-    newGamesTitle:"تم العثور على ألعاب جديدة", newGamesPrompt:"هل تريد تعيين الأيقونات للألعاب الجديدة فقط أم فحص المجلد بالكامل؟",
-    newGamesOnly:"الألعاب الجديدة فقط", newGamesAll:"فحص الكل",
+    newGamesTitle:"تم العثور على ملفات واختصارات جديدة", newGamesPrompt:"تمت إضافة ملفات أو اختصارات منذ آخر فحص مكتمل. هل تريد معالجة العناصر الجديدة فقط أم فحص المجلد بالكامل؟",
+    newGamesOnly:"الملفات والاختصارات الجديدة فقط", newGamesAll:"فحص الكل",
     convertTitle:"وجدنا بعض اختصارات Launcher",
     convertBody1:"بعض العناصر هي Internet Shortcuts (.url) وليست Windows Shortcuts قياسية (.lnk). لا يسمح Windows بتعيين أيقونات مخصصة لملفات .url مباشرة.",
     convertBody2:"يمكن لـ Game Icons Studio تحويلها تلقائياً. ستعمل الروابط بالطريقة نفسها، لكنها ستصبح اختصارات قياسية تعرض الأيقونات الجديدة.",
@@ -1528,7 +1528,7 @@ var statusI18n = {
     gameFolderScanError:"Could not scan this game folder.",
     gameFolderScanFailed:"The game folder could not be scanned.",
     scanFailed:"Scan failed.",
-    newGamesCount:"You have {0} new game(s) in this folder since your last visit.",
+    newGamesCount:"{0} new file(s) or shortcut(s) have been added since the last completed scan.",
     launcherCount:"Found {0} Launcher Shortcut(s){1}.",
     andShortcutCount:" and {0} standard Shortcut(s)",
     openingFolder:"Opening the Windows folder picker…",
@@ -1599,7 +1599,7 @@ var statusI18n = {
     gameFolderScanError:"Game klasörü taranamadı.",
     gameFolderScanFailed:"Game klasörü taraması başarısız oldu.",
     scanFailed:"Scan başarısız oldu.",
-    newGamesCount:"Bu klasörde son ziyaretinden bu yana {0} yeni oyun bulundu.",
+    newGamesCount:"Son tamamlanan taramadan sonra {0} yeni dosya veya kısayol eklendi.",
     launcherCount:"{0} Launcher Shortcut bulundu{1}.",
     andShortcutCount:" ve {0} standart Shortcut",
     openingFolder:"Windows klasör seçici açılıyor…",
@@ -1670,7 +1670,7 @@ var statusI18n = {
     gameFolderScanError:"تعذر فحص مجلد اللعبة.",
     gameFolderScanFailed:"فشل فحص مجلد اللعبة.",
     scanFailed:"فشل Scan.",
-    newGamesCount:"تم العثور على {0} لعبة جديدة في هذا المجلد منذ زيارتك الأخيرة.",
+    newGamesCount:"تمت إضافة {0} من الملفات أو الاختصارات منذ آخر فحص مكتمل.",
     launcherCount:"تم العثور على {0} من اختصارات Launcher{1}.",
     andShortcutCount:" و{0} من الاختصارات القياسية",
     openingFolder:"جارٍ فتح نافذة مجلدات Windows…",
@@ -2748,20 +2748,21 @@ function folderReady(folder){
   $('folderInput').value = folder;
   $('folderPath').textContent = statusText('folderReady');
   $('scanBtn').classList.remove('hidden');
-  if (state.targetMode === 'game_files'){ scanGameFilesFolder(folder); return; }
-  // Folder modes skip the shortcut-only new-game detection.
-  if (isFolderMode()){ startScan(); return; }
-  if (state.iconSearchOnly){ startScan(); return; }
-  // If this folder was scanned before and has new games, offer that
-  // choice; otherwise go straight into scanning.
+  if (isFolderMode() || state.iconSearchOnly){ startScan(); return; }
+  // Both Shortcuts Only and Game Library mode compare full file paths.
   api('/api/new-games-count', { folder: folder, targetMode: state.targetMode }).then(function(res){
-    if (res && res.ok && res.knownFolder && res.newCount > 0){
+    if (res && res.ok && res.knownFolder && Number(res.newCount) > 0){
       $('newGamesCount').textContent = formatStr(statusText('newGamesCount'), [res.newCount]);
       show('step-newgames');
+    } else if (state.targetMode === 'game_files') {
+      scanGameFilesFolder(folder, false);
     } else {
       startScan();
     }
-  }).catch(function(){ startScan(); });
+  }).catch(function(){
+    if (state.targetMode === 'game_files') scanGameFilesFolder(folder, false);
+    else startScan();
+  });
 }
 
 // Polls the async native dialog without blocking. Keeps the browser
@@ -2799,16 +2800,16 @@ function tryTypedFolder(){
   });
 }
 
-function scanGameFilesFolder(folder){
+function scanGameFilesFolder(folder, onlyNew){
   state.mode = 'change';
   state.iconSearchOnly = false;
   state.autoAll = true;
-  state.useMemory = false;
-  state.onlyNew = false;
+  state.useMemory = true;
+  state.onlyNew = !!onlyNew;
   state.memoryAsked = true;
   state.gameFilesSummary = '';
   setLoading(statusText('findingGames'), statusText('scanningFolder'), 0);
-  api('/api/scan-game-folder-begin', { folder: folder }).then(function(res){
+  api('/api/scan-game-folder-begin', { folder: folder, onlyNew: state.onlyNew }).then(function(res){
     if (!res || !res.ok){
       show('step-folder');
       $('folderPath').textContent = (res && res.error) ? res.error : statusText('gameFolderScanError');
@@ -2886,28 +2887,16 @@ function showConvertSuccess(n){
 }
 function skipConvert(){ runScan(); }
 function runScan(){
-  // Offer to reuse remembered choices (only for full-folder mode, once).
-  if (state.mode === 'full' && !state.memoryAsked && !state.iconSearchOnly){
-    state.memoryAsked = true;
-    setLoading(statusText('checkingSavedChoices'), '', 0);
-    api('/api/saved-status', {}).then(function(res){
-      if (res && res.ok && res.count > 0){
-        var tm = i18n[currentLang];
-        $('memoryCount').textContent = formatStr(tm.memoryCountMsg, [res.count, res.count === 1 ? tm.choiceSingular : tm.choicePlural]);
-        show('step-memory');
-      } else {
-        state.useMemory = false; doScan();
-      }
-    }).catch(function(){ state.useMemory = false; doScan(); });
-    return;
-  }
+  // Previously selected artwork is the default on every scan.
+  state.useMemory = true;
+  state.memoryAsked = true;
   doScan();
 }
 function memoryLoad(){ state.useMemory = true; doScan(); }
 function memoryReset(){
+  // Ignore saved choices for this scan only. Do not erase choices.json.
   state.useMemory = false;
-  setLoading(statusText('startingFresh'), statusText('clearingChoices'), 0);
-  api('/api/reset-choices', {}).then(function(){ doScan(); }).catch(function(){ doScan(); });
+  doScan();
 }
 function doScan(){
   setProgress(0);
@@ -2936,14 +2925,22 @@ function maybeOfferNewGames(){
   }).catch(function(){});
 }
 function scanNewOnly(){
-  state.mode = 'full';
   state.onlyNew = true;
   state.memoryAsked = true;
-  state.useMemory = true;   // reuse remembered choices for old ones (they are skipped anyway)
+  state.useMemory = true;
+  if (state.targetMode === 'game_files') {
+    scanGameFilesFolder(state.folder, true);
+    return;
+  }
+  state.mode = 'full';
   doScan();
 }
 function scanAllInstead(){
   state.onlyNew = false;
+  if (state.targetMode === 'game_files') {
+    scanGameFilesFolder(state.folder, false);
+    return;
+  }
   startScan();
 }
 
@@ -2954,6 +2951,11 @@ function startChangeIcons(anyFiles){
   state.mode = 'change';
   state.iconSearchOnly = !!anyFiles;
   state.targetMode = 'shortcuts';
+  state.autoAll = false;
+  state.useMemory = false;
+  state.onlyNew = false;
+  state.editQueue = [];
+  state.editReturnToReview = false;
   setProgress(0);
   setLoading(statusText('openingFolder'), statusText('selectFilesDetail'), null);
   api('/api/change-files', { lang: currentLang }).then(function(){
@@ -2972,6 +2974,7 @@ function startChangeIcons(anyFiles){
 function beginScanLoop(total){
   state.scanIconSearchOnly = !!state.iconSearchOnly;
   state.items = []; state.pos = 0; state.picks = {}; state.history = []; state.reviewSelected = {};
+  state.editQueue = []; state.editReturnToReview = false;
   state.total = total || 0;
   if (state.total === 0){ alert(state.iconSearchOnly ? statusText('noSupportedFiles') : statusText('noGamesMatched')); goHome(); return; }
   // Program mode queries external image engines per item, so show a realistic estimate.
@@ -3133,6 +3136,7 @@ function enterItem(pos){
   if (!it){ state.iconSearchOnly = !!state.scanIconSearchOnly; goReview(); return; }
   state.iconSearchOnly = !!state.scanIconSearchOnly || !!it.iconSearchOnly;
   if (!state.picks[it.index]) state.picks[it.index] = { game:1, cover:1 };
+  if (it.remembered && it.savedUrl) applyRememberedCover(it);
   if (state.iconSearchOnly) {
     // Batch auto-match: first pass chooses the best-ranked software icon and
     // proceeds to the full review grid. Only explicitly selected items open
@@ -3143,7 +3147,6 @@ function enterItem(pos){
       openGoogleCustom(false);
       return;
     }
-    if (it.remembered && it.savedUrl) applyRememberedCover(it);
     if (it.sections && it.sections.length && it.sections[0].covers && it.sections[0].covers.length) {
       if (!state.picks[it.index]) state.picks[it.index] = { game:1, cover:1 };
       else { state.picks[it.index].game = 1; state.picks[it.index].cover = 1; }
@@ -3161,14 +3164,13 @@ function enterItem(pos){
   // Skip already-done: if the user chose to reuse memory and this game
   // has a remembered cover, apply it and move on without asking.
   if (state.useMemory && !state.editReturnToReview && it.remembered && it.savedUrl){
-    applyRememberedCover(it);
     if (state.autoAll){ updateAutoBanner((it.savedGameName || it.name) + ' (' + statusText('savedSuffix') + ')'); }
     if (state.pos + 1 >= state.items.length){ goReview(); }
     else { setTimeout(function(){ enterItem(state.pos+1); }, 60); }
     return;
   }
 
-  if (state.autoAll){
+  if (state.autoAll && !state.editReturnToReview){
     var noArt = (!it.sections || !it.sections.length);
     // Permissive: accept the top match (or a placeholder when there is
     // no artwork at all). Mistakes are fixable later via Change Icons.
@@ -3532,6 +3534,7 @@ function filterReview(){
 function editFromReview(indexes){
   state.editQueue = indexes.slice();
   state.editReturnToReview = true;
+  state.autoAll = false;
   // Clear selection so the grid is clean when we return.
   state.reviewSelected = {};
   nextInEditQueue();

@@ -123,6 +123,43 @@ function ConvertTo-JsonSafe {
     return ($Data | ConvertTo-Json -Depth $Depth -Compress)
 }
 
+function Get-ScanInventoryKey {
+    param([Parameter(Mandatory)][string]$Folder,[Parameter(Mandatory)][ValidateSet('shortcuts','game_files')][string]$Mode)
+    return (([System.IO.Path]::GetFullPath($Folder).ToLowerInvariant()) + '|' + $Mode.ToLowerInvariant())
+}
+
+function Get-GameLibraryInventoryPaths {
+    param([Parameter(Mandatory)][string]$Folder,[Parameter(Mandatory)][ValidateSet('shortcuts','game_files')][string]$Mode)
+    if ([string]::IsNullOrWhiteSpace($Folder) -or -not (Test-Path -LiteralPath $Folder -PathType Container)) { return @() }
+    $extensions = @('.lnk')
+    if ($Mode -eq 'game_files') {
+        $extensions = @('.lnk','.url','.exe','.bat','.cmd','.gb','.gbc','.gba','.nds','.dsi','.3ds','.cia','.cxi','.3dsx','.n64','.z64','.v64','.nes','.fds','.sfc','.smc','.md','.gen','.wud','.wux','.wua','.rpx','.nsp','.xci','.nca','.iso','.chd','.cso','.pbp','.wbfs','.rvz','.gcm','.gcz','.cdi','.gdi','.rom')
+    }
+    try {
+        return @(Get-ChildItem -LiteralPath $Folder -Recurse -File -Force -ErrorAction SilentlyContinue |
+            Where-Object { $extensions -contains $_.Extension.ToLowerInvariant() } |
+            ForEach-Object { [System.IO.Path]::GetFullPath($_.FullName) } | Sort-Object -Unique)
+    } catch {
+        Write-Log "Could not build scan inventory for '$Folder': $($_.Exception.Message)" 'WARN'
+        return @()
+    }
+}
+
+function Get-NewInventoryPaths {
+    param([AllowEmptyCollection()][string[]]$CurrentPaths = @(),[AllowEmptyCollection()][string[]]$KnownPaths = @())
+    $knownSet = @{}
+    foreach ($path in @($KnownPaths)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$path)) { $knownSet[[string]$path.ToLowerInvariant()] = $true }
+    }
+    $newPaths = @()
+    foreach ($path in @($CurrentPaths)) {
+        if (-not [string]::IsNullOrWhiteSpace([string]$path) -and -not $knownSet.ContainsKey([string]$path.ToLowerInvariant())) {
+            $newPaths += [string]$path
+        }
+    }
+    return $newPaths
+}
+
 function Start-IconWebApp {
     <#
         Boots the local web app: starts HttpListener on a free port,
@@ -205,6 +242,11 @@ function Start-IconWebApp {
         Dialog     = $dialog
         CoverCache = @{}    # gameId -> covers, to avoid repeat API calls
         ProgramIconNames = @{} # normalized emulator launcher names in mixed Game Library scans
+        OnlyNew = $false
+        OnlyNewPaths = @{}
+        ScanInventoryFolder = ''
+        ScanInventoryMode = ''
+        ScanInventory = @()
     }
 
     # Serve until quit. Use async GetContext so we can poll Q key.
@@ -427,6 +469,11 @@ function Invoke-WebRoute {
             Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'A valid SteamGridDB API key is required for game artwork matching.' })
             return
         }
+        $Session.OnlyNew = $false
+        $Session.OnlyNewPaths = @{}
+        $Session.ScanInventoryFolder = ''
+        $Session.ScanInventoryMode = ''
+        $Session.ScanInventory = @()
         $result = Start-WebScanFiles -Session $Session -Files $files -IconSearchOnly $iconSearchOnly
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe $result)
         return
@@ -440,6 +487,20 @@ function Invoke-WebRoute {
         if ([string]::IsNullOrWhiteSpace([string]$Session.Ctx.ApiKey)) {
             Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'A valid SteamGridDB API key is required for game artwork matching.' })
             return
+        }
+        $onlyNew = [bool]($body -and $body.onlyNew)
+        $Session.OnlyNew = $onlyNew
+        $Session.OnlyNewPaths = @{}
+        $Session.ScanInventoryFolder = $folder
+        $Session.ScanInventoryMode = 'game_files'
+        $Session.ScanInventory = @(Get-GameLibraryInventoryPaths -Folder $folder -Mode 'game_files')
+        if ($onlyNew) {
+            $inventoryKey = Get-ScanInventoryKey -Folder $folder -Mode 'game_files'
+            $knownFiles = Get-KnownShortcutFiles -Root $Session.Root
+            if ($knownFiles.ContainsKey($inventoryKey)) {
+                $newPaths = @(Get-NewInventoryPaths -CurrentPaths $Session.ScanInventory -KnownPaths $knownFiles[$inventoryKey])
+                foreach ($newPath in $newPaths) { $Session.OnlyNewPaths[$newPath.ToLowerInvariant()] = $true }
+            }
         }
         $result = Start-WebScanGameFolder -Session $Session -Folder $folder
         Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe $result)
@@ -557,7 +618,25 @@ function Invoke-WebRoute {
 
         $onlyNew  = if ($body -and $body.onlyNew)  { [bool]$body.onlyNew }    else { $false }
         $targetMode = if ($body -and $body.targetMode) { [string]$body.targetMode } else { 'shortcuts' }
+        $Session.OnlyNew = $onlyNew
+        $Session.OnlyNewPaths = @{}
+        $Session.ScanInventoryFolder = ''
+        $Session.ScanInventoryMode = ''
+        $Session.ScanInventory = @()
         $Session.IconSearchOnly = [bool]($body -and $body.iconSearchOnly)
+        if ($targetMode -eq 'shortcuts' -and -not $Session.IconSearchOnly) {
+            $Session.ScanInventoryFolder = $folder
+            $Session.ScanInventoryMode = 'shortcuts'
+            $Session.ScanInventory = @(Get-GameLibraryInventoryPaths -Folder $folder -Mode 'shortcuts')
+            if ($onlyNew) {
+                $inventoryKey = Get-ScanInventoryKey -Folder $folder -Mode 'shortcuts'
+                $knownFiles = Get-KnownShortcutFiles -Root $Session.Root
+                if ($knownFiles.ContainsKey($inventoryKey)) {
+                    $newPaths = @(Get-NewInventoryPaths -CurrentPaths $Session.ScanInventory -KnownPaths $knownFiles[$inventoryKey])
+                    foreach ($newPath in $newPaths) { $Session.OnlyNewPaths[$newPath.ToLowerInvariant()] = $true }
+                }
+            }
+        }
         if (-not $Session.IconSearchOnly -and [string]::IsNullOrWhiteSpace([string]$Session.Ctx.ApiKey)) {
             Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $false; error = 'A valid SteamGridDB API key is required for game artwork matching.' })
             return
@@ -608,26 +687,38 @@ function Invoke-WebRoute {
         $folder = if ($body -and $body.folder) { [string]$body.folder } else { $Session.Ctx.Folder }
         $targetMode = if ($body -and $body.targetMode) { [string]$body.targetMode } else { 'shortcuts' }
         $newCount = 0; $isKnownFolder = $false
-        # Only check for new games in shortcuts mode
-        if ($targetMode -eq 'shortcuts' -and -not [string]::IsNullOrWhiteSpace($folder) -and (Test-Path $folder)) {
+        if ($targetMode -in @('shortcuts','game_files') -and -not [string]::IsNullOrWhiteSpace($folder) -and
+            (Test-Path -LiteralPath $folder -PathType Container)) {
             try {
-                $short = @(Get-Shortcuts -Folder $folder)
-                foreach ($s in $short) { if ($s.Status -ne 'Failed') { $s.NormalizedName = Get-NormalizedGameName -Name $s.Name } }
-                $names = @($short | Where-Object { $_.Status -ne 'Failed' } | ForEach-Object { [string]$_.NormalizedName } | Sort-Object -Unique)
-                $known = Get-KnownGames -Root $Session.Root
-                $key = ([string]$folder).ToLowerInvariant()
-                if ($known.ContainsKey($key)) {
+                $inventoryMode = if ($targetMode -eq 'game_files') { 'game_files' } else { 'shortcuts' }
+                $currentPaths = @(Get-GameLibraryInventoryPaths -Folder $folder -Mode $inventoryMode)
+                $inventoryKey = Get-ScanInventoryKey -Folder $folder -Mode $inventoryMode
+                $knownFiles = Get-KnownShortcutFiles -Root $Session.Root
+                if ($knownFiles.ContainsKey($inventoryKey)) {
                     $isKnownFolder = $true
-                    $prev = @($known[$key])
-                    $newCount = @($names | Where-Object { $prev -notcontains $_ }).Count
+                    $newCount = @(Get-NewInventoryPaths -CurrentPaths $currentPaths -KnownPaths $knownFiles[$inventoryKey]).Count
+                } elseif ($targetMode -eq 'shortcuts') {
+                    # One-time fallback for folders whose only prior record is knownGames.json.
+                    $short = @(Get-Shortcuts -Folder $folder)
+                    foreach ($s in $short) { if ($s.Status -ne 'Failed') { $s.NormalizedName = Get-NormalizedGameName -Name $s.Name } }
+                    $names = @($short | Where-Object { $_.Status -ne 'Failed' } | ForEach-Object { [string]$_.NormalizedName } | Sort-Object -Unique)
+                    $known = Get-KnownGames -Root $Session.Root
+                    $legacyKey = ([string]$folder).ToLowerInvariant()
+                    if ($known.ContainsKey($legacyKey)) {
+                        $isKnownFolder = $true
+                        $prev = @($known[$legacyKey])
+                        $newCount = @($names | Where-Object { $prev -notcontains $_ }).Count
+                    }
                 }
-            } catch { }
+            } catch { Write-Log "New-item inventory check failed for '$folder': $($_.Exception.Message)" 'WARN' }
         }
-        Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{ ok = $true; newCount = $newCount; knownFolder = $isKnownFolder })
+        Send-HttpResponse -Context $Context -Body (ConvertTo-JsonSafe @{
+            ok = $true; newCount = $newCount; newFileCount = $newCount; knownFolder = $isKnownFolder
+        })
         return
     }
 
-    if ($path -eq '/api/game-covers' -and $method -eq 'POST') {
+    if ($path -eq '/api/game-covers' -and $method -eq 'POST') {    if ($path -eq '/api/game-covers' -and $method -eq 'POST') {
         $bodyText = Read-RequestBody -Context $Context
         $body = $null
         try { $body = $bodyText | ConvertFrom-Json } catch { }
@@ -955,15 +1046,20 @@ function Start-WebScan {
     }
 
     if ($OnlyNew) {
-        $known = Get-KnownGames -Root $Session.Root
-        $key = ([string]$ctx.Folder).ToLowerInvariant()
-        $prev = @()
-        if ($known.ContainsKey($key)) { $prev = @($known[$key]) }
-        if ($prev.Count -gt 0) {
-            $shortcuts = @($shortcuts | Where-Object { $prev -notcontains ([string]$_.NormalizedName) })
+        if ($Session.OnlyNewPaths -and $Session.OnlyNewPaths.Count -gt 0) {
+            $shortcuts = @($shortcuts | Where-Object { $Session.OnlyNewPaths.ContainsKey(([string]$_.Path).ToLowerInvariant()) })
+        } else {
+            # Migration fallback for folders without a path inventory.
+            $known = Get-KnownGames -Root $Session.Root
+            $key = ([string]$ctx.Folder).ToLowerInvariant()
+            $prev = @()
+            if ($known.ContainsKey($key)) { $prev = @($known[$key]) }
+            if ($prev.Count -gt 0) {
+                $shortcuts = @($shortcuts | Where-Object { $prev -notcontains ([string]$_.NormalizedName) })
+            }
         }
         if ($shortcuts.Count -eq 0) {
-            return @{ ok = $false; error = 'No new games since your last visit.' }
+            return @{ ok = $false; error = 'No new files or shortcuts were found since the last completed scan.' }
         }
     }
 
@@ -1337,6 +1433,39 @@ function Step-WebApply {
 
     Invoke-ApplyPipeline -Ctx $ctx -Shortcuts $shortcuts -Resolutions $resolutions -Force $true -ProgressCallback $ProgressCallback
 
+    # Save inventory after apply, never at scan start. Failed targets remain eligible
+    # for a later "only new" scan. The post-apply snapshot also includes generated .lnk files.
+    if (-not [string]::IsNullOrWhiteSpace([string]$Session.ScanInventoryFolder) -and
+        $Session.ScanInventoryMode -in @('shortcuts','game_files')) {
+        $safetyAbort = @($shortcuts | Where-Object {
+            $_.Status -eq 'Failed' -and [string]$_.Detail -like 'Safety backup failed*'
+        }).Count -gt 0
+        if (-not $safetyAbort) {
+            try {
+                $inventoryKey = Get-ScanInventoryKey -Folder $Session.ScanInventoryFolder -Mode $Session.ScanInventoryMode
+                $currentInventory = @(Get-GameLibraryInventoryPaths -Folder $Session.ScanInventoryFolder -Mode $Session.ScanInventoryMode)
+                $failedPaths = @{}
+                foreach ($failedItem in @($shortcuts | Where-Object { $_.Status -eq 'Failed' })) {
+                    foreach ($propertyName in @('Path','SourcePath','SourceUrlPath')) {
+                        if ($failedItem.PSObject.Properties.Name -contains $propertyName) {
+                            $failedPath = [string]$failedItem.$propertyName
+                            if (-not [string]::IsNullOrWhiteSpace($failedPath)) { $failedPaths[$failedPath.ToLowerInvariant()] = $true }
+                        }
+                    }
+                }
+                $completedInventory = @($currentInventory | Where-Object {
+                    -not $failedPaths.ContainsKey(([string]$_).ToLowerInvariant())
+                })
+                $knownFileMap = Get-KnownShortcutFiles -Root $Session.Root
+                $knownFileMap[$inventoryKey] = $completedInventory
+                Save-KnownShortcutFiles -Root $Session.Root -Map $knownFileMap
+                Write-Log "Saved $($completedInventory.Count) known path(s) for $($Session.ScanInventoryMode) in '$($Session.ScanInventoryFolder)'." 'INFO'
+            } catch {
+                Write-Log "Could not persist completed scan inventory: $($_.Exception.Message)" 'WARN'
+            }
+        }
+    }
+
     # Record what we changed into the history log (newest first).
     try {
         $now = Get-Date -Format 'yyyy-MM-dd HH:mm'
@@ -1468,6 +1597,9 @@ function Start-WebScanGameFolder {
         Write-Log "Could not enumerate game folder '$Folder': $($_.Exception.Message)" 'WARN'
         return @{ ok = $false; error = "The selected folder could not be read: $($_.Exception.Message)" }
     }
+    $Session.ScanInventoryFolder = $Folder
+    $Session.ScanInventoryMode = 'game_files'
+    $Session.ScanInventory = @($allFiles | ForEach-Object { [System.IO.Path]::GetFullPath($_.FullName) })
     $existingLinks = @($allFiles | Where-Object { $_.Extension -ieq '.lnk' })
 
     # Inspect all existing links first. Their target and argument paths are
@@ -1513,7 +1645,13 @@ function Start-WebScanGameFolder {
 
     $includedShortcuts = 0
     $excludedLauncherApps = 0
-    foreach ($linkFile in $existingLinks) {
+    $shortcutsToInclude = $existingLinks
+    if ($Session.OnlyNew -and $Session.OnlyNewPaths -and $Session.OnlyNewPaths.Count -gt 0) {
+        $shortcutsToInclude = @($existingLinks | Where-Object {
+            $Session.OnlyNewPaths.ContainsKey(([string]$_.FullName).ToLowerInvariant())
+        })
+    }
+    foreach ($linkFile in $shortcutsToInclude) {
         if ($files.Count -ge $maxTargets) { $truncated++; continue }
         $skipAsLauncherUtility = $false
         $isEmulatorAppShortcut = $false
@@ -1551,6 +1689,8 @@ function Start-WebScanGameFolder {
     $failedUrls = 0
     $urlFallbacks = New-Object System.Collections.Generic.List[string]
     foreach ($internetShortcut in @(Get-InternetShortcuts -Folder $Folder)) {
+        if ($Session.OnlyNew -and $Session.OnlyNewPaths -and $Session.OnlyNewPaths.Count -gt 0 -and
+            -not $Session.OnlyNewPaths.ContainsKey(([string]$internetShortcut.Path).ToLowerInvariant())) { continue }
         if ($files.Count -ge $maxTargets) { $truncated++; continue }
         $alreadyRepresented = $false
         foreach ($existingLink in $existingLinks) {
@@ -1608,6 +1748,11 @@ function Start-WebScanGameFolder {
     $candidateFiles = @($allFiles | Where-Object {
         $_.Extension -in @('.exe','.bat','.cmd') -or $_.Extension.ToLowerInvariant() -in $romExtensions
     })
+    if ($Session.OnlyNew -and $Session.OnlyNewPaths -and $Session.OnlyNewPaths.Count -gt 0) {
+        $candidateFiles = @($candidateFiles | Where-Object {
+            $Session.OnlyNewPaths.ContainsKey(([string]$_.FullName).ToLowerInvariant())
+        })
+    }
 
     foreach ($candidate in $candidateFiles) {
         $extension = [string]$candidate.Extension.ToLowerInvariant()

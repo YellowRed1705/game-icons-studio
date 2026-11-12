@@ -108,7 +108,7 @@ function New-IconBackupTransaction {
         SchemaVersion = 1
         Id = $id
         CreatedAt = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
-        AppVersion = '6.48'
+        AppVersion = '6.49'
         Label = 'Icon change transaction'
         RestoredAt = ''
         Items = @()

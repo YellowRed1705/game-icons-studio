@@ -35,6 +35,38 @@ foreach ($token in @('function setLang(lang)','function applyScreenLanguage(scre
 $webServerPath = Join-Path $PSScriptRoot '..\data\src\WebServer.ps1'
 $webServerText = Get-Content -LiteralPath $webServerPath -Raw
 
+# Ten workflow regression categories: saved picks, manual editing, path-based
+# new-file discovery and reliable shortcut icon persistence.
+foreach ($token in @(
+    'state.useMemory = true;',
+    'if (it.remembered && it.savedUrl) applyRememberedCover(it);',
+    'if (state.autoAll && !state.editReturnToReview)',
+    'state.autoAll = false;',
+    'function scanGameFilesFolder(folder, onlyNew)',
+    'onlyNew: state.onlyNew',
+    'function Get-GameLibraryInventoryPaths',
+    'function Get-NewInventoryPaths',
+    'Save-KnownShortcutFiles',
+    'Get-ScanInventoryKey'
+)) {
+    if (-not $webAppText.Contains($token) -and -not $webServerText.Contains($token)) {
+        throw "Scan workflow regression guard is missing: $token"
+    }
+}
+if ($webServerText -notmatch 'Get-GameLibraryInventoryPaths -Folder \$Session.ScanInventoryFolder -Mode \$Session.ScanInventoryMode' -or
+    $webServerText -notmatch 'Save-KnownShortcutFiles -Root \$Session.Root') {
+    throw 'Completed scan inventory must be persisted after apply, not at scan start.'
+}
+if ($webServerText -notmatch 'OnlyNewPaths\.ContainsKey' -or
+    $webServerText -notmatch 'shortcutsToInclude' -or
+    $webServerText -notmatch '\$candidateFiles = @\(\$candidateFiles') {
+    throw 'Only-new filtering must cover .lnk, .url, EXE, script and ROM targets.'
+}
+$shortcutToolsText = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\data\src\ShortcutTools.ps1') -Raw
+foreach ($token in @('for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++)','New-Object -ComObject WScript.Shell','FinalReleaseComObject','Windows did not persist the new icon location')) {
+    if (-not $shortcutToolsText.Contains($token)) { throw "Reliable shortcut icon writing is missing: $token" }
+}
+
 # Regression: PowerShell 7.7 may throw "Argument types do not match" when
 # a Generic.List[object] is wrapped directly with @() inside a hashtable.
 # Production code must materialize the list with ToArray() before JSON encoding.
@@ -119,6 +151,8 @@ function Get-SafeFileName {
     return $safe.Trim().TrimEnd('.')
 }
 
+. (Join-Path $PSScriptRoot '..\data\src\Settings.ps1')
+. (Join-Path $PSScriptRoot '..\data\src\WebServer.ps1')
 . (Join-Path $PSScriptRoot '..\data\src\ShortcutTools.ps1')
 . (Join-Path $PSScriptRoot '..\data\src\IconTools.ps1')
 . (Join-Path $PSScriptRoot '..\data\src\IconBackup.ps1')
@@ -128,6 +162,44 @@ New-Item -ItemType Directory -Path $testRoot -Force | Out-Null
 $shell = $null
 
 try {
+    # Path inventory detects same-name items from their distinct full paths.
+    $inventoryFolder = Join-Path $testRoot 'inventory'
+    New-Item -ItemType Directory -Path $inventoryFolder -Force | Out-Null
+    $inventoryLnk = Join-Path $inventoryFolder 'Existing Game.lnk'
+    $inventoryExe = Join-Path $inventoryFolder 'New Game.exe'
+    $inventoryRom = Join-Path $inventoryFolder 'New Game.nsp'
+    $inventoryTxt = Join-Path $inventoryFolder 'readme.txt'
+    foreach ($filePath in @($inventoryLnk,$inventoryExe,$inventoryRom,$inventoryTxt)) {
+        [System.IO.File]::WriteAllText($filePath, 'inventory test')
+    }
+    $allInventory = @(Get-GameLibraryInventoryPaths -Folder $inventoryFolder -Mode 'game_files')
+    $shortcutInventory = @(Get-GameLibraryInventoryPaths -Folder $inventoryFolder -Mode 'shortcuts')
+    if ($allInventory.Count -ne 3 -or $shortcutInventory.Count -ne 1) {
+        throw "Game Library inventory mismatch. game_files=$($allInventory.Count), shortcuts=$($shortcutInventory.Count)."
+    }
+    $newInventory = @(Get-NewInventoryPaths -CurrentPaths $allInventory -KnownPaths @($inventoryLnk))
+    if ($newInventory.Count -ne 2 -or $newInventory -notcontains $inventoryExe -or $newInventory -notcontains $inventoryRom) {
+        throw 'Only-new path comparison did not return the newly added EXE and ROM.'
+    }
+
+    # Persist and reload path inventory while preserving old knownGames.json.
+    $inventoryKey = Get-ScanInventoryKey -Folder $inventoryFolder -Mode 'game_files'
+    $knownFileMap = @{}
+    $knownFileMap[$inventoryKey] = $allInventory
+    Save-KnownShortcutFiles -Root $testRoot -Map $knownFileMap
+    $knownFileReload = Get-KnownShortcutFiles -Root $testRoot
+    if (-not $knownFileReload.ContainsKey($inventoryKey) -or @($knownFileReload[$inventoryKey]).Count -ne 3) {
+        throw 'knownShortcutFiles.json did not persist the Game Library inventory.'
+    }
+    $legacyKnown = @{}
+    $legacyKnown[$inventoryFolder.ToLowerInvariant()] = @('Existing Game')
+    Save-KnownGames -Root $testRoot -Map $legacyKnown
+    $legacyReload = Get-KnownGames -Root $testRoot
+    if (-not $legacyReload.ContainsKey($inventoryFolder.ToLowerInvariant()) -or
+        @($legacyReload[$inventoryFolder.ToLowerInvariant()]).Count -ne 1) {
+        throw 'Legacy knownGames.json compatibility was lost.'
+    }
+
     $shell = Get-WshShell
 
     # Real Windows .lnk regression: plain launcher shortcuts are app icons.
@@ -166,7 +238,11 @@ try {
 
     [byte[]]$icoBytes = @(0,0,1,0,1,0,1,1,0,0,1,0,1,0,22,0,0,0,2,0,0,0)
     [System.IO.File]::WriteAllBytes($icoPath,$icoBytes)
-    if (-not (Test-ValidIcoFile -Path $icoPath)) { throw 'ICO validator rejected a structurally valid test icon.' }
+    $icoPath2 = Join-Path $testRoot 'Test Game Second.ico'
+    [System.IO.File]::WriteAllBytes($icoPath2,$icoBytes)
+    if (-not (Test-ValidIcoFile -Path $icoPath) -or -not (Test-ValidIcoFile -Path $icoPath2)) {
+        throw 'ICO validator rejected one of the structurally valid test icons.'
+    }
 
     $urlEntries = @(Get-InternetShortcuts -Folder $testRoot)
     if ($urlEntries.Count -ne 1 -or $urlEntries[0].Url -ne 'steam://rungameid/123456') {
@@ -182,12 +258,18 @@ try {
     $originalTarget = [string]$converted.TargetPath
     $originalArguments = [string]$converted.Arguments
     Set-ShortcutIcon -ShortcutPath $convertedPath -IcoPath $icoPath
+    # Change the same shortcut a second time with another ICO.
+    Set-ShortcutIcon -ShortcutPath $convertedPath -IcoPath $icoPath2
     $verified = $shell.CreateShortcut($convertedPath)
     if ([string]$verified.TargetPath -ne $originalTarget -or [string]$verified.Arguments -ne $originalArguments) {
         throw 'Changing a shortcut icon modified its original launch command.'
     }
-    if (([string]$verified.IconLocation -split ',')[0].Trim('"') -ine $icoPath) {
-        throw 'Custom ICO path was not persisted on the shortcut.'
+    if (([string]$verified.IconLocation -split ',')[0].Trim('"') -ine $icoPath2) {
+        throw 'Repeated custom ICO update was not persisted on the shortcut.'
+    }
+    $singleSelected = @(Get-ShortcutsFromPaths -Paths @($convertedPath))
+    if ($singleSelected.Count -ne 1 -or [string]$singleSelected[0].Path -ine $convertedPath) {
+        throw 'Selecting one specific shortcut did not produce exactly one editable scan target.'
     }
 
     # Verify Undo restores an existing source file and removes a newly created link.
@@ -208,7 +290,7 @@ try {
     Restore-IconBackupFile -FileRecord $newRecord -TransactionFolder $backupFolder
     if (Test-Path -LiteralPath $newShortcut) { throw 'Undo did not remove a newly generated shortcut.' }
 
-    Write-Host 'Compatibility tests passed: native picker, EN/TR/AR UI, PowerShell 7.7 embedded-icon fallback serialization, Cemu/Eden/Ryubing detection, ROM links, launcher conversion, ICO persistence and Undo.'
+    Write-Host 'Compatibility tests passed: native picker, EN/TR/AR UI, embedded-icon serialization, saved-pick defaults, manual single-item edit, path-based only-new inventory, legacy migration, repeat ICO writes, emulator detection, launcher conversion and Undo.'
 }
 finally {
     try { if ($shell) { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null } } catch { }

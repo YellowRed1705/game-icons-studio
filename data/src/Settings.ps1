@@ -343,6 +343,48 @@ function Save-KnownGames {
     }
 }
 
+function Get-KnownShortcutFilesPath {
+    param([Parameter(Mandatory)][string]$Root)
+    return (Join-Path $Root 'knownShortcutFiles.json')
+}
+
+function Get-KnownShortcutFiles {
+    param([Parameter(Mandatory)][string]$Root)
+    $path = Get-KnownShortcutFilesPath -Root $Root
+    if (-not (Test-Path -LiteralPath $path)) { return @{} }
+    try {
+        $raw = Get-Content -LiteralPath $path -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json
+        $map = @{}
+        foreach ($property in $raw.PSObject.Properties) {
+            $values = @()
+            foreach ($value in @($property.Value)) {
+                if (-not [string]::IsNullOrWhiteSpace([string]$value)) { $values += ([string]$value).ToLowerInvariant() }
+            }
+            $map[[string]$property.Name] = $values
+        }
+        return $map
+    } catch {
+        Write-Log "knownShortcutFiles.json unreadable: $($_.Exception.Message)" 'WARN'
+        return @{}
+    }
+}
+
+function Save-KnownShortcutFiles {
+    param([Parameter(Mandatory)][string]$Root,[Parameter(Mandatory)][hashtable]$Map)
+    $path = Get-KnownShortcutFilesPath -Root $Root
+    try {
+        $obj = New-Object PSObject
+        foreach ($key in @($Map.Keys | Sort-Object)) {
+            $values = @($Map[$key] | ForEach-Object { ([string]$_).ToLowerInvariant() } | Sort-Object -Unique)
+            $obj | Add-Member -MemberType NoteProperty -Name ([string]$key) -Value $values -Force
+        }
+        $json = ConvertTo-Json -InputObject $obj -Depth 8
+        [System.IO.File]::WriteAllText($path, $json, (New-Object System.Text.UTF8Encoding($true)))
+    } catch {
+        Write-Log "Could not save known shortcut files: $($_.Exception.GetType().Name): $($_.Exception.Message)" 'WARN'
+    }
+}
+
 function Get-HistoryPath { param([Parameter(Mandatory)][string]$Root) return (Join-Path $Root 'history.json') }
 
 function Add-HistoryEntries {
