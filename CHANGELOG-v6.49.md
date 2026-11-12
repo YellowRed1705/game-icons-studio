@@ -23,6 +23,7 @@
 - Shortcut icon writes now use a fresh `WScript.Shell` COM instance per attempt, release COM references, retry transient lock/sync failures, and verify the persisted `IconLocation`.
 - Preserves TargetPath, Arguments, WorkingDirectory and original read-only attributes. Up to four attempts are made before an item is reported as failed.
 - Adds Windows regression checks for same-folder path inventory, old data compatibility, one-item selection and repeated icon writes.
+- Release validation checks browser JavaScript syntax and parses all packaged PowerShell scripts before creating the archives.
 
 ## Upgrade
 - Full package: `Game-Icons-Studio-v6.49.zip`.

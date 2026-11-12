@@ -158,7 +158,7 @@ function Set-ShortcutIcon {
                 throw "Windows did not persist the new icon location. Expected '$fullIco', received '$persistedIcon'."
             }
             if ($attempt -gt 1) {
-                Write-Log "Shortcut icon update succeeded on retry $attempt/$MaxAttempts: $fullShortcut" 'WARN'
+                Write-Log "Shortcut icon update succeeded on retry $attempt/${MaxAttempts}: $fullShortcut" 'WARN'
             }
             return $true
         } catch {
