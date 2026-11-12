@@ -187,7 +187,7 @@ function Set-ShortcutIcon {
     throw "Could not persist the custom icon after $MaxAttempts attempts: $fullShortcut. Last error: $lastError"
 }
 
-function Set-FileCustomIconShortcut {function Set-FileCustomIconShortcut {
+function Set-FileCustomIconShortcut {
     <#
         Creates a standard Windows .lnk beside an executable, script, ROM or
         other file whose Explorer icon cannot be individually customized.

@@ -14,6 +14,7 @@
 - When new items are detected, the UI offers **Only new files / shortcuts** or **Scan everything**.
 - Game Library only-new scans still inspect existing emulator launcher shortcuts to build correct ROM launch commands, while only new targets enter the update queue.
 - The path inventory is saved after the apply attempt, not at scan start. A scan cancelled before apply does not consume new items; failed paths remain eligible for a later scan.
+- An explicit inventory-baseline flag prevents a race between the count prompt and scan from reverting an empty new-item set to a full-folder scan.
 - Existing v6.48 `knownGames.json` data is retained as a one-time migration fallback.
 
 ## Single-item editing and shortcut write reliability

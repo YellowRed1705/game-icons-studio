@@ -244,6 +244,7 @@ function Start-IconWebApp {
         ProgramIconNames = @{} # normalized emulator launcher names in mixed Game Library scans
         OnlyNew = $false
         OnlyNewPaths = @{}
+        HasKnownScanInventory = $false
         ScanInventoryFolder = ''
         ScanInventoryMode = ''
         ScanInventory = @()
@@ -471,6 +472,7 @@ function Invoke-WebRoute {
         }
         $Session.OnlyNew = $false
         $Session.OnlyNewPaths = @{}
+        $Session.HasKnownScanInventory = $false
         $Session.ScanInventoryFolder = ''
         $Session.ScanInventoryMode = ''
         $Session.ScanInventory = @()
@@ -491,6 +493,7 @@ function Invoke-WebRoute {
         $onlyNew = [bool]($body -and $body.onlyNew)
         $Session.OnlyNew = $onlyNew
         $Session.OnlyNewPaths = @{}
+        $Session.HasKnownScanInventory = $false
         $Session.ScanInventoryFolder = $folder
         $Session.ScanInventoryMode = 'game_files'
         $Session.ScanInventory = @(Get-GameLibraryInventoryPaths -Folder $folder -Mode 'game_files')
@@ -498,6 +501,7 @@ function Invoke-WebRoute {
             $inventoryKey = Get-ScanInventoryKey -Folder $folder -Mode 'game_files'
             $knownFiles = Get-KnownShortcutFiles -Root $Session.Root
             if ($knownFiles.ContainsKey($inventoryKey)) {
+                $Session.HasKnownScanInventory = $true
                 $newPaths = @(Get-NewInventoryPaths -CurrentPaths $Session.ScanInventory -KnownPaths $knownFiles[$inventoryKey])
                 foreach ($newPath in $newPaths) { $Session.OnlyNewPaths[$newPath.ToLowerInvariant()] = $true }
             }
@@ -620,6 +624,7 @@ function Invoke-WebRoute {
         $targetMode = if ($body -and $body.targetMode) { [string]$body.targetMode } else { 'shortcuts' }
         $Session.OnlyNew = $onlyNew
         $Session.OnlyNewPaths = @{}
+        $Session.HasKnownScanInventory = $false
         $Session.ScanInventoryFolder = ''
         $Session.ScanInventoryMode = ''
         $Session.ScanInventory = @()
@@ -632,6 +637,7 @@ function Invoke-WebRoute {
                 $inventoryKey = Get-ScanInventoryKey -Folder $folder -Mode 'shortcuts'
                 $knownFiles = Get-KnownShortcutFiles -Root $Session.Root
                 if ($knownFiles.ContainsKey($inventoryKey)) {
+                    $Session.HasKnownScanInventory = $true
                     $newPaths = @(Get-NewInventoryPaths -CurrentPaths $Session.ScanInventory -KnownPaths $knownFiles[$inventoryKey])
                     foreach ($newPath in $newPaths) { $Session.OnlyNewPaths[$newPath.ToLowerInvariant()] = $true }
                 }
@@ -718,7 +724,7 @@ function Invoke-WebRoute {
         return
     }
 
-    if ($path -eq '/api/game-covers' -and $method -eq 'POST') {    if ($path -eq '/api/game-covers' -and $method -eq 'POST') {
+    if ($path -eq '/api/game-covers' -and $method -eq 'POST') {
         $bodyText = Read-RequestBody -Context $Context
         $body = $null
         try { $body = $bodyText | ConvertFrom-Json } catch { }
@@ -1646,7 +1652,7 @@ function Start-WebScanGameFolder {
     $includedShortcuts = 0
     $excludedLauncherApps = 0
     $shortcutsToInclude = $existingLinks
-    if ($Session.OnlyNew -and $Session.OnlyNewPaths -and $Session.OnlyNewPaths.Count -gt 0) {
+    if ($Session.OnlyNew -and $Session.HasKnownScanInventory) {
         $shortcutsToInclude = @($existingLinks | Where-Object {
             $Session.OnlyNewPaths.ContainsKey(([string]$_.FullName).ToLowerInvariant())
         })
@@ -1689,7 +1695,7 @@ function Start-WebScanGameFolder {
     $failedUrls = 0
     $urlFallbacks = New-Object System.Collections.Generic.List[string]
     foreach ($internetShortcut in @(Get-InternetShortcuts -Folder $Folder)) {
-        if ($Session.OnlyNew -and $Session.OnlyNewPaths -and $Session.OnlyNewPaths.Count -gt 0 -and
+        if ($Session.OnlyNew -and $Session.HasKnownScanInventory -and
             -not $Session.OnlyNewPaths.ContainsKey(([string]$internetShortcut.Path).ToLowerInvariant())) { continue }
         if ($files.Count -ge $maxTargets) { $truncated++; continue }
         $alreadyRepresented = $false
@@ -1748,7 +1754,7 @@ function Start-WebScanGameFolder {
     $candidateFiles = @($allFiles | Where-Object {
         $_.Extension -in @('.exe','.bat','.cmd') -or $_.Extension.ToLowerInvariant() -in $romExtensions
     })
-    if ($Session.OnlyNew -and $Session.OnlyNewPaths -and $Session.OnlyNewPaths.Count -gt 0) {
+    if ($Session.OnlyNew -and $Session.HasKnownScanInventory) {
         $candidateFiles = @($candidateFiles | Where-Object {
             $Session.OnlyNewPaths.ContainsKey(([string]$_.FullName).ToLowerInvariant())
         })
