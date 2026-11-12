@@ -1,5 +1,5 @@
 # ============================================================
-#  WebApp.ps1 (v6.48) - Game Icons Studio browser UI
+#  WebApp.ps1 (v6.49) - Game Icons Studio browser UI
 #  Single-page app served by WebServer.ps1. Browser-first:
 #  home with 3 big actions -> guided wizard -> live apply.
 #  Pure presentation; all real work is in the core modules.
@@ -30,7 +30,7 @@ function Get-WebAppHtml {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Game Icons Studio v6.48</title>
+<title>Game Icons Studio v6.49</title>
 <link rel="icon" type="image/png" href="/assets/brand.png">
 <style>
   :root {

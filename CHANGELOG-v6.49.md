@@ -24,6 +24,7 @@
 - Preserves TargetPath, Arguments, WorkingDirectory and original read-only attributes. Up to four attempts are made before an item is reported as failed.
 - Adds Windows regression checks for same-folder path inventory, old data compatibility, one-item selection and repeated icon writes.
 - Release validation checks browser JavaScript syntax and parses all packaged PowerShell scripts before creating the archives.
+- Aligns the browser document title with the v6.49 executable and restore-point metadata.
 
 ## Upgrade
 - Full package: `Game-Icons-Studio-v6.49.zip`.
