@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png" alt="Game Icons Studio" width="120">
 
-# Game Icons Studio v6.47
+# Game Icons Studio v6.48
 
 ### From generic icons to a game shelf.
 
@@ -58,9 +58,19 @@ It runs locally on your PC. The interface opens in your web browser, but it is *
 - 🧰 **Icon-cache repair** — help refresh blank or stale icons displayed by Windows.
 - 🎨 **Multiple themes** — Aurora Glass is the default theme, with other themes available.
 
-## What's new in v6.30–v6.47
+## What's new in v6.30–v6.48
 
 These release notes are an addition to the original introduction above. The logo, demo, before-and-after image, and original page structure are retained.
+
+<details>
+<summary><strong>v6.48 — PowerShell 7.7 embedded-icon scan crash fix</strong></summary>
+
+- Fixes the Game Library scan crash when an application uses its embedded EXE/ICO icon as the fallback artwork.
+- Converts the fallback artwork collection from Generic.List[object] to a plain object array before building the JSON response. This avoids the PowerShell 7.7 "Argument types do not match" exception.
+- Adds a regression check for the fallback collection and its JSON round-trip.
+- Preserves existing shortcut data, saved artwork choices, restore points and the normal Review/Apply workflow.
+
+</details>
 
 <details>
 <summary><strong>v6.47 — simpler Google/Yandex image search and instant drag-and-drop</strong></summary>
@@ -245,7 +255,7 @@ These release notes are an addition to the original introduction above. The logo
 
 </details>
 
-See the complete [CHANGELOG-v6.47.md](CHANGELOG-v6.47.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
+See the complete [CHANGELOG-v6.48.md](CHANGELOG-v6.48.md) and download the current version from [GitHub Releases](https://github.com/YellowRed1705/game-icons-studio/releases/latest).
 
 ## Requirements
 

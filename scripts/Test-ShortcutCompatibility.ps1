@@ -34,6 +34,25 @@ foreach ($token in @('function setLang(lang)','function applyScreenLanguage(scre
 
 $webServerPath = Join-Path $PSScriptRoot '..\data\src\WebServer.ps1'
 $webServerText = Get-Content -LiteralPath $webServerPath -Raw
+
+# Regression: PowerShell 7.7 may throw "Argument types do not match" when
+# a Generic.List[object] is wrapped directly with @() inside a hashtable.
+# Production code must materialize the list with ToArray() before JSON encoding.
+if ($webServerText -notmatch '\$fallbackCoverArray\s*=\s*\$fallbackCovers\.ToArray\(\)' -or
+    $webServerText -match 'covers\s*=\s*@\(\$fallbackCovers\)') {
+    throw 'Embedded application-icon fallback must convert Generic.List with ToArray() before building JSON.'
+}
+$fallbackCoverProbe = New-Object 'System.Collections.Generic.List[object]'
+$fallbackCoverProbe.Add([PSCustomObject]@{ url = '/cache/regression.png'; thumb = '/cache/regression.png'; score = 100 })
+$fallbackCoverArray = $fallbackCoverProbe.ToArray()
+$fallbackSection = @(@{ gameId = 0; gameName = 'Embedded icon regression'; year = 0; covers = $fallbackCoverArray })
+$fallbackJson = ConvertTo-Json -InputObject $fallbackSection -Depth 8 -Compress
+$fallbackRoundTrip = ConvertFrom-Json -InputObject $fallbackJson
+if ($fallbackRoundTrip.Count -ne 1 -or
+    $fallbackRoundTrip[0].covers.Count -ne 1 -or
+    $fallbackRoundTrip[0].covers[0].url -ne '/cache/regression.png') {
+    throw 'Embedded application-icon fallback array did not survive JSON serialization.'
+}
 if ($webServerText -notmatch 'ShowMaximizedAndForeground\(\$hwnd\)' -or
     $webServerText -notmatch '\$attempt -lt 30') {
     throw 'Post-apply Explorer must be maximized and focused.'
@@ -189,7 +208,7 @@ try {
     Restore-IconBackupFile -FileRecord $newRecord -TransactionFolder $backupFolder
     if (Test-Path -LiteralPath $newShortcut) { throw 'Undo did not remove a newly generated shortcut.' }
 
-    Write-Host 'Shortcut compatibility tests passed: native picker, EN/TR/AR UI, Cemu/Eden/Ryubing detection, ROM link separation, launcher conversion, ICO persistence and Undo.'
+    Write-Host 'Compatibility tests passed: native picker, EN/TR/AR UI, PowerShell 7.7 embedded-icon fallback serialization, Cemu/Eden/Ryubing detection, ROM links, launcher conversion, ICO persistence and Undo.'
 }
 finally {
     try { if ($shell) { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($shell) | Out-Null } } catch { }

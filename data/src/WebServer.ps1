@@ -1184,7 +1184,11 @@ function Step-WebScan {
                     if (-not $dupe) { $fallbackCovers.Add($cover) }
                 }
             }
-            $jsonSections = @(@{ gameId=0; gameName="$name (embedded icon + alternatives)"; year=0; covers=@($fallbackCovers) })
+            # Materialize the generic list as a real array before embedding it in the
+            # JSON payload. PowerShell 7.7 can throw "Argument types do not match"
+            # when @() receives a Generic.List from inside a hashtable literal.
+            $fallbackCoverArray = $fallbackCovers.ToArray()
+            $jsonSections = @(@{ gameId=0; gameName="$name (embedded icon + alternatives)"; year=0; covers=$fallbackCoverArray })
             $autoConfident = $true
             $topScore = 100
         } elseif ($jsonSections.Count -gt 0) {

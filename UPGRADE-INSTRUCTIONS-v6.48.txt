@@ -1,0 +1,12 @@
+Game Icons Studio v6.48 — Upgrade instructions
+
+1. Close Game Icons Studio and its browser tab.
+2. Download "Game-Icons-Studio-v6.48-Upgrade.zip" from the latest GitHub Release:
+   https://github.com/YellowRed1705/game-icons-studio/releases/latest
+3. Extract the ZIP directly over the existing Game Icons Studio program folder
+   (the folder that contains "Game Icons Studio.bat"). Allow runtime files to be replaced.
+4. Start the app with "Game Icons Studio.bat".
+
+The upgrade archive contains the application runtime and release notes. It does not
+include your local settings, overrides, saved artwork choices, cache, icons, logs,
+or restore-point backups. Those existing files remain in place.
